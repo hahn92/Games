@@ -102,11 +102,19 @@ function draw() {
     ctx.arc(0, 0, BIRD_SIZE/2, 0, Math.PI*2);
     ctx.fill();
     ctx.restore();
-    // Puntaje
+    // Puntaje en canvas
     ctx.fillStyle = '#222';
     ctx.font = 'bold 28px Arial';
     ctx.fillText('Puntaje: ' + score, 16, 40);
     ctx.fillText('Mejor: ' + highScore, 16, 70);
+
+    // Puntaje en panel derecho
+    if (document.getElementById('score')) {
+        document.getElementById('score').textContent = score;
+    }
+    if (document.getElementById('highScore')) {
+        document.getElementById('highScore').textContent = highScore;
+    }
 }
 
 canvas.addEventListener('mousedown', () => {
