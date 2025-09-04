@@ -1,6 +1,7 @@
 const SIZE = 4;
-let board = [], flipped = [], matched = 0, score = 0, highScore = localStorage.getItem('memoramaHighScore') || 0;
+let board = [], flipped = [], matched = 0, score = 500, highScore = localStorage.getItem('memoramaHighScore') || 0;
 let isPlaying = false;
+let timer = null, timeLeft = 180;
 
 function createBoard() {
     let values = [];
@@ -17,7 +18,8 @@ function createBoard() {
     }
     flipped = [];
     matched = 0;
-    score = 0;
+    score = 500;
+    timeLeft = 180;
     render();
 }
 
@@ -44,6 +46,7 @@ function render() {
     }
     document.getElementById('score').textContent = score;
     document.getElementById('highScore').textContent = highScore;
+    document.getElementById('timer').textContent = formatTime(timeLeft);
 }
 
 function flipCard(r, c) {
@@ -54,7 +57,6 @@ function flipCard(r, c) {
     flipped.push({ r, c });
     render();
     if (flipped.length === 2) {
-        score++;
         setTimeout(checkMatch, 700);
     }
 }
@@ -67,10 +69,15 @@ function checkMatch() {
         cardA.matched = true;
         cardB.matched = true;
         matched += 2;
-        if (matched === SIZE*SIZE) gameOver();
+        if (matched === SIZE*SIZE) gameOver(true);
     } else {
         cardA.flipped = false;
         cardB.flipped = false;
+        score -= 20;
+        if (score <= 0) {
+            score = 0;
+            gameOver(false);
+        }
     }
     flipped = [];
     render();
@@ -81,22 +88,53 @@ function startGame() {
     isPlaying = true;
     document.getElementById('restartBtn').disabled = false;
     document.getElementById('startBtn').disabled = true;
+    document.getElementById('gameOverPopup').style.display = 'none';
+    startTimer();
 }
 
 function restartGame() {
+    clearInterval(timer);
     startGame();
 }
 
-function gameOver() {
+function gameOver(won) {
     isPlaying = false;
-    if (score > highScore || highScore === 0) {
+    clearInterval(timer);
+    if (won && (score > highScore || highScore === 0)) {
         highScore = score;
         localStorage.setItem('memoramaHighScore', highScore);
     }
     document.getElementById('gameOverPopup').style.display = 'flex';
-    document.getElementById('finalScore').textContent = 'Puntaje: ' + score;
+    document.getElementById('finalScore').textContent = won ? '¡Ganaste! Puntaje: ' + score : '¡Perdiste! Puntaje: 0';
     document.getElementById('startBtn').disabled = false;
     document.getElementById('restartBtn').disabled = true;
+}
+function startTimer() {
+    clearInterval(timer);
+    timer = setInterval(() => {
+        if (!isPlaying) return;
+        timeLeft--;
+        score -= 2; // Pierde puntos por tiempo
+        if (score <= 0) {
+            score = 0;
+            render();
+            gameOver(false);
+            return;
+        }
+        if (timeLeft <= 0) {
+            timeLeft = 0;
+            render();
+            gameOver(false);
+            return;
+        }
+        render();
+    }, 1000);
+}
+
+function formatTime(seconds) {
+    const min = Math.floor(seconds / 60);
+    const sec = seconds % 60;
+    return `${min}:${sec.toString().padStart(2, '0')}`;
 }
 
 document.getElementById('startBtn').addEventListener('click', startGame);
@@ -108,4 +146,5 @@ document.getElementById('playAgainBtn').addEventListener('click', () => {
 
 document.getElementById('score').textContent = score;
 document.getElementById('highScore').textContent = highScore;
+if (document.getElementById('timer')) document.getElementById('timer').textContent = formatTime(timeLeft);
 render();
