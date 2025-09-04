@@ -18,7 +18,15 @@
                 <span>Puntaje: <span id="score">0</span></span>
                 <span>Mejor puntaje: <span id="highScore">0</span></span>
             </div>
-            <button id="restartBtn">Reiniciar</button>
+            <button id="startBtn">Iniciar</button>
+            <button id="restartBtn" disabled>Reiniciar</button>
+        </div>
+        <div id="gameOverPopup" class="popup" style="display:none;">
+            <div class="popup-content">
+                <h2>¡Juego terminado!</h2>
+                <p id="finalScore">Puntaje: 0</p>
+                <button id="playAgainBtn">Volver a jugar</button>
+            </div>
         </div>
     </main>
     <script src="./main.js"></script>

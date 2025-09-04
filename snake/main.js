@@ -126,9 +126,66 @@ window.addEventListener('keydown', e => {
     if (e.key === 'ArrowDown' && direction !== 'UP') direction = 'DOWN';
 });
 
-document.getElementById('restartBtn').addEventListener('click', restartGame);
-// Inicializa el juego
+
+const startBtn = document.getElementById('startBtn');
+const restartBtn = document.getElementById('restartBtn');
+
+let isPlaying = false;
+
+function startGame() {
+    if (isPlaying) return;
+    isPlaying = true;
+    restartBtn.disabled = false;
+    startBtn.disabled = true;
+    snake = [{ x: 9 * box, y: 10 * box }];
+    direction = 'RIGHT';
+    fruit = randomPosition();
+    score = 0;
+    speed = 250;
+    updateScore();
+    draw();
+    clearInterval(gameInterval);
+    gameInterval = setInterval(moveSnake, speed);
+}
+
+function restartGame() {
+    if (!isPlaying) return;
+    snake = [{ x: 9 * box, y: 10 * box }];
+    direction = 'RIGHT';
+    fruit = randomPosition();
+    score = 0;
+    speed = 250;
+    updateScore();
+    draw();
+    clearInterval(gameInterval);
+    gameInterval = setInterval(moveSnake, speed);
+}
+
+
+function gameOver() {
+    clearInterval(gameInterval);
+    if (score > highScore) {
+        highScore = score;
+        localStorage.setItem('snakeHighScore', highScore);
+    }
+    // Mostrar popup
+    const popup = document.getElementById('gameOverPopup');
+    const finalScore = document.getElementById('finalScore');
+    popup.style.display = 'flex';
+    finalScore.textContent = 'Puntaje: ' + score;
+    isPlaying = false;
+    startBtn.disabled = false;
+    restartBtn.disabled = true;
+}
+
+document.getElementById('playAgainBtn').addEventListener('click', () => {
+    document.getElementById('gameOverPopup').style.display = 'none';
+    startGame();
+});
+
+startBtn.addEventListener('click', startGame);
+restartBtn.addEventListener('click', restartGame);
+
+// Inicializa solo la pantalla y puntajes
 updateScore();
 draw();
-gameInterval = setInterval(moveSnake, speed);
-gameInterval = setInterval(moveSnake, speed);
