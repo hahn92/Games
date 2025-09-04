@@ -38,12 +38,45 @@ function draw() {
     ctx.fillStyle = '#222';
     ctx.fillRect(0, 0, canvasSize, canvasSize);
 
-    // Dibuja la serpiente
+    // Dibuja la serpiente (circular)
     for (let i = 0; i < snake.length; i++) {
+        const seg = snake[i];
+        const cx = seg.x + box / 2;
+        const cy = seg.y + box / 2;
+        ctx.beginPath();
+        ctx.arc(cx, cy, box / 2 - 1, 0, Math.PI * 2);
         ctx.fillStyle = i === 0 ? '#8fd3f4' : '#5ec2e6';
-        ctx.fillRect(snake[i].x, snake[i].y, box, box);
+        ctx.fill();
+        ctx.lineWidth = 2;
         ctx.strokeStyle = '#181818';
-        ctx.strokeRect(snake[i].x, snake[i].y, box, box);
+        ctx.stroke();
+        // Ojos para la cabeza
+        if (i === 0) {
+            ctx.save();
+            ctx.fillStyle = '#fff';
+            let eyeOffsetX = 0, eyeOffsetY = 0, pupilOffsetX = 0, pupilOffsetY = 0;
+            if (direction === 'LEFT') { eyeOffsetX = -box/4; pupilOffsetX = -2; }
+            if (direction === 'RIGHT') { eyeOffsetX = box/4; pupilOffsetX = 2; }
+            if (direction === 'UP') { eyeOffsetY = -box/4; pupilOffsetY = -2; }
+            if (direction === 'DOWN') { eyeOffsetY = box/4; pupilOffsetY = 2; }
+            // Ojo izquierdo
+            ctx.beginPath();
+            ctx.arc(cx - box/6 + eyeOffsetX/2, cy - box/6 + eyeOffsetY/2, box/8, 0, Math.PI*2);
+            ctx.fill();
+            // Ojo derecho
+            ctx.beginPath();
+            ctx.arc(cx + box/6 + eyeOffsetX/2, cy - box/6 + eyeOffsetY/2, box/8, 0, Math.PI*2);
+            ctx.fill();
+            // Pupilas
+            ctx.fillStyle = '#222';
+            ctx.beginPath();
+            ctx.arc(cx - box/6 + eyeOffsetX/2 + pupilOffsetX, cy - box/6 + eyeOffsetY/2 + pupilOffsetY, box/18, 0, Math.PI*2);
+            ctx.fill();
+            ctx.beginPath();
+            ctx.arc(cx + box/6 + eyeOffsetX/2 + pupilOffsetX, cy - box/6 + eyeOffsetY/2 + pupilOffsetY, box/18, 0, Math.PI*2);
+            ctx.fill();
+            ctx.restore();
+        }
     }
 
     // Dibuja la fruta (manzana)
