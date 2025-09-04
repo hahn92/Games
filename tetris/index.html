@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tetris JS</title>
+    <link rel="stylesheet" href="./styles.css">
+</head>
+<body>
+    <main>
+        <div class="responsive-layout">
+            <div class="game-side">
+                <canvas id="tetrisCanvas" width="320" height="640"></canvas>
+            </div>
+            <div class="info-side">
+                <h1>Tetris JS</h1>
+                <p>El clásico juego de Tetris, encaja las piezas y evita que la pantalla se llene.<br>¡Pon a prueba tu habilidad y compite por la mejor puntuación!</p>
+                <div class="score-panel">
+                    <span>Puntaje: <span id="score">0</span></span>
+                    <span>Mejor puntaje: <span id="highScore">0</span></span>
+                </div>
+                <div class="buttons-panel">
+                    <button id="startBtn">Iniciar</button>
+                    <button id="restartBtn" disabled>Reiniciar</button>
+                </div>
+            </div>
+        </div>
+        <div id="gameOverPopup" class="popup" style="display:none;">
+            <div class="popup-content">
+                <h2>¡Juego terminado!</h2>
+                <p id="finalScore">Puntaje: 0</p>
+                <button id="playAgainBtn">Volver a jugar</button>
+            </div>
+        </div>
+    </main>
+    <script src="./main.js"></script>
+</body>
+</html>
