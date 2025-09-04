@@ -21,6 +21,11 @@ let highScore = localStorage.getItem('snakeHighScore') || 0;
 let gameInterval;
 let speed = 250; // milisegundos, aún más lento al inicio
 
+// Sonidos
+const eatSound = new Audio('eat.mp3');
+const gameOverSound = new Audio('gameover.mp3');
+const moveSound = new Audio('move.mp3');
+
 // Actualiza el puntaje en pantalla
 function updateScore() {
     document.getElementById('score').textContent = score;
@@ -128,6 +133,7 @@ function moveSnake() {
     if (head.x === fruit.x && head.y === fruit.y) {
         score++;
         fruit = randomPosition();
+        eatSound.currentTime = 0; eatSound.play();
     } else {
         snake.pop();
     }
@@ -136,36 +142,15 @@ function moveSnake() {
     updateScore();
 }
 
-function gameOver() {
-    clearInterval(gameInterval);
-    if (score > highScore) {
-        highScore = score;
-        localStorage.setItem('snakeHighScore', highScore);
-    }
-    setTimeout(() => {
-        alert('¡Juego terminado! Puntaje: ' + score);
-    }, 100);
-
-    snake = [{ x: 9 * box, y: 10 * box }];
-    direction = 'RIGHT';
-    fruit = randomPosition();
-    score = 0;
-    speed = 180;
-    draw();
-    updateScore();
-    clearInterval(gameInterval);
-    gameInterval = setInterval(moveSnake, speed);
-}
-
 // Control de teclado
 window.addEventListener('keydown', e => {
     if (["ArrowLeft", "ArrowUp", "ArrowRight", "ArrowDown"].includes(e.key)) {
         e.preventDefault(); // Evita el scroll de la página
     }
-    if (e.key === 'ArrowLeft' && direction !== 'RIGHT') direction = 'LEFT';
-    if (e.key === 'ArrowUp' && direction !== 'DOWN') direction = 'UP';
-    if (e.key === 'ArrowRight' && direction !== 'LEFT') direction = 'RIGHT';
-    if (e.key === 'ArrowDown' && direction !== 'UP') direction = 'DOWN';
+    if (e.key === 'ArrowLeft' && direction !== 'RIGHT') { direction = 'LEFT'; moveSound.currentTime = 0; moveSound.play(); }
+    if (e.key === 'ArrowUp' && direction !== 'DOWN') { direction = 'UP'; moveSound.currentTime = 0; moveSound.play(); }
+    if (e.key === 'ArrowRight' && direction !== 'LEFT') { direction = 'RIGHT'; moveSound.currentTime = 0; moveSound.play(); }
+    if (e.key === 'ArrowDown' && direction !== 'UP') { direction = 'DOWN'; moveSound.currentTime = 0; moveSound.play(); }
 });
 
 
@@ -210,6 +195,7 @@ function gameOver() {
         highScore = score;
         localStorage.setItem('snakeHighScore', highScore);
     }
+    gameOverSound.currentTime = 0; gameOverSound.play();
     // Mostrar popup
     const popup = document.getElementById('gameOverPopup');
     const finalScore = document.getElementById('finalScore');
