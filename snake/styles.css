@@ -1,3 +1,81 @@
+/* Layout responsivo principal */
+.responsive-layout {
+    display: flex;
+    flex-direction: row;
+    justify-content: center;
+    align-items: flex-start;
+    gap: 2.5rem;
+    width: 100%;
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 2rem 1rem;
+    box-sizing: border-box;
+}
+.game-side {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+}
+.info-side {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    justify-content: center;
+    min-width: 280px;
+    max-width: 400px;
+    background: rgba(36,36,36,0.85);
+    border-radius: 18px;
+    box-shadow: 0 8px 32px rgba(0,0,0,0.25);
+    padding: 2rem 2rem 2rem 2rem;
+    margin-top: 0;
+}
+.info-side h1 {
+    font-size: 2.2rem;
+    margin-bottom: 1rem;
+    background: linear-gradient(90deg, #8fd3f4 0%, #ff512f 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    text-fill-color: transparent;
+}
+.info-side p {
+    font-size: 1.1rem;
+    margin-bottom: 1.5rem;
+    color: #ffe082;
+    text-shadow: 0 2px 8px #222;
+}
+.buttons-panel {
+    display: flex;
+    gap: 1rem;
+    margin-top: 1.5rem;
+}
+@media (max-width: 900px) {
+    .responsive-layout {
+        flex-direction: column;
+        align-items: center;
+        gap: 1.5rem;
+        padding: 1rem 0.5rem;
+    }
+    .info-side {
+        max-width: 100vw;
+        width: 100%;
+        margin-top: 0;
+        align-items: center;
+        text-align: center;
+    }
+    .info-side h1 {
+        font-size: 1.7rem;
+    }
+    .game-side {
+        width: 100%;
+        justify-content: center;
+    }
+    canvas {
+        max-width: 95vw;
+        height: auto;
+    }
+}
 /* Popup de fin de juego */
 .popup {
     position: fixed;
@@ -46,48 +124,69 @@
 }
 body {
     font-family: 'Segoe UI', Arial, sans-serif;
-    background: #181818;
-    color: #f0f0f0;
+    background: linear-gradient(135deg, #1a2980 0%, #26d0ce 100%);
+    color: #fff;
     margin: 0;
     padding: 0;
+    min-height: 100vh;
 }
 header {
-    background: #222;
-    padding: 2rem 1rem;
+    background: linear-gradient(90deg, #ff512f 0%, #dd2476 100%);
+    padding: 2.5rem 1rem 2rem 1rem;
     text-align: center;
+    box-shadow: 0 4px 16px rgba(0,0,0,0.15);
 }
 h1 {
     margin: 0;
-    font-size: 2.2rem;
+    font-size: 2.7rem;
+    letter-spacing: 2px;
+    background: linear-gradient(90deg, #8fd3f4 0%, #ff512f 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    text-fill-color: transparent;
 }
 .game-container {
     display: flex;
     flex-direction: column;
     align-items: center;
-    margin-top: 2rem;
+    margin-top: 2.5rem;
+    background: rgba(36,36,36,0.85);
+    border-radius: 18px;
+    box-shadow: 0 8px 32px rgba(0,0,0,0.25);
+    padding: 2rem 2.5rem 2.5rem 2.5rem;
 }
 canvas {
-    background: #222;
-    border: 2px solid #8fd3f4;
-    border-radius: 8px;
-    margin-bottom: 1rem;
+    background: linear-gradient(135deg, #232526 0%, #414345 100%);
+    border: 3px solid #ff512f;
+    border-radius: 16px;
+    margin-bottom: 1.5rem;
+    box-shadow: 0 4px 24px rgba(0,0,0,0.3);
 }
 .score-panel {
     display: flex;
-    gap: 2rem;
-    font-size: 1.2rem;
-    margin-bottom: 1rem;
+    gap: 2.5rem;
+    font-size: 1.3rem;
+    margin-bottom: 1.5rem;
+    color: #ffe082;
+    text-shadow: 0 2px 8px #222;
 }
-#restartBtn {
-    background: #8fd3f4;
+#startBtn, #restartBtn {
+    background: linear-gradient(90deg, #8fd3f4 0%, #ff512f 100%);
     color: #222;
     border: none;
-    border-radius: 6px;
-    padding: 0.7rem 1.5rem;
-    font-size: 1rem;
+    border-radius: 8px;
+    padding: 0.9rem 2rem;
+    font-size: 1.1rem;
     font-weight: bold;
     cursor: pointer;
-    transition: background 0.2s;
+    margin: 0 0.5rem;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+    transition: background 0.2s, transform 0.2s;
+}
+#startBtn:hover, #restartBtn:hover {
+    background: linear-gradient(90deg, #5ec2e6 0%, #ff512f 100%);
+    transform: scale(1.07);
 }
 #restartBtn:hover {
     background: #5ec2e6;
