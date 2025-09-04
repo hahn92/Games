@@ -46,9 +46,18 @@ function draw() {
         ctx.strokeRect(snake[i].x, snake[i].y, box, box);
     }
 
-    // Dibuja la fruta
-    ctx.fillStyle = '#f44336';
-    ctx.fillRect(fruit.x, fruit.y, box, box);
+    // Dibuja la fruta (manzana)
+    if (!window.appleImg) {
+        window.appleImg = new Image();
+        window.appleImg.src = 'manzana.png';
+    }
+    if (window.appleImg.complete) {
+        ctx.drawImage(window.appleImg, fruit.x, fruit.y, box, box);
+    } else {
+        window.appleImg.onload = () => {
+            ctx.drawImage(window.appleImg, fruit.x, fruit.y, box, box);
+        };
+    }
 }
 
 function moveSnake() {
