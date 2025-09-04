@@ -1,0 +1,184 @@
+/* Layout responsivo principal para Memorama */
+.responsive-layout {
+    display: flex;
+    flex-direction: row;
+    justify-content: center;
+    align-items: flex-start;
+    gap: 2.5rem;
+    width: 100%;
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 2rem 1rem;
+    box-sizing: border-box;
+}
+.game-side {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+}
+.info-side {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    justify-content: center;
+    min-width: 280px;
+    max-width: 400px;
+    background: rgba(36,36,36,0.85);
+    border-radius: 18px;
+    box-shadow: 0 8px 32px rgba(0,0,0,0.25);
+    padding: 2rem 2rem 2rem 2rem;
+    margin-top: 0;
+}
+.info-side h1 {
+    font-size: 2.2rem;
+    margin-bottom: 1rem;
+    background: linear-gradient(90deg, #8fd3f4 0%, #ff512f 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    text-fill-color: transparent;
+}
+.info-side p {
+    font-size: 1.1rem;
+    margin-bottom: 1.5rem;
+    color: #ffe082;
+    text-shadow: 0 2px 8px #222;
+}
+.buttons-panel {
+    display: flex;
+    gap: 1rem;
+    margin-top: 1.5rem;
+}
+@media (max-width: 900px) {
+    .responsive-layout {
+        flex-direction: column;
+        align-items: center;
+        gap: 1.5rem;
+        padding: 1rem 0.5rem;
+    }
+    .info-side {
+        max-width: 100vw;
+        width: 100%;
+        margin-top: 0;
+        align-items: center;
+        text-align: center;
+    }
+    .info-side h1 {
+        font-size: 1.7rem;
+    }
+    .game-side {
+        width: 100%;
+        justify-content: center;
+    }
+    .memorama-board {
+        max-width: 95vw;
+        height: auto;
+    }
+}
+@import url('../styles.css');
+
+body {
+    background: linear-gradient(135deg, #1a2980 0%, #26d0ce 100%);
+    color: #fff;
+}
+.memorama-board {
+    width: 320px;
+    height: 320px;
+    background: linear-gradient(135deg, #232526 0%, #414345 100%);
+    border: 3px solid #ff512f;
+    border-radius: 16px;
+    margin-bottom: 1.5rem;
+    box-shadow: 0 4px 24px rgba(0,0,0,0.3);
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    grid-template-rows: repeat(4, 1fr);
+    gap: 8px;
+    margin-left: auto;
+    margin-right: auto;
+    position: relative;
+}
+.card {
+    background: #8fd3f4;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 2rem;
+    font-weight: bold;
+    color: #222;
+    cursor: pointer;
+    transition: background 0.2s, transform 0.2s;
+    user-select: none;
+}
+.card.flipped, .card.matched {
+    background: #ff512f;
+    color: #fff;
+    transform: scale(1.08);
+}
+.card.matched {
+    background: #26d0ce;
+}
+#startBtn, #restartBtn {
+    background: linear-gradient(90deg, #8fd3f4 0%, #ff512f 100%);
+    color: #222;
+    border: none;
+    border-radius: 8px;
+    padding: 0.9rem 2rem;
+    font-size: 1.1rem;
+    font-weight: bold;
+    cursor: pointer;
+    margin: 0 0.5rem;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+    transition: background 0.2s, transform 0.2s;
+}
+#startBtn:hover, #restartBtn:hover {
+    background: linear-gradient(90deg, #5ec2e6 0%, #ff512f 100%);
+    transform: scale(1.07);
+}
+#playAgainBtn {
+    background: #8fd3f4;
+    color: #222;
+    border: none;
+    border-radius: 8px;
+    padding: 1rem 2.2rem;
+    font-size: 1.2rem;
+    font-weight: bold;
+    cursor: pointer;
+    transition: background 0.2s;
+    margin-top: 1rem;
+}
+#playAgainBtn:hover {
+    background: #5ec2e6;
+}
+/* Popup de fin de juego */
+.popup {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    background: rgba(24,24,24,0.95);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+}
+.popup-content {
+    background: #242424;
+    padding: 2.5rem 3rem;
+    border-radius: 20px;
+    box-shadow: 0 4px 24px rgba(0,0,0,0.4);
+    text-align: center;
+    min-width: 280px;
+    max-width: 90vw;
+}
+.popup-content h2 {
+    margin-top: 0;
+    color: #8fd3f4;
+    font-size: 2rem;
+}
+.popup-content p {
+    font-size: 1.5rem;
+    margin: 1.5rem 0;
+}
