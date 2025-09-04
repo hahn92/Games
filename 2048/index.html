@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>2048</title>
+    <link rel="stylesheet" href="./styles.css">
+</head>
+<body>
+    <main>
+        <div class="responsive-layout">
+            <div class="game-side">
+                <div id="game2048" class="game-2048"></div>
+            </div>
+            <div class="info-side">
+                <h1>2048</h1>
+                <p>Combina los números iguales para llegar al 2048. ¡Piensa cada movimiento y supera tu mejor puntaje!</p>
+                <div class="score-panel">
+                    <span>Puntaje: <span id="score">0</span></span>
+                    <span>Mejor puntaje: <span id="highScore">0</span></span>
+                </div>
+                <div class="buttons-panel">
+                    <button id="startBtn">Iniciar</button>
+                    <button id="restartBtn" disabled>Reiniciar</button>
+                </div>
+            </div>
+        </div>
+        <div id="gameOverPopup" class="popup" style="display:none;">
+            <div class="popup-content">
+                <h2>¡Juego terminado!</h2>
+                <p id="finalScore">Puntaje: 0</p>
+                <button id="playAgainBtn">Volver a jugar</button>
+            </div>
+        </div>
+    </main>
+    <script src="./main.js"></script>
+</body>
+</html>
