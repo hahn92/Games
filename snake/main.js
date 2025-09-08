@@ -11,8 +11,16 @@ function restartGame() {
 }
 const canvas = document.getElementById('gameCanvas');
 const ctx = canvas.getContext('2d');
-const box = 15;
-const canvasSize = 600;
+let box = 15;
+let canvasSize = 600;
+
+function syncCanvasLogicSize() {
+    // Si el canvas fue ajustado por el layout móvil, sincroniza las variables
+    canvasSize = canvas.width;
+    box = Math.floor(canvasSize / 40);
+}
+window.addEventListener('resize', syncCanvasLogicSize);
+document.addEventListener('DOMContentLoaded', syncCanvasLogicSize);
 let snake = [{ x: 9 * box, y: 10 * box }];
 let direction = 'RIGHT';
 let fruit = randomPosition();
@@ -164,6 +172,7 @@ function startGame() {
     isPlaying = true;
     restartBtn.disabled = false;
     startBtn.disabled = true;
+    syncCanvasLogicSize();
     snake = [{ x: 9 * box, y: 10 * box }];
     direction = 'RIGHT';
     fruit = randomPosition();
@@ -177,6 +186,7 @@ function startGame() {
 
 function restartGame() {
     if (!isPlaying) return;
+    syncCanvasLogicSize();
     snake = [{ x: 9 * box, y: 10 * box }];
     direction = 'RIGHT';
     fruit = randomPosition();
@@ -215,5 +225,6 @@ startBtn.addEventListener('click', startGame);
 restartBtn.addEventListener('click', restartGame);
 
 // Inicializa solo la pantalla y puntajes
+syncCanvasLogicSize();
 updateScore();
 draw();

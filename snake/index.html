@@ -9,10 +9,11 @@
 <body>
     <main>
         <div class="responsive-layout">
-            <div class="game-side">
+            <div class="game-side" id="gameSide">
                 <canvas id="gameCanvas" width="600" height="600"></canvas>
+                <button id="mobileStartBtn" style="display:none;position:absolute;top:20px;left:50%;transform:translateX(-50%);z-index:1000;padding:1rem 2.5rem;font-size:1.3rem;border-radius:12px;background:linear-gradient(90deg,#8fd3f4 0%,#ff512f 100%);color:#222;font-weight:bold;border:none;box-shadow:0 2px 8px rgba(0,0,0,0.15);">Iniciar</button>
             </div>
-            <div class="info-side">
+            <div class="info-side" id="infoSide">
                 <h1>Snake Clásico</h1>
                 <p>Controla la serpiente, come frutas y evita chocar contra las paredes o tu propio cuerpo.<br>¡Compite por la mejor puntuación!</p>
                 <div class="score-panel">
@@ -25,6 +26,62 @@
                 </div>
             </div>
         </div>
+        <script>
+        function isMobile() {
+            return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+        }
+        function adjustMobileLayout() {
+            var gameSide = document.getElementById('gameSide');
+            var infoSide = document.getElementById('infoSide');
+            var mobileStartBtn = document.getElementById('mobileStartBtn');
+            var canvas = document.getElementById('gameCanvas');
+            if (isMobile()) {
+                gameSide.style.position = 'fixed';
+                gameSide.style.top = '0';
+                gameSide.style.left = '0';
+                gameSide.style.width = '100vw';
+                gameSide.style.height = '100vh';
+                gameSide.style.zIndex = '999';
+                gameSide.style.background = 'linear-gradient(135deg, #1a2980 0%, #26d0ce 100%)';
+                infoSide.style.display = 'none';
+                mobileStartBtn.style.display = 'block';
+                // Ajustar canvas al tamaño de pantalla
+                var minDim = Math.min(window.innerWidth, window.innerHeight);
+                var size = Math.max(240, minDim - 32);
+                canvas.width = size;
+                canvas.height = size;
+                canvas.style.maxWidth = '98vw';
+                canvas.style.maxHeight = '98vh';
+            } else {
+                gameSide.style.position = '';
+                gameSide.style.top = '';
+                gameSide.style.left = '';
+                gameSide.style.width = '';
+                gameSide.style.height = '';
+                gameSide.style.zIndex = '';
+                gameSide.style.background = '';
+                infoSide.style.display = '';
+                mobileStartBtn.style.display = 'none';
+                canvas.width = 600;
+                canvas.height = 600;
+                canvas.style.maxWidth = '';
+                canvas.style.maxHeight = '';
+            }
+        }
+        window.addEventListener('resize', adjustMobileLayout);
+        document.addEventListener('DOMContentLoaded', adjustMobileLayout);
+        // Botón de inicio móvil
+        document.addEventListener('DOMContentLoaded', function() {
+            var mobileStartBtn = document.getElementById('mobileStartBtn');
+            var startBtn = document.getElementById('startBtn');
+            if (mobileStartBtn) {
+                mobileStartBtn.addEventListener('click', function() {
+                    if (startBtn) startBtn.click();
+                    mobileStartBtn.style.display = 'none';
+                });
+            }
+        });
+        </script>
         <div id="gameOverPopup" class="popup" style="display:none;">
             <div class="popup-content">
                 <h2>¡Juego terminado!</h2>
