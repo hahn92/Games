@@ -1,3 +1,51 @@
+/* Controles táctiles y puntaje flotante en móvil */
+.touch-controls {
+    display: none;
+    position: absolute;
+    bottom: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 1001;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.7rem;
+}
+.touch-row {
+    display: flex;
+    gap: 0.7rem;
+}
+.touch-btn {
+    width: 64px;
+    height: 64px;
+    font-size: 2rem;
+    border-radius: 50%;
+    background: linear-gradient(90deg, #8fd3f4 0%, #ff512f 100%);
+    color: #222;
+    border: none;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+    font-weight: bold;
+    cursor: pointer;
+    outline: none;
+    transition: background 0.2s, transform 0.2s;
+}
+.touch-btn:active {
+    background: linear-gradient(90deg, #5ec2e6 0%, #ff512f 100%);
+    transform: scale(1.07);
+}
+.mobile-score {
+    display: none;
+    position: absolute;
+    top: 5px;
+    right: 5px;
+    z-index: 1002;
+    background: rgba(36,36,36,0.85);
+    color: #ffe082;
+    font-size: 0.8rem;
+    padding: 0.7rem 1.2rem;
+    border-radius: 12px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+    font-weight: bold;
+}
 /* Layout responsivo principal */
 .responsive-layout {
     display: flex;

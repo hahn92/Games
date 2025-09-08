@@ -1,3 +1,41 @@
+// Mostrar controles táctiles y puntaje flotante solo en móvil
+function setupMobileUI() {
+    const touchControls = document.getElementById('touchControls');
+    const mobileScore = document.getElementById('mobileScore');
+    if (isMobile()) {
+        touchControls.style.display = 'flex';
+        mobileScore.style.display = 'block';
+        // Eventos de botones táctiles
+        document.getElementById('btnUp').addEventListener('touchstart', function(e) {
+            e.preventDefault();
+            if (direction !== 'DOWN') direction = 'UP';
+        });
+        document.getElementById('btnDown').addEventListener('touchstart', function(e) {
+            e.preventDefault();
+            if (direction !== 'UP') direction = 'DOWN';
+        });
+        document.getElementById('btnLeft').addEventListener('touchstart', function(e) {
+            e.preventDefault();
+            if (direction !== 'RIGHT') direction = 'LEFT';
+        });
+        document.getElementById('btnRight').addEventListener('touchstart', function(e) {
+            e.preventDefault();
+            if (direction !== 'LEFT') direction = 'RIGHT';
+        });
+    } else {
+        touchControls.style.display = 'none';
+        mobileScore.style.display = 'none';
+    }
+}
+document.addEventListener('DOMContentLoaded', setupMobileUI);
+
+// Actualizar puntaje flotante en móvil
+function updateMobileScore() {
+    const mobileScore = document.getElementById('mobileScore');
+    if (isMobile() && mobileScore) {
+        mobileScore.innerHTML = `Puntaje: <b>${score}</b><br>Mejor: <b>${highScore}</b>`;
+    }
+}
 function restartGame() {
     snake = [{ x: 9 * box, y: 10 * box }];
     direction = 'RIGHT';
@@ -38,6 +76,7 @@ const moveSound = new Audio('move.mp3');
 function updateScore() {
     document.getElementById('score').textContent = score;
     document.getElementById('highScore').textContent = highScore;
+    updateMobileScore();
 }
 
 function randomPosition() {
@@ -148,6 +187,7 @@ function moveSnake() {
     snake.unshift(head);
     draw();
     updateScore();
+    updateMobileScore();
 }
 
 // Control de teclado
@@ -179,6 +219,7 @@ function startGame() {
     score = 0;
     speed = 250;
     updateScore();
+    updateMobileScore();
     draw();
     clearInterval(gameInterval);
     gameInterval = setInterval(moveSnake, speed);
@@ -193,6 +234,7 @@ function restartGame() {
     score = 0;
     speed = 250;
     updateScore();
+    updateMobileScore();
     draw();
     clearInterval(gameInterval);
     gameInterval = setInterval(moveSnake, speed);
@@ -214,6 +256,7 @@ function gameOver() {
     isPlaying = false;
     startBtn.disabled = false;
     restartBtn.disabled = true;
+    updateMobileScore();
 }
 
 document.getElementById('playAgainBtn').addEventListener('click', () => {

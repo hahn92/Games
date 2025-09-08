@@ -12,6 +12,15 @@
             <div class="game-side" id="gameSide">
                 <canvas id="gameCanvas" width="600" height="600"></canvas>
                 <button id="mobileStartBtn" style="display:none;position:absolute;top:20px;left:50%;transform:translateX(-50%);z-index:1000;padding:1rem 2.5rem;font-size:1.3rem;border-radius:12px;background:linear-gradient(90deg,#8fd3f4 0%,#ff512f 100%);color:#222;font-weight:bold;border:none;box-shadow:0 2px 8px rgba(0,0,0,0.15);">Iniciar</button>
+                <div id="mobileScore" class="mobile-score"></div>
+                <div id="touchControls" class="touch-controls">
+                    <button class="touch-btn" id="btnUp">▲</button>
+                    <div class="touch-row">
+                        <button class="touch-btn" id="btnLeft">◀</button>
+                        <button class="touch-btn" id="btnDown">▼</button>
+                        <button class="touch-btn" id="btnRight">▶</button>
+                    </div>
+                </div>
             </div>
             <div class="info-side" id="infoSide">
                 <h1>Snake Clásico</h1>
