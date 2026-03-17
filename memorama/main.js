@@ -36,17 +36,33 @@ function render() {
     container.innerHTML = '';
     for (let r = 0; r < SIZE; r++) {
         for (let c = 0; c < SIZE; c++) {
-            const card = board[r][c];
-            const div = document.createElement('div');
-            div.className = 'card' + (card.flipped ? ' flipped' : '') + (card.matched ? ' matched' : '');
-            div.textContent = card.flipped || card.matched ? card.value : '';
-            div.addEventListener('click', () => flipCard(r, c));
-            container.appendChild(div);
+            const cardData = board[r][c];
+            
+            const card = document.createElement('div');
+            card.className = 'card' + (cardData.flipped || cardData.matched ? ' flipped' : '');
+            
+            const front = document.createElement('div');
+            front.className = 'card-front';
+            front.textContent = '?';
+            
+            const back = document.createElement('div');
+            back.className = 'card-back';
+            back.textContent = cardData.value;
+            
+            card.appendChild(front);
+            card.appendChild(back);
+            
+            card.addEventListener('click', () => flipCard(r, c));
+            container.appendChild(card);
         }
     }
     document.getElementById('score').textContent = score;
+    if (document.getElementById('mScore')) document.getElementById('mScore').textContent = score;
     document.getElementById('highScore').textContent = highScore;
-    document.getElementById('timer').textContent = formatTime(timeLeft);
+    
+    const formattedTime = formatTime(timeLeft);
+    if (document.getElementById('timer')) document.getElementById('timer').textContent = formattedTime;
+    if (document.getElementById('mTimer')) document.getElementById('mTimer').textContent = formattedTime;
 }
 
 function flipCard(r, c) {

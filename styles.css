@@ -1,9 +1,22 @@
+:root {
+    --primary-color: #8fd3f4;
+    --primary-dark: #5ec2e6;
+    --accent-color: #ff512f;
+    --bg-dark: #181818;
+    --card-bg: #242424;
+    --text-color: #f0f0f0;
+    --text-muted: #ffe082;
+    --grad-primary: linear-gradient(90deg, #8fd3f4 0%, #ff512f 100%);
+    --grad-bg: linear-gradient(135deg, #1a2980 0%, #26d0ce 100%);
+}
+
 body {
     font-family: 'Segoe UI', Arial, sans-serif;
-    background: #181818;
-    color: #f0f0f0;
+    background: var(--bg-dark);
+    color: var(--text-color);
     margin: 0;
     padding: 0;
+    min-height: 100vh;
 }
 header {
     background: #222;
@@ -45,7 +58,7 @@ h1 {
 }
 .game-category {
     font-size: 0.95rem;
-    color: #8fd3f4;
+    color: var(--primary-color);
     margin-bottom: 0.5rem;
 }
 .game-desc {
@@ -54,16 +67,17 @@ h1 {
 }
 .game-link {
     display: inline-block;
-    background: #8fd3f4;
+    background: var(--primary-color);
     color: #222;
     padding: 0.5rem 1rem;
     border-radius: 6px;
     text-decoration: none;
     font-weight: bold;
-    transition: background 0.2s;
+    transition: background 0.2s, transform 0.2s;
 }
 .game-link:hover {
-    background: #5ec2e6;
+    background: var(--primary-dark);
+    transform: translateY(-2px);
 }
 @media (max-width: 600px) {
     .games-grid {

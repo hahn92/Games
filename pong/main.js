@@ -5,6 +5,7 @@ const HEIGHT = canvas.height;
 const PADDLE_WIDTH = 12;
 const PADDLE_HEIGHT = 80;
 const BALL_SIZE = 16;
+const PADDLE_SPEED = 6;
 let playerY = HEIGHT/2 - PADDLE_HEIGHT/2;
 let aiY = HEIGHT/2 - PADDLE_HEIGHT/2;
 let ballX = WIDTH/2 - BALL_SIZE/2;
@@ -13,6 +14,9 @@ let ballSpeedX = 5, ballSpeedY = 3;
 let playerScore = 0, highScore = localStorage.getItem('pongHighScore') || 0;
 let isPlaying = false, gameInterval;
 let speed = 1000/60;
+
+// Teclas presionadas para movimiento continuo
+const keys = {};
 
 function draw() {
     ctx.clearRect(0, 0, WIDTH, HEIGHT);
@@ -47,6 +51,11 @@ function moveAI() {
 }
 
 function update() {
+    // Movimiento continuo del jugador
+    if (keys['ArrowUp'] || keys['up']) playerY -= PADDLE_SPEED;
+    if (keys['ArrowDown'] || keys['down']) playerY += PADDLE_SPEED;
+    playerY = Math.max(0, Math.min(HEIGHT-PADDLE_HEIGHT, playerY));
+
     ballX += ballSpeedX;
     ballY += ballSpeedY;
     // Rebote arriba/abajo
@@ -86,6 +95,9 @@ function resetBall() {
 
 function updateScore() {
     document.getElementById('score').textContent = playerScore;
+    if (document.getElementById('mobileScore')) {
+        document.getElementById('mobileScore').textContent = 'Puntaje: ' + playerScore;
+    }
     document.getElementById('highScore').textContent = highScore;
     if (playerScore > highScore) {
         highScore = playerScore;
@@ -128,16 +140,32 @@ document.getElementById('playAgainBtn').addEventListener('click', () => {
     startGame();
 });
 
+// Teclado - movimiento continuo
 window.addEventListener('keydown', e => {
-    if (!isPlaying) return;
-    if (["ArrowUp", "ArrowDown"].includes(e.key)) {
-        e.preventDefault();
-        if (e.key === 'ArrowUp') playerY -= 32;
-        if (e.key === 'ArrowDown') playerY += 32;
-        playerY = Math.max(0, Math.min(HEIGHT-PADDLE_HEIGHT, playerY));
-        draw();
-    }
+    if (["ArrowUp", "ArrowDown"].includes(e.key)) e.preventDefault();
+    keys[e.key] = true;
 });
+window.addEventListener('keyup', e => {
+    keys[e.key] = false;
+});
+
+// Controles táctiles - movimiento continuo (mantener presionado)
+const btnUp = document.getElementById('btnUp');
+const btnDown = document.getElementById('btnDown');
+
+btnUp.addEventListener('mousedown', () => { keys['up'] = true; });
+btnUp.addEventListener('mouseup', () => { keys['up'] = false; });
+btnUp.addEventListener('mouseleave', () => { keys['up'] = false; });
+btnUp.addEventListener('touchstart', (e) => { e.preventDefault(); keys['up'] = true; });
+btnUp.addEventListener('touchend', (e) => { e.preventDefault(); keys['up'] = false; });
+btnUp.addEventListener('touchcancel', () => { keys['up'] = false; });
+
+btnDown.addEventListener('mousedown', () => { keys['down'] = true; });
+btnDown.addEventListener('mouseup', () => { keys['down'] = false; });
+btnDown.addEventListener('mouseleave', () => { keys['down'] = false; });
+btnDown.addEventListener('touchstart', (e) => { e.preventDefault(); keys['down'] = true; });
+btnDown.addEventListener('touchend', (e) => { e.preventDefault(); keys['down'] = false; });
+btnDown.addEventListener('touchcancel', () => { keys['down'] = false; });
 
 document.getElementById('score').textContent = playerScore;
 document.getElementById('highScore').textContent = highScore;

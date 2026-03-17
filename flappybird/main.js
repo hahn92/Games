@@ -106,6 +106,9 @@ function draw() {
     if (document.getElementById('score')) {
         document.getElementById('score').textContent = score;
     }
+    if (document.getElementById('mobileScore')) {
+        document.getElementById('mobileScore').textContent = 'Puntaje: ' + score;
+    }
     if (document.getElementById('highScore')) {
         document.getElementById('highScore').textContent = highScore;
     }
@@ -113,6 +116,11 @@ function draw() {
 
 canvas.addEventListener('mousedown', () => {
     if (!isPlaying) return;
+    birdV = FLAP;
+});
+canvas.addEventListener('touchstart', (e) => {
+    if (!isPlaying) return;
+    e.preventDefault();
     birdV = FLAP;
 });
 document.addEventListener('keydown', e => {

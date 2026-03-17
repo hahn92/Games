@@ -101,6 +101,7 @@ function update() {
                 inv.alive = false;
                 bullets.splice(i, 1);
                 score += 10;
+                updateScore();
                 break;
             }
         }
@@ -146,10 +147,22 @@ function endGame(won = false) {
     draw();
 }
 
+function updateScore() {
+    if (document.getElementById('score')) {
+        document.getElementById('score').textContent = score;
+    }
+    if (document.getElementById('mobileScore')) {
+        document.getElementById('mobileScore').textContent = 'Puntaje: ' + score;
+    }
+    if (document.getElementById('highScore')) {
+        document.getElementById('highScore').textContent = highScore;
+    }
+}
+
 function draw() {
     ctx.clearRect(0, 0, canvas.width, canvas.height);
     // Fondo
-    ctx.fillStyle = '#8fd3f4';
+    ctx.fillStyle = '#111';
     ctx.fillRect(0, 0, canvas.width, canvas.height);
     // Invasores
     for (const inv of invaders) {
@@ -163,20 +176,15 @@ function draw() {
         ctx.fillRect(b.x, b.y, BULLET_WIDTH, BULLET_HEIGHT);
     }
     // Balas invasores
-    ctx.fillStyle = '#222';
+    ctx.fillStyle = '#fff';
     for (const b of invaderBullets) {
         ctx.fillRect(b.x, b.y, BULLET_WIDTH, BULLET_HEIGHT);
     }
     // Jugador
     ctx.fillStyle = '#26d0ce';
     ctx.fillRect(playerX, canvas.height - PLAYER_HEIGHT - 10, PLAYER_WIDTH, PLAYER_HEIGHT);
-    // Puntaje en panel derecho
-    if (document.getElementById('score')) {
-        document.getElementById('score').textContent = score;
-    }
-    if (document.getElementById('highScore')) {
-        document.getElementById('highScore').textContent = highScore;
-    }
+    // Puntaje
+    updateScore();
 }
 
 const keys = {};
@@ -199,4 +207,28 @@ document.getElementById('playAgainBtn').addEventListener('click', () => {
     document.getElementById('gameOverPopup').style.display = 'none';
     startGame();
 });
+
+// Controles táctiles
+document.getElementById('btnShoot').addEventListener('click', () => {
+    if (!isPlaying) return;
+    bullets.push({
+        x: playerX + PLAYER_WIDTH/2 - BULLET_WIDTH/2,
+        y: canvas.height - PLAYER_HEIGHT - 10
+    });
+});
+
+document.getElementById('btnLeft').addEventListener('mousedown', () => { keys['ArrowLeft'] = true; });
+document.getElementById('btnLeft').addEventListener('mouseup', () => { keys['ArrowLeft'] = false; });
+document.getElementById('btnLeft').addEventListener('mouseleave', () => { keys['ArrowLeft'] = false; });
+document.getElementById('btnLeft').addEventListener('touchstart', (e) => { e.preventDefault(); keys['ArrowLeft'] = true; });
+document.getElementById('btnLeft').addEventListener('touchend', (e) => { e.preventDefault(); keys['ArrowLeft'] = false; });
+document.getElementById('btnLeft').addEventListener('touchcancel', () => { keys['ArrowLeft'] = false; });
+
+document.getElementById('btnRight').addEventListener('mousedown', () => { keys['ArrowRight'] = true; });
+document.getElementById('btnRight').addEventListener('mouseup', () => { keys['ArrowRight'] = false; });
+document.getElementById('btnRight').addEventListener('mouseleave', () => { keys['ArrowRight'] = false; });
+document.getElementById('btnRight').addEventListener('touchstart', (e) => { e.preventDefault(); keys['ArrowRight'] = true; });
+document.getElementById('btnRight').addEventListener('touchend', (e) => { e.preventDefault(); keys['ArrowRight'] = false; });
+document.getElementById('btnRight').addEventListener('touchcancel', () => { keys['ArrowRight'] = false; });
+
 resetGame();

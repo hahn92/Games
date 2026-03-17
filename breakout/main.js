@@ -5,6 +5,7 @@ const HEIGHT = canvas.height;
 const PADDLE_WIDTH = 80;
 const PADDLE_HEIGHT = 12;
 const BALL_SIZE = 12;
+const PADDLE_SPEED = 6;
 let paddleX = WIDTH/2 - PADDLE_WIDTH/2;
 let ballX = WIDTH/2 - BALL_SIZE/2;
 let ballY = HEIGHT - 40;
@@ -13,6 +14,9 @@ let bricks = [], rows = 5, cols = 10, brickWidth = 54, brickHeight = 18, brickPa
 let score = 0, highScore = localStorage.getItem('breakoutHighScore') || 0;
 let isPlaying = false, gameInterval;
 let speed = 1000/60;
+
+// Teclas presionadas para movimiento continuo
+const keys = {};
 
 function createBricks() {
     bricks = [];
@@ -53,6 +57,11 @@ function draw() {
 }
 
 function update() {
+    // Movimiento continuo de la paleta
+    if (keys['ArrowLeft'] || keys['left']) paddleX -= PADDLE_SPEED;
+    if (keys['ArrowRight'] || keys['right']) paddleX += PADDLE_SPEED;
+    paddleX = Math.max(0, Math.min(WIDTH-PADDLE_WIDTH, paddleX));
+
     ballX += ballSpeedX;
     ballY += ballSpeedY;
     // Rebote lateral
@@ -94,6 +103,9 @@ function resetBall() {
 
 function updateScore() {
     document.getElementById('score').textContent = score;
+    if (document.getElementById('mobileScore')) {
+        document.getElementById('mobileScore').textContent = 'Puntaje: ' + score;
+    }
     document.getElementById('highScore').textContent = highScore;
     if (score > highScore) {
         highScore = score;
@@ -137,16 +149,32 @@ document.getElementById('playAgainBtn').addEventListener('click', () => {
     startGame();
 });
 
+// Teclado - movimiento continuo
 window.addEventListener('keydown', e => {
-    if (!isPlaying) return;
-    if (["ArrowLeft", "ArrowRight"].includes(e.key)) {
-        e.preventDefault();
-        if (e.key === 'ArrowLeft') paddleX -= 32;
-        if (e.key === 'ArrowRight') paddleX += 32;
-        paddleX = Math.max(0, Math.min(WIDTH-PADDLE_WIDTH, paddleX));
-        draw();
-    }
+    if (["ArrowLeft", "ArrowRight"].includes(e.key)) e.preventDefault();
+    keys[e.key] = true;
 });
+window.addEventListener('keyup', e => {
+    keys[e.key] = false;
+});
+
+// Controles táctiles - movimiento continuo (mantener presionado)
+const btnLeft = document.getElementById('btnLeft');
+const btnRight = document.getElementById('btnRight');
+
+btnLeft.addEventListener('mousedown', () => { keys['left'] = true; });
+btnLeft.addEventListener('mouseup', () => { keys['left'] = false; });
+btnLeft.addEventListener('mouseleave', () => { keys['left'] = false; });
+btnLeft.addEventListener('touchstart', (e) => { e.preventDefault(); keys['left'] = true; });
+btnLeft.addEventListener('touchend', (e) => { e.preventDefault(); keys['left'] = false; });
+btnLeft.addEventListener('touchcancel', () => { keys['left'] = false; });
+
+btnRight.addEventListener('mousedown', () => { keys['right'] = true; });
+btnRight.addEventListener('mouseup', () => { keys['right'] = false; });
+btnRight.addEventListener('mouseleave', () => { keys['right'] = false; });
+btnRight.addEventListener('touchstart', (e) => { e.preventDefault(); keys['right'] = true; });
+btnRight.addEventListener('touchend', (e) => { e.preventDefault(); keys['right'] = false; });
+btnRight.addEventListener('touchcancel', () => { keys['right'] = false; });
 
 document.getElementById('score').textContent = score;
 document.getElementById('highScore').textContent = highScore;

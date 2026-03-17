@@ -9,10 +9,20 @@
 <body>
     <main>
         <div class="responsive-layout">
-            <div class="game-side">
+            <div class="game-side" id="gameSide">
                 <canvas id="tetrisCanvas" width="320" height="640"></canvas>
+                <button id="mobileStartBtn" style="display:none;position:absolute;top:20px;left:50%;transform:translateX(-50%);z-index:1000;padding:1rem 2.5rem;font-size:1.3rem;border-radius:12px;background:var(--grad-primary);color:#222;font-weight:bold;border:none;box-shadow:0 2px 8px rgba(0,0,0,0.15);">Iniciar</button>
+                <div id="mobileScore" class="mobile-score"></div>
+                <div id="touchControls" class="touch-controls">
+                    <button class="touch-btn" id="btnRotate">↻</button>
+                    <div class="touch-row">
+                        <button class="touch-btn" id="btnLeft">◀</button>
+                        <button class="touch-btn" id="btnDown">▼</button>
+                        <button class="touch-btn" id="btnRight">▶</button>
+                    </div>
+                </div>
             </div>
-            <div class="info-side">
+            <div class="info-side" id="infoSide">
                 <h1>Tetris JS</h1>
                 <p>El clásico juego de Tetris, encaja las piezas y evita que la pantalla se llene.<br>¡Pon a prueba tu habilidad y compite por la mejor puntuación!</p>
                 <div class="score-panel">
@@ -33,6 +43,78 @@
             </div>
         </div>
     </main>
+    <script>
+    function isMobile() {
+        return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+    }
+    function adjustMobileLayout() {
+        var gameSide = document.getElementById('gameSide');
+        var infoSide = document.getElementById('infoSide');
+        var mobileStartBtn = document.getElementById('mobileStartBtn');
+        var canvas = document.getElementById('tetrisCanvas');
+        var touchControls = document.getElementById('touchControls');
+        var mobileScore = document.getElementById('mobileScore');
+
+        if (isMobile() || window.innerWidth < 900) {
+            if (isMobile()) {
+                gameSide.style.position = 'fixed';
+                gameSide.style.top = '0';
+                gameSide.style.left = '0';
+                gameSide.style.width = '100vw';
+                gameSide.style.height = '100vh';
+                gameSide.style.zIndex = '999';
+                gameSide.style.background = 'var(--grad-bg)';
+                // Alinear al inicio (arriba) para que el canvas no se superponga con los controles
+                gameSide.style.justifyContent = 'flex-start';
+                gameSide.style.paddingTop = '10px';
+                infoSide.style.display = 'none';
+                mobileStartBtn.style.display = 'block';
+                touchControls.style.display = 'flex';
+                mobileScore.style.display = 'block';
+            }
+
+            // En móvil: dejar 180px para controles táctiles (139px botones + 20px bottom + 21px margen)
+            var availableHeight = window.innerHeight - (isMobile() ? 190 : 0);
+            var availableWidth = window.innerWidth - 32;
+            var ratio = 320 / 640;
+
+            var newHeight = Math.min(availableHeight, availableWidth / ratio);
+            var newWidth = newHeight * ratio;
+
+            canvas.style.width = newWidth + 'px';
+            canvas.style.height = newHeight + 'px';
+        } else {
+            gameSide.style.position = '';
+            gameSide.style.top = '';
+            gameSide.style.left = '';
+            gameSide.style.width = '';
+            gameSide.style.height = '';
+            gameSide.style.zIndex = '';
+            gameSide.style.background = '';
+            gameSide.style.justifyContent = '';
+            gameSide.style.paddingTop = '';
+            infoSide.style.display = '';
+            mobileStartBtn.style.display = 'none';
+            touchControls.style.display = 'none';
+            mobileScore.style.display = 'none';
+            canvas.style.width = '';
+            canvas.style.height = '';
+        }
+    }
+    window.addEventListener('resize', adjustMobileLayout);
+    document.addEventListener('DOMContentLoaded', adjustMobileLayout);
+
+    document.addEventListener('DOMContentLoaded', function() {
+        var mobileStartBtn = document.getElementById('mobileStartBtn');
+        var startBtn = document.getElementById('startBtn');
+        if (mobileStartBtn) {
+            mobileStartBtn.addEventListener('click', function() {
+                if (startBtn) startBtn.click();
+                mobileStartBtn.style.display = 'none';
+            });
+        }
+    });
+    </script>
     <script src="./main.js"></script>
 </body>
 </html>

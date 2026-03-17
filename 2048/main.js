@@ -30,12 +30,16 @@ function render() {
             const val = board[r][c];
             const tile = document.createElement('div');
             tile.className = 'tile';
+            if (val) tile.classList.add('tile-' + val);
             tile.dataset.value = val;
             tile.textContent = val ? val : '';
             container.appendChild(tile);
         }
     }
     document.getElementById('score').textContent = score;
+    if (document.getElementById('mobileScore')) {
+        document.getElementById('mobileScore').textContent = 'Puntaje: ' + score;
+    }
     document.getElementById('highScore').textContent = highScore;
 }
 
@@ -134,6 +138,49 @@ document.getElementById('playAgainBtn').addEventListener('click', () => {
     document.getElementById('gameOverPopup').style.display = 'none';
     startGame();
 });
+
+// Controles táctiles
+document.getElementById('btnUp').addEventListener('click', () => isPlaying && move('up'));
+document.getElementById('btnDown').addEventListener('click', () => isPlaying && move('down'));
+document.getElementById('btnLeft').addEventListener('click', () => isPlaying && move('left'));
+document.getElementById('btnRight').addEventListener('click', () => isPlaying && move('right'));
+
+// Soporte para Swipe
+let touchstartX = 0;
+let touchstartY = 0;
+let touchendX = 0;
+let touchendY = 0;
+
+const gestureZone = document.getElementById('game2048');
+
+gestureZone.addEventListener('touchstart', function(event) {
+    touchstartX = event.changedTouches[0].screenX;
+    touchstartY = event.changedTouches[0].screenY;
+}, false);
+
+gestureZone.addEventListener('touchend', function(event) {
+    touchendX = event.changedTouches[0].screenX;
+    touchendY = event.changedTouches[0].screenY;
+    handleGesture();
+}, false);
+
+function handleGesture() {
+    if (!isPlaying) return;
+    let dx = touchendX - touchstartX;
+    let dy = touchendY - touchstartY;
+    
+    if (Math.abs(dx) > Math.abs(dy)) {
+        if (Math.abs(dx) > 30) {
+            if (dx > 0) move('right');
+            else move('left');
+        }
+    } else {
+        if (Math.abs(dy) > 30) {
+            if (dy > 0) move('down');
+            else move('up');
+        }
+    }
+}
 
 window.addEventListener('keydown', e => {
     if (!isPlaying) return;

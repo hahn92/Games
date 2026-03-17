@@ -36,17 +36,6 @@ function updateMobileScore() {
         mobileScore.innerHTML = `Puntaje: <b>${score}</b><br>Mejor: <b>${highScore}</b>`;
     }
 }
-function restartGame() {
-    snake = [{ x: 9 * box, y: 10 * box }];
-    direction = 'RIGHT';
-    fruit = randomPosition();
-    score = 0;
-    speed = 180;
-    draw();
-    updateScore();
-    clearInterval(gameInterval);
-    gameInterval = setInterval(moveSnake, speed);
-}
 const canvas = document.getElementById('gameCanvas');
 const ctx = canvas.getContext('2d');
 let box = 15;

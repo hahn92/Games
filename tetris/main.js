@@ -90,6 +90,9 @@ function clearLines() {
     if (lines) {
         score += lines * 100;
         document.getElementById('score').textContent = score;
+        if (document.getElementById('mobileScore')) {
+            document.getElementById('mobileScore').textContent = 'Puntaje: ' + score;
+        }
         if (score > highScore) {
             highScore = score;
             localStorage.setItem('tetrisHighScore', highScore);
@@ -146,6 +149,9 @@ function startGame() {
     current = randomPiece();
     next = randomPiece();
     document.getElementById('score').textContent = score;
+    if (document.getElementById('mobileScore')) {
+        document.getElementById('mobileScore').textContent = 'Puntaje: ' + score;
+    }
     document.getElementById('highScore').textContent = highScore;
     drawBoard();
     clearInterval(gameInterval);
@@ -174,6 +180,12 @@ document.getElementById('playAgainBtn').addEventListener('click', () => {
     document.getElementById('gameOverPopup').style.display = 'none';
     startGame();
 });
+
+// Controles táctiles
+document.getElementById('btnRotate').addEventListener('click', () => isPlaying && rotate());
+document.getElementById('btnLeft').addEventListener('click', () => isPlaying && move(-1));
+document.getElementById('btnRight').addEventListener('click', () => isPlaying && move(1));
+document.getElementById('btnDown').addEventListener('click', () => isPlaying && tick());
 
 window.addEventListener('keydown', e => {
     if (!isPlaying) return;
