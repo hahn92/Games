@@ -2,7 +2,7 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
     <title>Flappy Bird</title>
     <link rel="stylesheet" href="./styles.css">
 </head>
@@ -46,21 +46,23 @@
         var canvas = document.getElementById('flappyCanvas');
         var mobileScore = document.getElementById('mobileScore');
 
+        var vHeight = window.visualViewport ? window.visualViewport.height : window.innerHeight;
+
         if (isMobile() || window.innerWidth < 900) {
             if (isMobile()) {
                 gameSide.style.position = 'fixed';
                 gameSide.style.top = '0';
                 gameSide.style.left = '0';
                 gameSide.style.width = '100vw';
-                gameSide.style.height = '100vh';
+                gameSide.style.height = vHeight + 'px';
                 gameSide.style.zIndex = '999';
                 gameSide.style.background = 'var(--grad-bg)';
                 infoSide.style.display = 'none';
                 mobileStartBtn.style.display = 'block';
                 mobileScore.style.display = 'block';
             }
-            
-            var availableHeight = window.innerHeight - (isMobile() ? 50 : 0);
+
+            var availableHeight = vHeight - (isMobile() ? 50 : 0);
             var availableWidth = window.innerWidth - 32;
             var ratio = 320 / 480;
             
@@ -85,6 +87,7 @@
         }
     }
     window.addEventListener('resize', adjustMobileLayout);
+    if (window.visualViewport) window.visualViewport.addEventListener('resize', adjustMobileLayout);
     document.addEventListener('DOMContentLoaded', adjustMobileLayout);
 
     document.addEventListener('DOMContentLoaded', function() {
