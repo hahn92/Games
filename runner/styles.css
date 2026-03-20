@@ -69,6 +69,33 @@
 
 body { background: var(--grad-bg); color: #fff; min-height: 100vh; margin: 0; }
 
+/* Touch controls */
+.touch-controls {
+    display: none;
+    position: absolute;
+    bottom: 20px;
+    bottom: calc(20px + env(safe-area-inset-bottom));
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 1001;
+    flex-direction: row;
+    gap: 16px;
+    align-items: center;
+}
+.touch-btn {
+    width: 64px; height: 64px;
+    font-size: 2rem;
+    border-radius: 50%;
+    background: var(--grad-primary);
+    color: #222; border: none; font-weight: bold; cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    touch-action: manipulation; user-select: none;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+}
+.touch-btn:active { opacity: 0.8; transform: scale(1.08); }
+.touch-btn.jump-btn { width: 72px; height: 72px; font-size: 2.2rem; background: #ff512f; }
+@media (max-width: 900px) { .touch-controls { display: flex; } }
+
 /* Runner specific */
 .runner-canvas {
     background: #87CEEB;

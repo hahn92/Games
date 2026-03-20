@@ -13,10 +13,15 @@
                 <canvas id="runnerCanvas" width="600" height="200" class="runner-canvas"></canvas>
                 <button id="mobileStartBtn" style="display:none;position:absolute;top:20px;left:50%;transform:translateX(-50%);z-index:1000;padding:1rem 2.5rem;font-size:1.3rem;border-radius:12px;background:var(--grad-primary);color:#222;font-weight:bold;border:none;box-shadow:0 2px 8px rgba(0,0,0,0.15);">Iniciar</button>
                 <div id="mobileScore" class="mobile-score"></div>
+                <div id="touchControls" class="touch-controls">
+                    <button class="touch-btn" id="btnLeft">◀</button>
+                    <button class="touch-btn jump-btn" id="btnJump">▲</button>
+                    <button class="touch-btn" id="btnRight">▶</button>
+                </div>
             </div>
             <div class="info-side" id="infoSide">
                 <h1>Corredor Infinito</h1>
-                <p>Presiona Espacio, haz clic o toca la pantalla para saltar. Esquiva los obstáculos y sobrevive lo más que puedas.</p>
+                <p>Salta con Espacio/↑/W, muévete con ←→/A/D. Esquiva los obstáculos y sobrevive lo más que puedas.</p>
                 <div class="score-panel">
                     <span>Puntaje: <span id="score">0</span></span>
                     <span>Mejor puntaje: <span id="highScore">0</span></span>
@@ -45,21 +50,25 @@
         var mobileStartBtn = document.getElementById('mobileStartBtn');
         var mobileScore = document.getElementById('mobileScore');
         var canvas = document.getElementById('runnerCanvas');
+        var touchControls = document.getElementById('touchControls');
         var vHeight = window.visualViewport ? window.visualViewport.height : window.innerHeight;
-        if (isMobile()) {
-            gameSide.style.position = 'fixed';
-            gameSide.style.top = '0';
-            gameSide.style.left = '0';
-            gameSide.style.width = '100vw';
-            gameSide.style.height = vHeight + 'px';
-            gameSide.style.zIndex = '999';
-            gameSide.style.background = 'var(--grad-bg)';
-            infoSide.style.display = 'none';
-            mobileStartBtn.style.display = 'block';
-            mobileScore.style.display = 'block';
+        if (isMobile() || window.innerWidth < 900) {
+            if (isMobile()) {
+                gameSide.style.position = 'fixed';
+                gameSide.style.top = '0';
+                gameSide.style.left = '0';
+                gameSide.style.width = '100vw';
+                gameSide.style.height = vHeight + 'px';
+                gameSide.style.zIndex = '999';
+                gameSide.style.background = 'var(--grad-bg)';
+                infoSide.style.display = 'none';
+                mobileStartBtn.style.display = 'block';
+                mobileScore.style.display = 'block';
+                touchControls.style.display = 'flex';
+            }
             var ratio = 600 / 200;
             var availableWidth = window.innerWidth - 32;
-            var availableHeight = vHeight - 100;
+            var availableHeight = vHeight - (isMobile() ? 140 : 0);
             var newWidth = Math.min(availableWidth, availableHeight * ratio);
             var newHeight = newWidth / ratio;
             canvas.style.width = newWidth + 'px';
@@ -75,6 +84,7 @@
             infoSide.style.display = '';
             mobileStartBtn.style.display = 'none';
             mobileScore.style.display = 'none';
+            touchControls.style.display = 'none';
             canvas.style.width = '';
             canvas.style.height = '';
         }
