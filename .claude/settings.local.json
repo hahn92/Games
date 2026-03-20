@@ -1,0 +1,8 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(ls -la /Users/hahn/Documents/Desarrollo/Games/*/main.js)",
+      "Bash(sort -k6,7)"
+    ]
+  }
+}

@@ -15,20 +15,25 @@ const INVADER_Y_GAP = 18;
 const INVADER_SPEED = 1.2;
 const INVADER_BULLET_SPEED = 4;
 
-// Bunker config
 const BUNKER_COUNT = 4;
 const BUNKER_W = 40;
 const BUNKER_H = 28;
 const BUNKER_HP = 3;
 let bunkers = [];
 
-let playerX, bullets, invaders, invaderDir, invaderBullets, score, highScore, isPlaying, gameLoop, gameOverPopup;
+let playerX, bullets, invaders, invaderDir, invaderBullets, score, highScore, isPlaying;
 let explosions = [];
 let frame = 0;
+let animFrameId = null;
+let lastFrameTime = 0;
 
-// Star layers for parallax
-let starsA = []; // fast
-let starsB = []; // slow
+// Cached player gradient (rebuilt only when playerX changes)
+let playerGrad = null;
+let playerGradX = -1;
+
+// Star layers
+let starsA = [];
+let starsB = [];
 
 function initStars() {
     starsA = [];
@@ -60,8 +65,7 @@ function initBunkers() {
             x: spacing * (i + 1) - BUNKER_W / 2,
             y: bunkerY,
             hp: BUNKER_HP,
-            // Each cell: 4x3 grid of pixels
-            cells: Array.from({ length: 4 * 3 }, () => true)
+            cells: new Array(12).fill(true)
         });
     }
 }
@@ -75,15 +79,24 @@ function resetGame() {
     score = 0;
     frame = 0;
     isPlaying = false;
-    highScore = localStorage.getItem('invadersHighScore') || 0;
+    highScore = parseInt(localStorage.getItem('invadersHighScore') || '0');
     invaderDir = 1;
+    playerGrad = null;
+    playerGradX = -1;
+
     for (let r = 0; r < INVADER_ROWS; r++) {
         for (let c = 0; c < INVADER_COLS; c++) {
+            // Pre-compute tentacle jitter offsets for Type C aliens (row 4)
+            const tentacleOffsets = r === 4
+                ? [4, -4, 4, -4, 4, -4]
+                : null;
             invaders.push({
                 x: 40 + c * (INVADER_WIDTH + INVADER_X_GAP),
                 y: 40 + r * (INVADER_HEIGHT + INVADER_Y_GAP),
                 alive: true,
-                row: r
+                row: r,
+                color: getInvaderColor(r),
+                tentacleOffsets
             });
         }
     }
@@ -98,15 +111,27 @@ function startGame() {
     document.getElementById('restartBtn').disabled = false;
     document.getElementById('startBtn').disabled = true;
     document.getElementById('gameOverPopup').style.display = 'none';
-    gameLoop = setInterval(update, 1000/60);
+    cancelAnimationFrame(animFrameId);
+    lastFrameTime = 0;
+    animFrameId = requestAnimationFrame(gameLoop);
 }
 
 function restartGame() {
-    clearInterval(gameLoop);
+    cancelAnimationFrame(animFrameId);
     startGame();
 }
 
-// --- Explosions ---
+// RAF-based loop with 60fps throttle
+function gameLoop(timestamp) {
+    if (!isPlaying) return;
+    animFrameId = requestAnimationFrame(gameLoop);
+    const dt = timestamp - lastFrameTime;
+    if (dt < 15) return; // skip if less than ~1 frame elapsed
+    lastFrameTime = timestamp;
+    update();
+    draw();
+}
+
 function spawnExplosion(x, y, color) {
     const particles = [];
     for (let i = 0; i < 10; i++) {
@@ -127,54 +152,30 @@ function updateExplosions() {
     for (let i = explosions.length - 1; i >= 0; i--) {
         const ex = explosions[i];
         ex.flashLife -= 0.1;
-        for (let j = ex.particles.length - 1; j >= 0; j--) {
-            const p = ex.particles[j];
+        const pts = ex.particles;
+        for (let j = pts.length - 1; j >= 0; j--) {
+            const p = pts[j];
             p.x += p.vx;
             p.y += p.vy;
             p.vy += 0.12;
             p.life -= 0.05;
-            if (p.life <= 0) ex.particles.splice(j, 1);
+            if (p.life <= 0) pts.splice(j, 1);
         }
-        if (ex.particles.length === 0) explosions.splice(i, 1);
-    }
-}
-
-function drawExplosions() {
-    for (const ex of explosions) {
-        // Flash
-        if (ex.flashLife > 0) {
-            ctx.save();
-            ctx.globalAlpha = ex.flashLife * 0.5;
-            ctx.fillStyle = '#fff';
-            ctx.beginPath();
-            ctx.arc(ex.x, ex.y, 14 * ex.flashLife, 0, Math.PI * 2);
-            ctx.fill();
-            ctx.restore();
-        }
-        // Particles
-        for (const p of ex.particles) {
-            ctx.save();
-            ctx.globalAlpha = p.life;
-            ctx.fillStyle = p.color;
-            ctx.beginPath();
-            ctx.arc(p.x, p.y, 2.5, 0, Math.PI * 2);
-            ctx.fill();
-            ctx.restore();
-        }
+        if (pts.length === 0) explosions.splice(i, 1);
     }
 }
 
 function update() {
     frame++;
 
-    // Move stars
-    for (const s of starsA) {
-        s.y += 0.5;
-        if (s.y > canvas.height) { s.y = 0; s.x = Math.random() * canvas.width; }
+    // Move stars (batched, no per-element save/restore)
+    for (let i = 0; i < starsA.length; i++) {
+        starsA[i].y += 0.5;
+        if (starsA[i].y > canvas.height) { starsA[i].y = 0; starsA[i].x = Math.random() * canvas.width; }
     }
-    for (const s of starsB) {
-        s.y += 0.2;
-        if (s.y > canvas.height) { s.y = 0; s.x = Math.random() * canvas.width; }
+    for (let i = 0; i < starsB.length; i++) {
+        starsB[i].y += 0.2;
+        if (starsB[i].y > canvas.height) { starsB[i].y = 0; starsB[i].x = Math.random() * canvas.width; }
     }
 
     // Move player
@@ -182,7 +183,7 @@ function update() {
     if (keys['ArrowRight']) playerX += PLAYER_SPEED;
     playerX = Math.max(0, Math.min(canvas.width - PLAYER_WIDTH, playerX));
 
-    // Move bullets
+    // Move player bullets
     for (let i = bullets.length - 1; i >= 0; i--) {
         bullets[i].y -= BULLET_SPEED;
         if (bullets[i].y < 0) bullets.splice(i, 1);
@@ -190,24 +191,25 @@ function update() {
 
     // Move invaders
     let edge = false;
-    for (const inv of invaders) {
+    for (let i = 0; i < invaders.length; i++) {
+        const inv = invaders[i];
         if (!inv.alive) continue;
         inv.x += invaderDir * INVADER_SPEED;
         if (inv.x < 0 || inv.x + INVADER_WIDTH > canvas.width) edge = true;
     }
     if (edge) {
         invaderDir *= -1;
-        for (const inv of invaders) {
-            inv.y += INVADER_Y_GAP;
+        for (let i = 0; i < invaders.length; i++) {
+            invaders[i].y += INVADER_Y_GAP;
         }
     }
 
-    // Invader shooting
+    // Invader shooting — avoid filter() by picking random index and scanning
     if (Math.random() < 0.02) {
-        const shooters = invaders.filter(inv => inv.alive);
-        if (shooters.length) {
-            const shooter = shooters[Math.floor(Math.random() * shooters.length)];
-            invaderBullets.push({ x: shooter.x + INVADER_WIDTH/2, y: shooter.y + INVADER_HEIGHT });
+        const alive = invaders.filter(inv => inv.alive);
+        if (alive.length) {
+            const shooter = alive[Math.floor(Math.random() * alive.length)];
+            invaderBullets.push({ x: shooter.x + INVADER_WIDTH / 2, y: shooter.y + INVADER_HEIGHT });
         }
     }
     for (let i = invaderBullets.length - 1; i >= 0; i--) {
@@ -216,92 +218,66 @@ function update() {
     }
 
     // Player bullets vs invaders
-    for (let i = bullets.length - 1; i >= 0; i--) {
+    outer: for (let i = bullets.length - 1; i >= 0; i--) {
+        const bx = bullets[i].x, by = bullets[i].y;
         for (let j = 0; j < invaders.length; j++) {
             const inv = invaders[j];
             if (!inv.alive) continue;
-            if (
-                bullets[i].x < inv.x + INVADER_WIDTH &&
-                bullets[i].x + BULLET_WIDTH > inv.x &&
-                bullets[i].y < inv.y + INVADER_HEIGHT &&
-                bullets[i].y + BULLET_HEIGHT > inv.y
-            ) {
+            if (bx < inv.x + INVADER_WIDTH && bx + BULLET_WIDTH > inv.x &&
+                by < inv.y + INVADER_HEIGHT && by + BULLET_HEIGHT > inv.y) {
                 inv.alive = false;
-                const color = getInvaderColor(inv.row);
-                spawnExplosion(inv.x + INVADER_WIDTH / 2, inv.y + INVADER_HEIGHT / 2, color);
+                spawnExplosion(inv.x + INVADER_WIDTH / 2, inv.y + INVADER_HEIGHT / 2, inv.color);
                 bullets.splice(i, 1);
                 score += 10;
                 updateScore();
-                break;
+                continue outer;
             }
         }
     }
 
     // Player bullets vs bunkers
-    for (let i = bullets.length - 1; i >= 0; i--) {
-        let hit = false;
-        for (const bunker of bunkers) {
+    outer2: for (let i = bullets.length - 1; i >= 0; i--) {
+        const bx = bullets[i].x, by = bullets[i].y;
+        for (let k = 0; k < bunkers.length; k++) {
+            const bunker = bunkers[k];
             if (bunker.hp <= 0) continue;
-            if (
-                bullets[i].x < bunker.x + BUNKER_W &&
-                bullets[i].x + BULLET_WIDTH > bunker.x &&
-                bullets[i].y < bunker.y + BUNKER_H &&
-                bullets[i].y + BULLET_HEIGHT > bunker.y
-            ) {
-                bunker.hp--;
-                // Damage a random cell
-                const aliveCells = bunker.cells.map((v, idx) => v ? idx : -1).filter(v => v >= 0);
-                if (aliveCells.length) {
-                    const pick = aliveCells[Math.floor(Math.random() * aliveCells.length)];
-                    bunker.cells[pick] = false;
-                }
+            if (bx < bunker.x + BUNKER_W && bx + BULLET_WIDTH > bunker.x &&
+                by < bunker.y + BUNKER_H && by + BULLET_HEIGHT > bunker.y) {
+                damageBunker(bunker);
                 bullets.splice(i, 1);
-                hit = true;
-                break;
+                continue outer2;
             }
         }
-        if (hit) continue;
     }
 
     // Invader bullets vs bunkers
-    for (let i = invaderBullets.length - 1; i >= 0; i--) {
-        let hit = false;
-        for (const bunker of bunkers) {
+    outer3: for (let i = invaderBullets.length - 1; i >= 0; i--) {
+        const bx = invaderBullets[i].x, by = invaderBullets[i].y;
+        for (let k = 0; k < bunkers.length; k++) {
+            const bunker = bunkers[k];
             if (bunker.hp <= 0) continue;
-            if (
-                invaderBullets[i].x < bunker.x + BUNKER_W &&
-                invaderBullets[i].x + BULLET_WIDTH > bunker.x &&
-                invaderBullets[i].y < bunker.y + BUNKER_H &&
-                invaderBullets[i].y + BULLET_HEIGHT > bunker.y
-            ) {
-                bunker.hp--;
-                const aliveCells = bunker.cells.map((v, idx) => v ? idx : -1).filter(v => v >= 0);
-                if (aliveCells.length) {
-                    const pick = aliveCells[Math.floor(Math.random() * aliveCells.length)];
-                    bunker.cells[pick] = false;
-                }
+            if (bx < bunker.x + BUNKER_W && bx + BULLET_WIDTH > bunker.x &&
+                by < bunker.y + BUNKER_H && by + BULLET_HEIGHT > bunker.y) {
+                damageBunker(bunker);
                 invaderBullets.splice(i, 1);
-                hit = true;
-                break;
+                continue outer3;
             }
         }
-        if (hit) continue;
     }
 
     // Invader bullets vs player
     for (let i = invaderBullets.length - 1; i >= 0; i--) {
-        if (
-            invaderBullets[i].x > playerX &&
+        if (invaderBullets[i].x > playerX &&
             invaderBullets[i].x < playerX + PLAYER_WIDTH &&
-            invaderBullets[i].y > canvas.height - PLAYER_HEIGHT - 10
-        ) {
+            invaderBullets[i].y > canvas.height - PLAYER_HEIGHT - 10) {
             endGame();
             return;
         }
     }
 
     // Invader reaches player line
-    for (const inv of invaders) {
+    for (let i = 0; i < invaders.length; i++) {
+        const inv = invaders[i];
         if (!inv.alive) continue;
         if (inv.y + INVADER_HEIGHT > canvas.height - PLAYER_HEIGHT - 10) {
             endGame();
@@ -316,13 +292,22 @@ function update() {
     }
 
     updateExplosions();
-    draw();
+}
+
+function damageBunker(bunker) {
+    bunker.hp--;
+    const alive = [];
+    for (let i = 0; i < bunker.cells.length; i++) {
+        if (bunker.cells[i]) alive.push(i);
+    }
+    if (alive.length) bunker.cells[alive[Math.floor(Math.random() * alive.length)]] = false;
 }
 
 function endGame(won = false) {
-    clearInterval(gameLoop);
+    cancelAnimationFrame(animFrameId);
+    animFrameId = null;
     isPlaying = false;
-    if (score > highScore || highScore === 0) {
+    if (score > highScore) {
         highScore = score;
         localStorage.setItem('invadersHighScore', highScore);
     }
@@ -334,41 +319,35 @@ function endGame(won = false) {
 }
 
 function updateScore() {
-    if (document.getElementById('score')) {
-        document.getElementById('score').textContent = score;
-    }
-    if (document.getElementById('mobileScore')) {
-        document.getElementById('mobileScore').textContent = 'Puntaje: ' + score;
-    }
-    if (document.getElementById('highScore')) {
-        document.getElementById('highScore').textContent = highScore;
-    }
+    const el = document.getElementById('score');
+    if (el) el.textContent = score;
+    const ms = document.getElementById('mobileScore');
+    if (ms) ms.textContent = 'Puntaje: ' + score;
+    const hs = document.getElementById('highScore');
+    if (hs) hs.textContent = highScore;
 }
 
-// --- Alien color by row ---
 function getInvaderColor(row) {
-    if (row <= 1) return '#00e5ff';       // cyan - Type A
-    if (row <= 3) return '#e040fb';       // magenta - Type B
-    return '#ff6d00';                     // orange-red - Type C
+    if (row <= 1) return '#00e5ff';
+    if (row <= 3) return '#e040fb';
+    return '#ff6d00';
 }
 
-// --- Draw alien Type A (rows 0-1): classic symmetric ---
+// --- Alien draw functions (no shadowBlur — too expensive per-alien) ---
+
 function drawAlienA(x, y, w, h, poseB) {
     ctx.save();
     ctx.translate(x + w / 2, y + h / 2);
-    const color = '#00e5ff';
-    const glow = '#00b0ff';
-    ctx.shadowBlur = 8;
-    ctx.shadowColor = glow;
+
+    ctx.fillStyle = '#00e5ff';
+    ctx.strokeStyle = '#00e5ff';
 
     // Body
-    ctx.fillStyle = color;
     ctx.beginPath();
     ctx.roundRect(-w * 0.4, -h * 0.3, w * 0.8, h * 0.6, 3);
     ctx.fill();
 
     // Antennas
-    ctx.strokeStyle = color;
     ctx.lineWidth = 1.5;
     ctx.beginPath();
     ctx.moveTo(-w * 0.25, -h * 0.3);
@@ -376,8 +355,6 @@ function drawAlienA(x, y, w, h, poseB) {
     ctx.moveTo(w * 0.25, -h * 0.3);
     ctx.lineTo(w * 0.4, -h * 0.6);
     ctx.stroke();
-    // Antenna tips
-    ctx.fillStyle = color;
     ctx.beginPath();
     ctx.arc(-w * 0.4, -h * 0.6, 2, 0, Math.PI * 2);
     ctx.arc(w * 0.4, -h * 0.6, 2, 0, Math.PI * 2);
@@ -390,62 +367,46 @@ function drawAlienA(x, y, w, h, poseB) {
     ctx.arc(w * 0.18, -h * 0.05, 3.5, 0, Math.PI * 2);
     ctx.fill();
 
-    // Legs (pose alternates)
-    ctx.strokeStyle = color;
+    // Legs
+    ctx.strokeStyle = '#00e5ff';
     ctx.lineWidth = 1.5;
-    const legY = h * 0.3;
     const legSpread = poseB ? 0.5 : 0.35;
+    const legY = h * 0.3;
     ctx.beginPath();
-    ctx.moveTo(-w * 0.35, legY);
-    ctx.lineTo(-w * legSpread, legY + h * 0.25);
-    ctx.moveTo(-w * 0.12, legY);
-    ctx.lineTo(-w * 0.15, legY + h * 0.25);
-    ctx.moveTo(w * 0.12, legY);
-    ctx.lineTo(w * 0.15, legY + h * 0.25);
-    ctx.moveTo(w * 0.35, legY);
-    ctx.lineTo(w * legSpread, legY + h * 0.25);
+    ctx.moveTo(-w * 0.35, legY); ctx.lineTo(-w * legSpread, legY + h * 0.25);
+    ctx.moveTo(-w * 0.12, legY); ctx.lineTo(-w * 0.15, legY + h * 0.25);
+    ctx.moveTo(w * 0.12, legY);  ctx.lineTo(w * 0.15, legY + h * 0.25);
+    ctx.moveTo(w * 0.35, legY);  ctx.lineTo(w * legSpread, legY + h * 0.25);
     ctx.stroke();
 
     ctx.restore();
 }
 
-// --- Draw alien Type B (rows 2-3): crab ---
 function drawAlienB(x, y, w, h, poseB) {
     ctx.save();
     ctx.translate(x + w / 2, y + h / 2);
-    const color = '#e040fb';
-    const glow = '#aa00ff';
-    ctx.shadowBlur = 8;
-    ctx.shadowColor = glow;
 
-    // Body (oval)
-    ctx.fillStyle = color;
+    ctx.fillStyle = '#e040fb';
+    ctx.strokeStyle = '#e040fb';
+
+    // Body
     ctx.beginPath();
     ctx.ellipse(0, 0, w * 0.4, h * 0.35, 0, 0, Math.PI * 2);
     ctx.fill();
 
     // Claws
     const clawY = poseB ? h * 0.05 : -h * 0.05;
-    ctx.strokeStyle = color;
     ctx.lineWidth = 2;
-    // Left claw
     ctx.beginPath();
-    ctx.moveTo(-w * 0.4, 0);
-    ctx.lineTo(-w * 0.6, clawY);
-    ctx.moveTo(-w * 0.6, clawY);
-    ctx.lineTo(-w * 0.7, clawY - h * 0.2);
-    ctx.moveTo(-w * 0.6, clawY);
-    ctx.lineTo(-w * 0.75, clawY + h * 0.1);
-    // Right claw
-    ctx.moveTo(w * 0.4, 0);
-    ctx.lineTo(w * 0.6, clawY);
-    ctx.moveTo(w * 0.6, clawY);
-    ctx.lineTo(w * 0.7, clawY - h * 0.2);
-    ctx.moveTo(w * 0.6, clawY);
-    ctx.lineTo(w * 0.75, clawY + h * 0.1);
+    ctx.moveTo(-w * 0.4, 0);    ctx.lineTo(-w * 0.6, clawY);
+    ctx.moveTo(-w * 0.6, clawY); ctx.lineTo(-w * 0.7, clawY - h * 0.2);
+    ctx.moveTo(-w * 0.6, clawY); ctx.lineTo(-w * 0.75, clawY + h * 0.1);
+    ctx.moveTo(w * 0.4, 0);     ctx.lineTo(w * 0.6, clawY);
+    ctx.moveTo(w * 0.6, clawY);  ctx.lineTo(w * 0.7, clawY - h * 0.2);
+    ctx.moveTo(w * 0.6, clawY);  ctx.lineTo(w * 0.75, clawY + h * 0.1);
     ctx.stroke();
 
-    // Big eyes
+    // Eyes
     ctx.fillStyle = '#fff';
     ctx.beginPath();
     ctx.arc(-w * 0.18, -h * 0.08, 5, 0, Math.PI * 2);
@@ -457,33 +418,25 @@ function drawAlienB(x, y, w, h, poseB) {
     ctx.arc(w * 0.18, -h * 0.08, 2.5, 0, Math.PI * 2);
     ctx.fill();
 
-    // Bottom legs
-    ctx.strokeStyle = color;
+    // Legs
+    ctx.strokeStyle = '#e040fb';
     ctx.lineWidth = 1.5;
     const lY = h * 0.35;
     ctx.beginPath();
-    ctx.moveTo(-w * 0.25, lY);
-    ctx.lineTo(-w * 0.3, lY + h * 0.2);
-    ctx.moveTo(0, lY);
-    ctx.lineTo(0, lY + h * 0.2);
-    ctx.moveTo(w * 0.25, lY);
-    ctx.lineTo(w * 0.3, lY + h * 0.2);
+    ctx.moveTo(-w * 0.25, lY); ctx.lineTo(-w * 0.3, lY + h * 0.2);
+    ctx.moveTo(0, lY);         ctx.lineTo(0, lY + h * 0.2);
+    ctx.moveTo(w * 0.25, lY);  ctx.lineTo(w * 0.3, lY + h * 0.2);
     ctx.stroke();
 
     ctx.restore();
 }
 
-// --- Draw alien Type C (row 4): boss / octopus ---
-function drawAlienC(x, y, w, h, poseB) {
+function drawAlienC(x, y, w, h, poseB, tentacleOffsets) {
     ctx.save();
     ctx.translate(x + w / 2, y + h / 2);
-    const color = '#ff6d00';
-    const glow = '#dd2c00';
-    ctx.shadowBlur = 12;
-    ctx.shadowColor = glow;
 
     // Body
-    ctx.fillStyle = color;
+    ctx.fillStyle = '#ff6d00';
     ctx.beginPath();
     ctx.ellipse(0, -h * 0.05, w * 0.45, h * 0.38, 0, 0, Math.PI * 2);
     ctx.fill();
@@ -506,16 +459,18 @@ function drawAlienC(x, y, w, h, poseB) {
     ctx.arc(w * 0.18, -h * 0.12, 2.8, 0, Math.PI * 2);
     ctx.fill();
 
-    // Tentacles
-    ctx.strokeStyle = color;
+    // Tentacles (pre-computed offsets, no Math.random() in render)
+    ctx.strokeStyle = '#ff6d00';
     ctx.lineWidth = 2;
-    const tentacleCount = 6;
-    for (let t = 0; t < tentacleCount; t++) {
-        const tx = -w * 0.4 + t * (w * 0.8 / (tentacleCount - 1));
-        const curl = poseB ? (t % 2 === 0 ? h * 0.2 : h * 0.1) : (t % 2 === 0 ? h * 0.1 : h * 0.2);
+    const curlA = poseB ? h * 0.2 : h * 0.1;
+    const curlB = poseB ? h * 0.1 : h * 0.2;
+    for (let t = 0; t < 6; t++) {
+        const tx = -w * 0.4 + t * (w * 0.8 / 5);
+        const curl = t % 2 === 0 ? curlA : curlB;
+        const jitter = tentacleOffsets ? tentacleOffsets[t] : (t % 2 === 0 ? 4 : -4);
         ctx.beginPath();
         ctx.moveTo(tx, h * 0.3);
-        ctx.quadraticCurveTo(tx + (Math.random() > 0.5 ? 4 : -4), h * 0.38 + curl / 2, tx, h * 0.38 + curl);
+        ctx.quadraticCurveTo(tx + jitter, h * 0.38 + curl / 2, tx, h * 0.38 + curl);
         ctx.stroke();
     }
 
@@ -524,39 +479,34 @@ function drawAlienC(x, y, w, h, poseB) {
 
 function drawInvader(inv) {
     const poseB = Math.floor(frame / 30) % 2 === 1;
-    const row = inv.row;
-    if (row <= 1) {
-        drawAlienA(inv.x, inv.y, INVADER_WIDTH, INVADER_HEIGHT, poseB);
-    } else if (row <= 3) {
-        drawAlienB(inv.x, inv.y, INVADER_WIDTH, INVADER_HEIGHT, poseB);
-    } else {
-        drawAlienC(inv.x, inv.y, INVADER_WIDTH, INVADER_HEIGHT, poseB);
-    }
+    if (inv.row <= 1) drawAlienA(inv.x, inv.y, INVADER_WIDTH, INVADER_HEIGHT, poseB);
+    else if (inv.row <= 3) drawAlienB(inv.x, inv.y, INVADER_WIDTH, INVADER_HEIGHT, poseB);
+    else drawAlienC(inv.x, inv.y, INVADER_WIDTH, INVADER_HEIGHT, poseB, inv.tentacleOffsets);
 }
 
-// --- Draw player ship ---
 function drawPlayer() {
     const px = playerX;
     const py = canvas.height - PLAYER_HEIGHT - 10;
-    ctx.save();
 
-    // Engine glow
-    ctx.shadowBlur = 12;
+    // Cache gradient (only rebuild when x changes)
+    if (playerGradX !== px) {
+        playerGrad = ctx.createLinearGradient(px, py, px + PLAYER_WIDTH, py + PLAYER_HEIGHT);
+        playerGrad.addColorStop(0, '#26d0ce');
+        playerGrad.addColorStop(1, '#1a7a7a');
+        playerGradX = px;
+    }
+
+    ctx.shadowBlur = 10;
     ctx.shadowColor = '#26d0ce';
 
-    // Ship body (triangle hull)
-    const grad = ctx.createLinearGradient(px, py, px + PLAYER_WIDTH, py + PLAYER_HEIGHT);
-    grad.addColorStop(0, '#26d0ce');
-    grad.addColorStop(1, '#1a7a7a');
-    ctx.fillStyle = grad;
+    ctx.fillStyle = playerGrad;
     ctx.beginPath();
-    ctx.moveTo(px + PLAYER_WIDTH / 2, py);          // nose
-    ctx.lineTo(px, py + PLAYER_HEIGHT);              // left base
-    ctx.lineTo(px + PLAYER_WIDTH, py + PLAYER_HEIGHT); // right base
+    ctx.moveTo(px + PLAYER_WIDTH / 2, py);
+    ctx.lineTo(px, py + PLAYER_HEIGHT);
+    ctx.lineTo(px + PLAYER_WIDTH, py + PLAYER_HEIGHT);
     ctx.closePath();
     ctx.fill();
 
-    // Wing details
     ctx.fillStyle = 'rgba(255,255,255,0.15)';
     ctx.beginPath();
     ctx.moveTo(px + PLAYER_WIDTH / 2, py + 4);
@@ -565,7 +515,6 @@ function drawPlayer() {
     ctx.closePath();
     ctx.fill();
 
-    // Cabin (central rounded bubble)
     ctx.shadowBlur = 6;
     ctx.shadowColor = '#8fd3f4';
     ctx.fillStyle = '#8fd3f4';
@@ -573,108 +522,105 @@ function drawPlayer() {
     ctx.ellipse(px + PLAYER_WIDTH / 2, py + 8, 6, 5, 0, 0, Math.PI * 2);
     ctx.fill();
 
-    // Cannon barrel
-    ctx.fillStyle = '#76ff03';
     ctx.shadowBlur = 8;
     ctx.shadowColor = '#76ff03';
+    ctx.fillStyle = '#76ff03';
     ctx.fillRect(px + PLAYER_WIDTH / 2 - 2, py - 6, 4, 8);
 
-    ctx.restore();
+    ctx.shadowBlur = 0;
 }
 
-// --- Draw bunkers ---
 function drawBunkers() {
+    ctx.fillStyle = '#76ff03';
+    ctx.shadowBlur = 4;
+    ctx.shadowColor = '#76ff03';
+    const cellW = BUNKER_W / 4;
+    const cellH = BUNKER_H / 3;
     for (const bunker of bunkers) {
         if (bunker.hp <= 0) continue;
-        const cellW = BUNKER_W / 4;
-        const cellH = BUNKER_H / 3;
+        ctx.globalAlpha = 0.4 + (bunker.hp / BUNKER_HP) * 0.6;
         for (let row = 0; row < 3; row++) {
             for (let col = 0; col < 4; col++) {
-                const idx = row * 4 + col;
-                if (!bunker.cells[idx]) continue;
-                // Color darkens with damage
-                const alpha = 0.4 + (bunker.hp / BUNKER_HP) * 0.6;
-                ctx.save();
-                ctx.globalAlpha = alpha;
-                ctx.fillStyle = '#76ff03';
-                ctx.shadowBlur = 4;
-                ctx.shadowColor = '#76ff03';
-                ctx.fillRect(
-                    bunker.x + col * cellW,
-                    bunker.y + row * cellH,
-                    cellW - 1,
-                    cellH - 1
-                );
-                ctx.restore();
+                if (!bunker.cells[row * 4 + col]) continue;
+                ctx.fillRect(bunker.x + col * cellW, bunker.y + row * cellH, cellW - 1, cellH - 1);
             }
         }
     }
+    ctx.globalAlpha = 1;
+    ctx.shadowBlur = 0;
 }
 
-// --- Draw stars ---
 function drawStars() {
+    // Draw slow stars (starsB) as squares — faster than arc
+    ctx.fillStyle = '#fff';
     for (const s of starsB) {
-        ctx.save();
         ctx.globalAlpha = s.brightness * 0.5;
-        ctx.fillStyle = '#fff';
-        ctx.beginPath();
-        ctx.arc(s.x, s.y, s.r, 0, Math.PI * 2);
-        ctx.fill();
-        ctx.restore();
+        ctx.fillRect(s.x - s.r, s.y - s.r, s.r * 2, s.r * 2);
     }
+    // Draw fast stars (starsA)
+    ctx.fillStyle = '#cce4ff';
     for (const s of starsA) {
-        ctx.save();
         ctx.globalAlpha = s.brightness;
-        ctx.fillStyle = '#cce4ff';
-        ctx.beginPath();
-        ctx.arc(s.x, s.y, s.r, 0, Math.PI * 2);
-        ctx.fill();
-        ctx.restore();
+        ctx.fillRect(s.x - 1, s.y - 1, 2, 2);
     }
+    ctx.globalAlpha = 1;
+}
+
+function drawExplosions() {
+    for (const ex of explosions) {
+        if (ex.flashLife > 0) {
+            ctx.globalAlpha = ex.flashLife * 0.5;
+            ctx.fillStyle = '#fff';
+            ctx.beginPath();
+            ctx.arc(ex.x, ex.y, 14 * ex.flashLife, 0, Math.PI * 2);
+            ctx.fill();
+        }
+        for (const p of ex.particles) {
+            ctx.globalAlpha = p.life;
+            ctx.fillStyle = p.color;
+            ctx.beginPath();
+            ctx.arc(p.x, p.y, 2.5, 0, Math.PI * 2);
+            ctx.fill();
+        }
+    }
+    ctx.globalAlpha = 1;
 }
 
 function draw() {
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
-
-    // Background
     ctx.fillStyle = '#080820';
     ctx.fillRect(0, 0, canvas.width, canvas.height);
 
     drawStars();
 
-    // Invaders
-    for (const inv of invaders) {
-        if (!inv.alive) continue;
-        drawInvader(inv);
+    // Draw all invaders (no per-alien shadowBlur)
+    for (let i = 0; i < invaders.length; i++) {
+        if (invaders[i].alive) drawInvader(invaders[i]);
     }
 
-    // Player bullets with glow
+    // Player bullets — set state once for the whole batch
+    ctx.shadowBlur = 8;
+    ctx.shadowColor = '#76ff03';
+    ctx.fillStyle = '#76ff03';
     for (const b of bullets) {
-        ctx.save();
-        ctx.shadowBlur = 8;
-        ctx.shadowColor = '#76ff03';
-        ctx.fillStyle = '#76ff03';
         ctx.fillRect(b.x, b.y, BULLET_WIDTH, BULLET_HEIGHT);
-        ctx.restore();
     }
 
-    // Invader bullets
+    // Invader bullets — set state once
+    ctx.shadowBlur = 5;
+    ctx.shadowColor = '#ff5252';
+    ctx.fillStyle = '#ff5252';
     for (const b of invaderBullets) {
-        ctx.save();
-        ctx.shadowBlur = 5;
-        ctx.shadowColor = '#ff5252';
-        ctx.fillStyle = '#ff5252';
         ctx.fillRect(b.x, b.y, BULLET_WIDTH, BULLET_HEIGHT);
-        ctx.restore();
     }
+    ctx.shadowBlur = 0;
 
     drawBunkers();
     drawPlayer();
     drawExplosions();
 
     // Ground line
-    ctx.fillStyle = '#26d0ce';
     ctx.globalAlpha = 0.4;
+    ctx.fillStyle = '#26d0ce';
     ctx.fillRect(0, canvas.height - 10, canvas.width, 2);
     ctx.globalAlpha = 1;
 
@@ -686,15 +632,15 @@ document.addEventListener('keydown', e => {
     keys[e.code] = true;
     if (!isPlaying) return;
     if (e.code === 'Space') {
+        e.preventDefault();
         bullets.push({
-            x: playerX + PLAYER_WIDTH/2 - BULLET_WIDTH/2,
+            x: playerX + PLAYER_WIDTH / 2 - BULLET_WIDTH / 2,
             y: canvas.height - PLAYER_HEIGHT - 10
         });
     }
 });
-document.addEventListener('keyup', e => {
-    keys[e.code] = false;
-});
+document.addEventListener('keyup', e => { keys[e.code] = false; });
+
 document.getElementById('startBtn').addEventListener('click', startGame);
 document.getElementById('restartBtn').addEventListener('click', restartGame);
 document.getElementById('playAgainBtn').addEventListener('click', () => {
@@ -702,27 +648,23 @@ document.getElementById('playAgainBtn').addEventListener('click', () => {
     startGame();
 });
 
-// Touch controls
 document.getElementById('btnShoot').addEventListener('click', () => {
     if (!isPlaying) return;
     bullets.push({
-        x: playerX + PLAYER_WIDTH/2 - BULLET_WIDTH/2,
+        x: playerX + PLAYER_WIDTH / 2 - BULLET_WIDTH / 2,
         y: canvas.height - PLAYER_HEIGHT - 10
     });
 });
 
-document.getElementById('btnLeft').addEventListener('mousedown', () => { keys['ArrowLeft'] = true; });
-document.getElementById('btnLeft').addEventListener('mouseup', () => { keys['ArrowLeft'] = false; });
-document.getElementById('btnLeft').addEventListener('mouseleave', () => { keys['ArrowLeft'] = false; });
-document.getElementById('btnLeft').addEventListener('touchstart', (e) => { e.preventDefault(); keys['ArrowLeft'] = true; });
-document.getElementById('btnLeft').addEventListener('touchend', (e) => { e.preventDefault(); keys['ArrowLeft'] = false; });
-document.getElementById('btnLeft').addEventListener('touchcancel', () => { keys['ArrowLeft'] = false; });
-
-document.getElementById('btnRight').addEventListener('mousedown', () => { keys['ArrowRight'] = true; });
-document.getElementById('btnRight').addEventListener('mouseup', () => { keys['ArrowRight'] = false; });
-document.getElementById('btnRight').addEventListener('mouseleave', () => { keys['ArrowRight'] = false; });
-document.getElementById('btnRight').addEventListener('touchstart', (e) => { e.preventDefault(); keys['ArrowRight'] = true; });
-document.getElementById('btnRight').addEventListener('touchend', (e) => { e.preventDefault(); keys['ArrowRight'] = false; });
-document.getElementById('btnRight').addEventListener('touchcancel', () => { keys['ArrowRight'] = false; });
+['btnLeft', 'btnRight'].forEach(id => {
+    const key = id === 'btnLeft' ? 'ArrowLeft' : 'ArrowRight';
+    const btn = document.getElementById(id);
+    btn.addEventListener('mousedown', () => { keys[key] = true; });
+    btn.addEventListener('mouseup', () => { keys[key] = false; });
+    btn.addEventListener('mouseleave', () => { keys[key] = false; });
+    btn.addEventListener('touchstart', e => { e.preventDefault(); keys[key] = true; });
+    btn.addEventListener('touchend', e => { e.preventDefault(); keys[key] = false; });
+    btn.addEventListener('touchcancel', () => { keys[key] = false; });
+});
 
 resetGame();
