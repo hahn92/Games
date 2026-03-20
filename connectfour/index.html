@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <title>Conecta 4</title>
+    <link rel="stylesheet" href="./styles.css">
+</head>
+<body>
+    <main>
+        <div class="responsive-layout">
+            <div class="game-side" id="gameSide">
+                <button id="mobileStartBtn" style="display:none;position:absolute;top:20px;left:50%;transform:translateX(-50%);z-index:1000;padding:1rem 2.5rem;font-size:1.3rem;border-radius:12px;background:var(--grad-primary);color:#222;font-weight:bold;border:none;box-shadow:0 2px 8px rgba(0,0,0,0.15);">Iniciar</button>
+                <div id="mobileScore" class="mobile-score"></div>
+                <canvas id="c4Canvas" width="420" height="360" class="c4-canvas"></canvas>
+                <div id="touchCols" class="touch-cols">
+                    <button class="col-btn" data-col="0">1</button>
+                    <button class="col-btn" data-col="1">2</button>
+                    <button class="col-btn" data-col="2">3</button>
+                    <button class="col-btn" data-col="3">4</button>
+                    <button class="col-btn" data-col="4">5</button>
+                    <button class="col-btn" data-col="5">6</button>
+                    <button class="col-btn" data-col="6">7</button>
+                </div>
+            </div>
+            <div class="info-side" id="infoSide">
+                <h1>Conecta 4</h1>
+                <p>Conecta 4 fichas en línea antes que la IA. Tú eres rojo, la IA es amarillo.</p>
+                <div class="score-panel">
+                    <span>Victorias: <span id="wins">0</span></span>
+                    <span>Derrotas: <span id="losses">0</span></span>
+                    <span>Empates: <span id="draws">0</span></span>
+                </div>
+                <div class="buttons-panel">
+                    <button id="startBtn">Iniciar</button>
+                    <button id="restartBtn" disabled>Reiniciar</button>
+                </div>
+            </div>
+        </div>
+        <div id="gameOverPopup" class="popup" style="display:none;">
+            <div class="popup-content">
+                <h2 id="popupTitle">¡Resultado!</h2>
+                <p id="finalScore"></p>
+                <button id="playAgainBtn">Volver a jugar</button>
+            </div>
+        </div>
+    </main>
+    <script>
+    function isMobile() {
+        return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+    }
+    function adjustMobileLayout() {
+        var gameSide = document.getElementById('gameSide');
+        var infoSide = document.getElementById('infoSide');
+        var mobileStartBtn = document.getElementById('mobileStartBtn');
+        var canvas = document.getElementById('c4Canvas');
+        var mobileScore = document.getElementById('mobileScore');
+        var touchCols = document.getElementById('touchCols');
+        var vHeight = window.visualViewport ? window.visualViewport.height : window.innerHeight;
+
+        if (isMobile() || window.innerWidth < 900) {
+            if (isMobile()) {
+                gameSide.style.position = 'fixed';
+                gameSide.style.top = '0';
+                gameSide.style.left = '0';
+                gameSide.style.width = '100vw';
+                gameSide.style.height = vHeight + 'px';
+                gameSide.style.zIndex = '999';
+                gameSide.style.background = 'var(--grad-bg)';
+                infoSide.style.display = 'none';
+                mobileStartBtn.style.display = 'block';
+                mobileScore.style.display = 'block';
+                touchCols.style.display = 'flex';
+            }
+            var availableHeight = vHeight - (isMobile() ? 130 : 0);
+            var availableWidth = window.innerWidth - 32;
+            var ratio = 420 / 360;
+            var newHeight = Math.min(availableHeight, availableWidth / ratio);
+            var newWidth = newHeight * ratio;
+            canvas.style.width = newWidth + 'px';
+            canvas.style.height = newHeight + 'px';
+        } else {
+            gameSide.style.position = '';
+            gameSide.style.top = '';
+            gameSide.style.left = '';
+            gameSide.style.width = '';
+            gameSide.style.height = '';
+            gameSide.style.zIndex = '';
+            gameSide.style.background = '';
+            infoSide.style.display = '';
+            mobileStartBtn.style.display = 'none';
+            mobileScore.style.display = 'none';
+            touchCols.style.display = '';
+            canvas.style.width = '';
+            canvas.style.height = '';
+        }
+    }
+    window.addEventListener('resize', adjustMobileLayout);
+    if (window.visualViewport) window.visualViewport.addEventListener('resize', adjustMobileLayout);
+    document.addEventListener('DOMContentLoaded', adjustMobileLayout);
+
+    document.addEventListener('DOMContentLoaded', function() {
+        var mobileStartBtn = document.getElementById('mobileStartBtn');
+        var startBtn = document.getElementById('startBtn');
+        if (mobileStartBtn) {
+            mobileStartBtn.addEventListener('click', function() {
+                if (startBtn) startBtn.click();
+                mobileStartBtn.style.display = 'none';
+            });
+        }
+    });
+    </script>
+    <script src="./main.js"></script>
+</body>
+</html>
