@@ -18,29 +18,146 @@ let speed = 1000/60;
 // Teclas presionadas para movimiento continuo
 const keys = {};
 
+// --- Visual enhancements ---
+// Ball trail
+const ballTrail = [];
+const TRAIL_LENGTH = 8;
+
+// Particles
+let particles = [];
+
+// Flash effect
+let flashSide = null; // 'left' or 'right'
+let flashFrames = 0;
+const FLASH_DURATION = 10;
+
+function spawnPaddleParticles(x, y) {
+    const count = 6 + Math.floor(Math.random() * 3);
+    for (let i = 0; i < count; i++) {
+        const angle = (Math.random() - 0.5) * Math.PI * 0.6 + (ballSpeedX > 0 ? 0 : Math.PI);
+        const speed = 2 + Math.random() * 3;
+        particles.push({
+            x: x,
+            y: y,
+            vx: Math.cos(angle) * speed,
+            vy: Math.sin(angle) * speed,
+            life: 1.0,
+            decay: 0.06 + Math.random() * 0.04,
+            radius: 2 + Math.random() * 2,
+            color: Math.random() > 0.5 ? '#00e5ff' : '#ffffff'
+        });
+    }
+}
+
+function updateParticles() {
+    particles = particles.filter(p => p.life > 0);
+    particles.forEach(p => {
+        p.x += p.vx;
+        p.y += p.vy;
+        p.life -= p.decay;
+    });
+}
+
+function drawParticles() {
+    particles.forEach(p => {
+        ctx.save();
+        ctx.globalAlpha = Math.max(0, p.life);
+        ctx.fillStyle = p.color;
+        ctx.shadowBlur = 6;
+        ctx.shadowColor = p.color;
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, p.radius, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.restore();
+    });
+}
+
 function draw() {
     ctx.clearRect(0, 0, WIDTH, HEIGHT);
-    // Fondo
-    ctx.fillStyle = '#232526';
+
+    // --- Fondo con degradado ---
+    const bgGrad = ctx.createLinearGradient(0, 0, 0, HEIGHT);
+    bgGrad.addColorStop(0, '#0a0a1a');
+    bgGrad.addColorStop(1, '#000510');
+    ctx.fillStyle = bgGrad;
     ctx.fillRect(0, 0, WIDTH, HEIGHT);
-    // Red central
-    ctx.strokeStyle = '#8fd3f4';
-    ctx.setLineDash([8, 8]);
-    ctx.beginPath();
-    ctx.moveTo(WIDTH/2, 0);
-    ctx.lineTo(WIDTH/2, HEIGHT);
-    ctx.stroke();
-    ctx.setLineDash([]);
-    // Paletas
-    ctx.fillStyle = '#ff512f';
-    ctx.fillRect(0, playerY, PADDLE_WIDTH, PADDLE_HEIGHT);
+
+    // Viñeta radial
+    const vignette = ctx.createRadialGradient(WIDTH/2, HEIGHT/2, HEIGHT*0.3, WIDTH/2, HEIGHT/2, HEIGHT*0.85);
+    vignette.addColorStop(0, 'rgba(0,0,0,0)');
+    vignette.addColorStop(1, 'rgba(0,0,0,0.55)');
+    ctx.fillStyle = vignette;
+    ctx.fillRect(0, 0, WIDTH, HEIGHT);
+
+    // --- Flash de punto ---
+    if (flashFrames > 0) {
+        const alpha = (flashFrames / FLASH_DURATION) * 0.35;
+        ctx.save();
+        ctx.globalAlpha = alpha;
+        ctx.fillStyle = '#00ff88';
+        if (flashSide === 'left') {
+            ctx.fillRect(0, 0, WIDTH/2, HEIGHT);
+        } else {
+            ctx.fillRect(WIDTH/2, 0, WIDTH/2, HEIGHT);
+        }
+        ctx.restore();
+        flashFrames--;
+    }
+
+    // --- Línea central con círculos ---
+    ctx.save();
+    ctx.globalAlpha = 0.35;
     ctx.fillStyle = '#8fd3f4';
-    ctx.fillRect(WIDTH-PADDLE_WIDTH, aiY, PADDLE_WIDTH, PADDLE_HEIGHT);
-    // Bola
+    for (let yy = 10; yy < HEIGHT; yy += 20) {
+        ctx.beginPath();
+        ctx.arc(WIDTH/2, yy, 2.5, 0, Math.PI * 2);
+        ctx.fill();
+    }
+    ctx.restore();
+
+    // --- Trail de la pelota ---
+    ballTrail.forEach((pos, i) => {
+        const ratio = i / TRAIL_LENGTH;
+        const alpha = 0.05 + ratio * 0.45;
+        const radius = (BALL_SIZE / 2) * (0.3 + ratio * 0.7);
+        ctx.save();
+        ctx.globalAlpha = alpha;
+        ctx.fillStyle = '#ffe082';
+        ctx.beginPath();
+        ctx.arc(pos.x + BALL_SIZE/2, pos.y + BALL_SIZE/2, radius, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.restore();
+    });
+
+    // --- Partículas ---
+    drawParticles();
+
+    // --- Paletas con gradiente ---
+    // Paleta jugador
+    const playerGrad = ctx.createLinearGradient(0, playerY, 0, playerY + PADDLE_HEIGHT);
+    playerGrad.addColorStop(0, '#aaaaaa');
+    playerGrad.addColorStop(0.5, '#ffffff');
+    playerGrad.addColorStop(1, '#aaaaaa');
+    ctx.fillStyle = playerGrad;
+    ctx.fillRect(0, playerY, PADDLE_WIDTH, PADDLE_HEIGHT);
+
+    // Paleta AI
+    const aiGrad = ctx.createLinearGradient(0, aiY, 0, aiY + PADDLE_HEIGHT);
+    aiGrad.addColorStop(0, '#aaaaaa');
+    aiGrad.addColorStop(0.5, '#ffffff');
+    aiGrad.addColorStop(1, '#aaaaaa');
+    ctx.fillStyle = aiGrad;
+    ctx.fillRect(WIDTH - PADDLE_WIDTH, aiY, PADDLE_WIDTH, PADDLE_HEIGHT);
+
+    // --- Bola con glow ---
+    ctx.save();
+    ctx.shadowBlur = 15;
+    ctx.shadowColor = '#fff';
     ctx.fillStyle = '#ffe082';
     ctx.beginPath();
     ctx.arc(ballX + BALL_SIZE/2, ballY + BALL_SIZE/2, BALL_SIZE/2, 0, Math.PI*2);
     ctx.fill();
+    ctx.restore();
 }
 
 function moveAI() {
@@ -56,32 +173,46 @@ function update() {
     if (keys['ArrowDown'] || keys['down']) playerY += PADDLE_SPEED;
     playerY = Math.max(0, Math.min(HEIGHT-PADDLE_HEIGHT, playerY));
 
+    // Actualizar trail
+    ballTrail.push({ x: ballX, y: ballY });
+    if (ballTrail.length > TRAIL_LENGTH) ballTrail.shift();
+
     ballX += ballSpeedX;
     ballY += ballSpeedY;
+
     // Rebote arriba/abajo
     if (ballY <= 0 || ballY + BALL_SIZE >= HEIGHT) ballSpeedY *= -1;
+
     // Rebote con jugador
     if (ballX <= PADDLE_WIDTH && ballY + BALL_SIZE > playerY && ballY < playerY + PADDLE_HEIGHT) {
         ballSpeedX *= -1;
         ballX = PADDLE_WIDTH;
         ballSpeedY += (Math.random()-0.5)*2;
+        spawnPaddleParticles(PADDLE_WIDTH, ballY + BALL_SIZE/2);
     }
     // Rebote con AI
     if (ballX + BALL_SIZE >= WIDTH-PADDLE_WIDTH && ballY + BALL_SIZE > aiY && ballY < aiY + PADDLE_HEIGHT) {
         ballSpeedX *= -1;
         ballX = WIDTH-PADDLE_WIDTH-BALL_SIZE;
         ballSpeedY += (Math.random()-0.5)*2;
+        spawnPaddleParticles(WIDTH - PADDLE_WIDTH, ballY + BALL_SIZE/2);
     }
     // Punto jugador
     if (ballX + BALL_SIZE >= WIDTH) {
         playerScore++;
+        flashSide = 'left';
+        flashFrames = FLASH_DURATION;
+        ballTrail.length = 0;
         resetBall();
         updateScore();
     }
     // Punto AI (fin de juego)
     if (ballX <= 0) {
+        ballTrail.length = 0;
         gameOver();
     }
+
+    updateParticles();
     moveAI();
     draw();
 }
@@ -110,6 +241,9 @@ function startGame() {
     playerY = HEIGHT/2 - PADDLE_HEIGHT/2;
     aiY = HEIGHT/2 - PADDLE_HEIGHT/2;
     playerScore = 0;
+    particles = [];
+    ballTrail.length = 0;
+    flashFrames = 0;
     resetBall();
     updateScore();
     draw();

@@ -1,40 +1,94 @@
 const canvas = document.getElementById('invadersCanvas');
 const ctx = canvas.getContext('2d');
-const PLAYER_WIDTH = 40;
-const PLAYER_HEIGHT = 20;
+const PLAYER_WIDTH = 48;
+const PLAYER_HEIGHT = 24;
 const PLAYER_SPEED = 5;
 const BULLET_WIDTH = 4;
 const BULLET_HEIGHT = 12;
 const BULLET_SPEED = 7;
 const INVADER_WIDTH = 28;
 const INVADER_HEIGHT = 18;
-const INVADER_ROWS = 4;
+const INVADER_ROWS = 5;
 const INVADER_COLS = 8;
 const INVADER_X_GAP = 12;
 const INVADER_Y_GAP = 18;
 const INVADER_SPEED = 1.2;
 const INVADER_BULLET_SPEED = 4;
+
+// Bunker config
+const BUNKER_COUNT = 4;
+const BUNKER_W = 40;
+const BUNKER_H = 28;
+const BUNKER_HP = 3;
+let bunkers = [];
+
 let playerX, bullets, invaders, invaderDir, invaderBullets, score, highScore, isPlaying, gameLoop, gameOverPopup;
+let explosions = [];
+let frame = 0;
+
+// Star layers for parallax
+let starsA = []; // fast
+let starsB = []; // slow
+
+function initStars() {
+    starsA = [];
+    starsB = [];
+    for (let i = 0; i < 60; i++) {
+        starsA.push({
+            x: Math.random() * canvas.width,
+            y: Math.random() * canvas.height,
+            r: 0.8 + Math.random() * 1.2,
+            brightness: 0.5 + Math.random() * 0.5
+        });
+    }
+    for (let i = 0; i < 30; i++) {
+        starsB.push({
+            x: Math.random() * canvas.width,
+            y: Math.random() * canvas.height,
+            r: 1.2 + Math.random() * 1.5,
+            brightness: 0.7 + Math.random() * 0.3
+        });
+    }
+}
+
+function initBunkers() {
+    bunkers = [];
+    const spacing = canvas.width / (BUNKER_COUNT + 1);
+    const bunkerY = canvas.height - PLAYER_HEIGHT - 60;
+    for (let i = 0; i < BUNKER_COUNT; i++) {
+        bunkers.push({
+            x: spacing * (i + 1) - BUNKER_W / 2,
+            y: bunkerY,
+            hp: BUNKER_HP,
+            // Each cell: 4x3 grid of pixels
+            cells: Array.from({ length: 4 * 3 }, () => true)
+        });
+    }
+}
 
 function resetGame() {
     playerX = canvas.width / 2 - PLAYER_WIDTH / 2;
     bullets = [];
     invaders = [];
     invaderBullets = [];
+    explosions = [];
     score = 0;
+    frame = 0;
     isPlaying = false;
     highScore = localStorage.getItem('invadersHighScore') || 0;
     invaderDir = 1;
-    // Crear invasores
     for (let r = 0; r < INVADER_ROWS; r++) {
         for (let c = 0; c < INVADER_COLS; c++) {
             invaders.push({
                 x: 40 + c * (INVADER_WIDTH + INVADER_X_GAP),
                 y: 40 + r * (INVADER_HEIGHT + INVADER_Y_GAP),
-                alive: true
+                alive: true,
+                row: r
             });
         }
     }
+    initStars();
+    initBunkers();
     draw();
 }
 
@@ -52,17 +106,89 @@ function restartGame() {
     startGame();
 }
 
+// --- Explosions ---
+function spawnExplosion(x, y, color) {
+    const particles = [];
+    for (let i = 0; i < 10; i++) {
+        const angle = (Math.PI * 2 * i) / 10 + Math.random() * 0.5;
+        const speed = 1.5 + Math.random() * 3;
+        particles.push({
+            x, y,
+            vx: Math.cos(angle) * speed,
+            vy: Math.sin(angle) * speed,
+            life: 1,
+            color
+        });
+    }
+    explosions.push({ x, y, particles, flashLife: 1 });
+}
+
+function updateExplosions() {
+    for (let i = explosions.length - 1; i >= 0; i--) {
+        const ex = explosions[i];
+        ex.flashLife -= 0.1;
+        for (let j = ex.particles.length - 1; j >= 0; j--) {
+            const p = ex.particles[j];
+            p.x += p.vx;
+            p.y += p.vy;
+            p.vy += 0.12;
+            p.life -= 0.05;
+            if (p.life <= 0) ex.particles.splice(j, 1);
+        }
+        if (ex.particles.length === 0) explosions.splice(i, 1);
+    }
+}
+
+function drawExplosions() {
+    for (const ex of explosions) {
+        // Flash
+        if (ex.flashLife > 0) {
+            ctx.save();
+            ctx.globalAlpha = ex.flashLife * 0.5;
+            ctx.fillStyle = '#fff';
+            ctx.beginPath();
+            ctx.arc(ex.x, ex.y, 14 * ex.flashLife, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.restore();
+        }
+        // Particles
+        for (const p of ex.particles) {
+            ctx.save();
+            ctx.globalAlpha = p.life;
+            ctx.fillStyle = p.color;
+            ctx.beginPath();
+            ctx.arc(p.x, p.y, 2.5, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.restore();
+        }
+    }
+}
+
 function update() {
-    // Mover jugador
+    frame++;
+
+    // Move stars
+    for (const s of starsA) {
+        s.y += 0.5;
+        if (s.y > canvas.height) { s.y = 0; s.x = Math.random() * canvas.width; }
+    }
+    for (const s of starsB) {
+        s.y += 0.2;
+        if (s.y > canvas.height) { s.y = 0; s.x = Math.random() * canvas.width; }
+    }
+
+    // Move player
     if (keys['ArrowLeft']) playerX -= PLAYER_SPEED;
     if (keys['ArrowRight']) playerX += PLAYER_SPEED;
     playerX = Math.max(0, Math.min(canvas.width - PLAYER_WIDTH, playerX));
-    // Mover balas
+
+    // Move bullets
     for (let i = bullets.length - 1; i >= 0; i--) {
         bullets[i].y -= BULLET_SPEED;
         if (bullets[i].y < 0) bullets.splice(i, 1);
     }
-    // Mover invasores
+
+    // Move invaders
     let edge = false;
     for (const inv of invaders) {
         if (!inv.alive) continue;
@@ -75,7 +201,8 @@ function update() {
             inv.y += INVADER_Y_GAP;
         }
     }
-    // Disparos de invasores
+
+    // Invader shooting
     if (Math.random() < 0.02) {
         const shooters = invaders.filter(inv => inv.alive);
         if (shooters.length) {
@@ -87,7 +214,8 @@ function update() {
         invaderBullets[i].y += INVADER_BULLET_SPEED;
         if (invaderBullets[i].y > canvas.height) invaderBullets.splice(i, 1);
     }
-    // Colisiones balas jugador
+
+    // Player bullets vs invaders
     for (let i = bullets.length - 1; i >= 0; i--) {
         for (let j = 0; j < invaders.length; j++) {
             const inv = invaders[j];
@@ -99,6 +227,8 @@ function update() {
                 bullets[i].y + BULLET_HEIGHT > inv.y
             ) {
                 inv.alive = false;
+                const color = getInvaderColor(inv.row);
+                spawnExplosion(inv.x + INVADER_WIDTH / 2, inv.y + INVADER_HEIGHT / 2, color);
                 bullets.splice(i, 1);
                 score += 10;
                 updateScore();
@@ -106,7 +236,59 @@ function update() {
             }
         }
     }
-    // Colisiones balas invasores
+
+    // Player bullets vs bunkers
+    for (let i = bullets.length - 1; i >= 0; i--) {
+        let hit = false;
+        for (const bunker of bunkers) {
+            if (bunker.hp <= 0) continue;
+            if (
+                bullets[i].x < bunker.x + BUNKER_W &&
+                bullets[i].x + BULLET_WIDTH > bunker.x &&
+                bullets[i].y < bunker.y + BUNKER_H &&
+                bullets[i].y + BULLET_HEIGHT > bunker.y
+            ) {
+                bunker.hp--;
+                // Damage a random cell
+                const aliveCells = bunker.cells.map((v, idx) => v ? idx : -1).filter(v => v >= 0);
+                if (aliveCells.length) {
+                    const pick = aliveCells[Math.floor(Math.random() * aliveCells.length)];
+                    bunker.cells[pick] = false;
+                }
+                bullets.splice(i, 1);
+                hit = true;
+                break;
+            }
+        }
+        if (hit) continue;
+    }
+
+    // Invader bullets vs bunkers
+    for (let i = invaderBullets.length - 1; i >= 0; i--) {
+        let hit = false;
+        for (const bunker of bunkers) {
+            if (bunker.hp <= 0) continue;
+            if (
+                invaderBullets[i].x < bunker.x + BUNKER_W &&
+                invaderBullets[i].x + BULLET_WIDTH > bunker.x &&
+                invaderBullets[i].y < bunker.y + BUNKER_H &&
+                invaderBullets[i].y + BULLET_HEIGHT > bunker.y
+            ) {
+                bunker.hp--;
+                const aliveCells = bunker.cells.map((v, idx) => v ? idx : -1).filter(v => v >= 0);
+                if (aliveCells.length) {
+                    const pick = aliveCells[Math.floor(Math.random() * aliveCells.length)];
+                    bunker.cells[pick] = false;
+                }
+                invaderBullets.splice(i, 1);
+                hit = true;
+                break;
+            }
+        }
+        if (hit) continue;
+    }
+
+    // Invader bullets vs player
     for (let i = invaderBullets.length - 1; i >= 0; i--) {
         if (
             invaderBullets[i].x > playerX &&
@@ -117,7 +299,8 @@ function update() {
             return;
         }
     }
-    // Colisión invasor con jugador
+
+    // Invader reaches player line
     for (const inv of invaders) {
         if (!inv.alive) continue;
         if (inv.y + INVADER_HEIGHT > canvas.height - PLAYER_HEIGHT - 10) {
@@ -125,11 +308,14 @@ function update() {
             return;
         }
     }
-    // Victoria
+
+    // Victory
     if (invaders.every(inv => !inv.alive)) {
         endGame(true);
         return;
     }
+
+    updateExplosions();
     draw();
 }
 
@@ -159,31 +345,339 @@ function updateScore() {
     }
 }
 
+// --- Alien color by row ---
+function getInvaderColor(row) {
+    if (row <= 1) return '#00e5ff';       // cyan - Type A
+    if (row <= 3) return '#e040fb';       // magenta - Type B
+    return '#ff6d00';                     // orange-red - Type C
+}
+
+// --- Draw alien Type A (rows 0-1): classic symmetric ---
+function drawAlienA(x, y, w, h, poseB) {
+    ctx.save();
+    ctx.translate(x + w / 2, y + h / 2);
+    const color = '#00e5ff';
+    const glow = '#00b0ff';
+    ctx.shadowBlur = 8;
+    ctx.shadowColor = glow;
+
+    // Body
+    ctx.fillStyle = color;
+    ctx.beginPath();
+    ctx.roundRect(-w * 0.4, -h * 0.3, w * 0.8, h * 0.6, 3);
+    ctx.fill();
+
+    // Antennas
+    ctx.strokeStyle = color;
+    ctx.lineWidth = 1.5;
+    ctx.beginPath();
+    ctx.moveTo(-w * 0.25, -h * 0.3);
+    ctx.lineTo(-w * 0.4, -h * 0.6);
+    ctx.moveTo(w * 0.25, -h * 0.3);
+    ctx.lineTo(w * 0.4, -h * 0.6);
+    ctx.stroke();
+    // Antenna tips
+    ctx.fillStyle = color;
+    ctx.beginPath();
+    ctx.arc(-w * 0.4, -h * 0.6, 2, 0, Math.PI * 2);
+    ctx.arc(w * 0.4, -h * 0.6, 2, 0, Math.PI * 2);
+    ctx.fill();
+
+    // Eyes
+    ctx.fillStyle = '#001a1a';
+    ctx.beginPath();
+    ctx.arc(-w * 0.18, -h * 0.05, 3.5, 0, Math.PI * 2);
+    ctx.arc(w * 0.18, -h * 0.05, 3.5, 0, Math.PI * 2);
+    ctx.fill();
+
+    // Legs (pose alternates)
+    ctx.strokeStyle = color;
+    ctx.lineWidth = 1.5;
+    const legY = h * 0.3;
+    const legSpread = poseB ? 0.5 : 0.35;
+    ctx.beginPath();
+    ctx.moveTo(-w * 0.35, legY);
+    ctx.lineTo(-w * legSpread, legY + h * 0.25);
+    ctx.moveTo(-w * 0.12, legY);
+    ctx.lineTo(-w * 0.15, legY + h * 0.25);
+    ctx.moveTo(w * 0.12, legY);
+    ctx.lineTo(w * 0.15, legY + h * 0.25);
+    ctx.moveTo(w * 0.35, legY);
+    ctx.lineTo(w * legSpread, legY + h * 0.25);
+    ctx.stroke();
+
+    ctx.restore();
+}
+
+// --- Draw alien Type B (rows 2-3): crab ---
+function drawAlienB(x, y, w, h, poseB) {
+    ctx.save();
+    ctx.translate(x + w / 2, y + h / 2);
+    const color = '#e040fb';
+    const glow = '#aa00ff';
+    ctx.shadowBlur = 8;
+    ctx.shadowColor = glow;
+
+    // Body (oval)
+    ctx.fillStyle = color;
+    ctx.beginPath();
+    ctx.ellipse(0, 0, w * 0.4, h * 0.35, 0, 0, Math.PI * 2);
+    ctx.fill();
+
+    // Claws
+    const clawY = poseB ? h * 0.05 : -h * 0.05;
+    ctx.strokeStyle = color;
+    ctx.lineWidth = 2;
+    // Left claw
+    ctx.beginPath();
+    ctx.moveTo(-w * 0.4, 0);
+    ctx.lineTo(-w * 0.6, clawY);
+    ctx.moveTo(-w * 0.6, clawY);
+    ctx.lineTo(-w * 0.7, clawY - h * 0.2);
+    ctx.moveTo(-w * 0.6, clawY);
+    ctx.lineTo(-w * 0.75, clawY + h * 0.1);
+    // Right claw
+    ctx.moveTo(w * 0.4, 0);
+    ctx.lineTo(w * 0.6, clawY);
+    ctx.moveTo(w * 0.6, clawY);
+    ctx.lineTo(w * 0.7, clawY - h * 0.2);
+    ctx.moveTo(w * 0.6, clawY);
+    ctx.lineTo(w * 0.75, clawY + h * 0.1);
+    ctx.stroke();
+
+    // Big eyes
+    ctx.fillStyle = '#fff';
+    ctx.beginPath();
+    ctx.arc(-w * 0.18, -h * 0.08, 5, 0, Math.PI * 2);
+    ctx.arc(w * 0.18, -h * 0.08, 5, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.fillStyle = '#220022';
+    ctx.beginPath();
+    ctx.arc(-w * 0.18, -h * 0.08, 2.5, 0, Math.PI * 2);
+    ctx.arc(w * 0.18, -h * 0.08, 2.5, 0, Math.PI * 2);
+    ctx.fill();
+
+    // Bottom legs
+    ctx.strokeStyle = color;
+    ctx.lineWidth = 1.5;
+    const lY = h * 0.35;
+    ctx.beginPath();
+    ctx.moveTo(-w * 0.25, lY);
+    ctx.lineTo(-w * 0.3, lY + h * 0.2);
+    ctx.moveTo(0, lY);
+    ctx.lineTo(0, lY + h * 0.2);
+    ctx.moveTo(w * 0.25, lY);
+    ctx.lineTo(w * 0.3, lY + h * 0.2);
+    ctx.stroke();
+
+    ctx.restore();
+}
+
+// --- Draw alien Type C (row 4): boss / octopus ---
+function drawAlienC(x, y, w, h, poseB) {
+    ctx.save();
+    ctx.translate(x + w / 2, y + h / 2);
+    const color = '#ff6d00';
+    const glow = '#dd2c00';
+    ctx.shadowBlur = 12;
+    ctx.shadowColor = glow;
+
+    // Body
+    ctx.fillStyle = color;
+    ctx.beginPath();
+    ctx.ellipse(0, -h * 0.05, w * 0.45, h * 0.38, 0, 0, Math.PI * 2);
+    ctx.fill();
+
+    // Head dome
+    ctx.fillStyle = '#ff9100';
+    ctx.beginPath();
+    ctx.ellipse(0, -h * 0.3, w * 0.3, h * 0.2, 0, Math.PI, Math.PI * 2);
+    ctx.fill();
+
+    // Eyes
+    ctx.fillStyle = '#fff';
+    ctx.beginPath();
+    ctx.arc(-w * 0.18, -h * 0.12, 5, 0, Math.PI * 2);
+    ctx.arc(w * 0.18, -h * 0.12, 5, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.fillStyle = '#300';
+    ctx.beginPath();
+    ctx.arc(-w * 0.18, -h * 0.12, 2.8, 0, Math.PI * 2);
+    ctx.arc(w * 0.18, -h * 0.12, 2.8, 0, Math.PI * 2);
+    ctx.fill();
+
+    // Tentacles
+    ctx.strokeStyle = color;
+    ctx.lineWidth = 2;
+    const tentacleCount = 6;
+    for (let t = 0; t < tentacleCount; t++) {
+        const tx = -w * 0.4 + t * (w * 0.8 / (tentacleCount - 1));
+        const curl = poseB ? (t % 2 === 0 ? h * 0.2 : h * 0.1) : (t % 2 === 0 ? h * 0.1 : h * 0.2);
+        ctx.beginPath();
+        ctx.moveTo(tx, h * 0.3);
+        ctx.quadraticCurveTo(tx + (Math.random() > 0.5 ? 4 : -4), h * 0.38 + curl / 2, tx, h * 0.38 + curl);
+        ctx.stroke();
+    }
+
+    ctx.restore();
+}
+
+function drawInvader(inv) {
+    const poseB = Math.floor(frame / 30) % 2 === 1;
+    const row = inv.row;
+    if (row <= 1) {
+        drawAlienA(inv.x, inv.y, INVADER_WIDTH, INVADER_HEIGHT, poseB);
+    } else if (row <= 3) {
+        drawAlienB(inv.x, inv.y, INVADER_WIDTH, INVADER_HEIGHT, poseB);
+    } else {
+        drawAlienC(inv.x, inv.y, INVADER_WIDTH, INVADER_HEIGHT, poseB);
+    }
+}
+
+// --- Draw player ship ---
+function drawPlayer() {
+    const px = playerX;
+    const py = canvas.height - PLAYER_HEIGHT - 10;
+    ctx.save();
+
+    // Engine glow
+    ctx.shadowBlur = 12;
+    ctx.shadowColor = '#26d0ce';
+
+    // Ship body (triangle hull)
+    const grad = ctx.createLinearGradient(px, py, px + PLAYER_WIDTH, py + PLAYER_HEIGHT);
+    grad.addColorStop(0, '#26d0ce');
+    grad.addColorStop(1, '#1a7a7a');
+    ctx.fillStyle = grad;
+    ctx.beginPath();
+    ctx.moveTo(px + PLAYER_WIDTH / 2, py);          // nose
+    ctx.lineTo(px, py + PLAYER_HEIGHT);              // left base
+    ctx.lineTo(px + PLAYER_WIDTH, py + PLAYER_HEIGHT); // right base
+    ctx.closePath();
+    ctx.fill();
+
+    // Wing details
+    ctx.fillStyle = 'rgba(255,255,255,0.15)';
+    ctx.beginPath();
+    ctx.moveTo(px + PLAYER_WIDTH / 2, py + 4);
+    ctx.lineTo(px + 6, py + PLAYER_HEIGHT);
+    ctx.lineTo(px + PLAYER_WIDTH / 2 - 4, py + PLAYER_HEIGHT);
+    ctx.closePath();
+    ctx.fill();
+
+    // Cabin (central rounded bubble)
+    ctx.shadowBlur = 6;
+    ctx.shadowColor = '#8fd3f4';
+    ctx.fillStyle = '#8fd3f4';
+    ctx.beginPath();
+    ctx.ellipse(px + PLAYER_WIDTH / 2, py + 8, 6, 5, 0, 0, Math.PI * 2);
+    ctx.fill();
+
+    // Cannon barrel
+    ctx.fillStyle = '#76ff03';
+    ctx.shadowBlur = 8;
+    ctx.shadowColor = '#76ff03';
+    ctx.fillRect(px + PLAYER_WIDTH / 2 - 2, py - 6, 4, 8);
+
+    ctx.restore();
+}
+
+// --- Draw bunkers ---
+function drawBunkers() {
+    for (const bunker of bunkers) {
+        if (bunker.hp <= 0) continue;
+        const cellW = BUNKER_W / 4;
+        const cellH = BUNKER_H / 3;
+        for (let row = 0; row < 3; row++) {
+            for (let col = 0; col < 4; col++) {
+                const idx = row * 4 + col;
+                if (!bunker.cells[idx]) continue;
+                // Color darkens with damage
+                const alpha = 0.4 + (bunker.hp / BUNKER_HP) * 0.6;
+                ctx.save();
+                ctx.globalAlpha = alpha;
+                ctx.fillStyle = '#76ff03';
+                ctx.shadowBlur = 4;
+                ctx.shadowColor = '#76ff03';
+                ctx.fillRect(
+                    bunker.x + col * cellW,
+                    bunker.y + row * cellH,
+                    cellW - 1,
+                    cellH - 1
+                );
+                ctx.restore();
+            }
+        }
+    }
+}
+
+// --- Draw stars ---
+function drawStars() {
+    for (const s of starsB) {
+        ctx.save();
+        ctx.globalAlpha = s.brightness * 0.5;
+        ctx.fillStyle = '#fff';
+        ctx.beginPath();
+        ctx.arc(s.x, s.y, s.r, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.restore();
+    }
+    for (const s of starsA) {
+        ctx.save();
+        ctx.globalAlpha = s.brightness;
+        ctx.fillStyle = '#cce4ff';
+        ctx.beginPath();
+        ctx.arc(s.x, s.y, s.r, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.restore();
+    }
+}
+
 function draw() {
     ctx.clearRect(0, 0, canvas.width, canvas.height);
-    // Fondo
-    ctx.fillStyle = '#111';
+
+    // Background
+    ctx.fillStyle = '#080820';
     ctx.fillRect(0, 0, canvas.width, canvas.height);
-    // Invasores
+
+    drawStars();
+
+    // Invaders
     for (const inv of invaders) {
         if (!inv.alive) continue;
-        ctx.fillStyle = '#ff512f';
-        ctx.fillRect(inv.x, inv.y, INVADER_WIDTH, INVADER_HEIGHT);
+        drawInvader(inv);
     }
-    // Balas jugador
-    ctx.fillStyle = '#ffe082';
+
+    // Player bullets with glow
     for (const b of bullets) {
+        ctx.save();
+        ctx.shadowBlur = 8;
+        ctx.shadowColor = '#76ff03';
+        ctx.fillStyle = '#76ff03';
         ctx.fillRect(b.x, b.y, BULLET_WIDTH, BULLET_HEIGHT);
+        ctx.restore();
     }
-    // Balas invasores
-    ctx.fillStyle = '#fff';
+
+    // Invader bullets
     for (const b of invaderBullets) {
+        ctx.save();
+        ctx.shadowBlur = 5;
+        ctx.shadowColor = '#ff5252';
+        ctx.fillStyle = '#ff5252';
         ctx.fillRect(b.x, b.y, BULLET_WIDTH, BULLET_HEIGHT);
+        ctx.restore();
     }
-    // Jugador
+
+    drawBunkers();
+    drawPlayer();
+    drawExplosions();
+
+    // Ground line
     ctx.fillStyle = '#26d0ce';
-    ctx.fillRect(playerX, canvas.height - PLAYER_HEIGHT - 10, PLAYER_WIDTH, PLAYER_HEIGHT);
-    // Puntaje
+    ctx.globalAlpha = 0.4;
+    ctx.fillRect(0, canvas.height - 10, canvas.width, 2);
+    ctx.globalAlpha = 1;
+
     updateScore();
 }
 
@@ -208,7 +702,7 @@ document.getElementById('playAgainBtn').addEventListener('click', () => {
     startGame();
 });
 
-// Controles táctiles
+// Touch controls
 document.getElementById('btnShoot').addEventListener('click', () => {
     if (!isPlaying) return;
     bullets.push({
