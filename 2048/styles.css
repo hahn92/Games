@@ -138,8 +138,8 @@ body {
 }
 
 .game-2048 {
-    background: #bbada0;
-    border-radius: 8px;
+    background: #9e8a7a;
+    border-radius: 10px;
     padding: 10px;
     display: grid;
     grid-template-columns: repeat(4, 1fr);
@@ -148,29 +148,161 @@ body {
     box-sizing: border-box;
     width: 500px;
     height: 500px;
+    box-shadow: 0 8px 32px rgba(0,0,0,0.4);
 }
+
+/* --- Animaciones de tiles --- */
+@keyframes tile-appear {
+    from { transform: scale(0); opacity: 0; }
+    to   { transform: scale(1); opacity: 1; }
+}
+@keyframes tile-pop {
+    0%   { transform: scale(1); }
+    40%  { transform: scale(1.18); }
+    100% { transform: scale(1); }
+}
+
 .tile {
-    background: #cdc1b4;
-    border-radius: 4px;
+    background: #c2b09e;
+    border-radius: 6px;
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 2.5rem;
+    font-size: 2.4rem;
     font-weight: bold;
-    color: #776e65;
-    transition: transform 0.1s, background 0.1s;
+    color: #5a4a3f;
+    transition: background 0.12s;
+    position: relative;
+    overflow: hidden;
 }
-.tile-2 { background: #eee4da; }
-.tile-4 { background: #ede0c8; }
-.tile-8 { background: #f2b179; color: #f9f6f2; }
-.tile-16 { background: #f59563; color: #f9f6f2; }
-.tile-32 { background: #f67c5f; color: #f9f6f2; }
-.tile-64 { background: #f65e3b; color: #f9f6f2; }
-.tile-128 { background: #edcf72; color: #f9f6f2; font-size: 2rem; }
-.tile-256 { background: #edcc61; color: #f9f6f2; font-size: 2rem; }
-.tile-512 { background: #edc850; color: #f9f6f2; font-size: 2rem; }
-.tile-1024 { background: #edc53f; color: #f9f6f2; font-size: 1.5rem; }
-.tile-2048 { background: #edc22e; color: #f9f6f2; font-size: 1.5rem; }
+.tile.tile-new {
+    animation: tile-appear 0.15s ease-out both;
+}
+.tile.tile-merged {
+    animation: tile-pop 0.2s ease-out both;
+}
+
+/* Paleta progresiva de tiles — crema a naranja brillante a dorado */
+.tile-2   { background: #f0e8d8; color: #5a4a3f; }
+.tile-4   { background: #ede0c2; color: #5a4a3f; }
+.tile-8   { background: #f5b57a; color: #fff; }
+.tile-16  { background: #f59050; color: #fff; }
+.tile-32  { background: #f47040; color: #fff; }
+.tile-64  { background: #f04e20; color: #fff; }
+.tile-128 {
+    background: linear-gradient(135deg, #f5c842 0%, #f5a623 100%);
+    color: #fff;
+    font-size: 2rem;
+    box-shadow: 0 0 12px rgba(245,166,35,0.5);
+}
+.tile-256 {
+    background: linear-gradient(135deg, #f5b800 0%, #f59400 100%);
+    color: #fff;
+    font-size: 2rem;
+    box-shadow: 0 0 14px rgba(245,148,0,0.55);
+}
+.tile-512 {
+    background: linear-gradient(135deg, #f5a800 0%, #e87d00 100%);
+    color: #fff;
+    font-size: 1.9rem;
+    box-shadow: 0 0 16px rgba(232,125,0,0.6);
+}
+.tile-1024 {
+    background: linear-gradient(135deg, #f7c948 0%, #e6a800 100%);
+    color: #fff;
+    font-size: 1.55rem;
+    box-shadow: 0 0 18px rgba(230,168,0,0.65);
+}
+.tile-2048 {
+    background: linear-gradient(135deg, #ffd700 0%, #ff9500 100%);
+    color: #fff;
+    font-size: 1.55rem;
+    box-shadow: 0 0 24px rgba(255,215,0,0.8), 0 0 48px rgba(255,149,0,0.4);
+    text-shadow: 0 1px 4px rgba(0,0,0,0.25);
+}
+/* Tiles super-2048 */
+.tile-super {
+    background: linear-gradient(135deg, #a8ff78 0%, #78ffd6 100%);
+    color: #222;
+    font-size: 1.3rem;
+    box-shadow: 0 0 24px rgba(168,255,120,0.7);
+}
+
+/* Score panel — mejor puntaje destacado cuando es nuevo récord */
+.score-panel {
+    display: flex;
+    flex-direction: column;
+    gap: 0.4rem;
+    font-size: 1.1rem;
+    color: var(--text-muted);
+}
+.score-panel .new-record {
+    color: #ffd700;
+    font-weight: bold;
+    text-shadow: 0 0 8px rgba(255,215,0,0.6);
+}
+
+/* Animación de score flotante */
+@keyframes score-float {
+    0%   { opacity: 1; transform: translateY(0); }
+    100% { opacity: 0; transform: translateY(-60px); }
+}
+.score-float {
+    position: absolute;
+    top: 5px;
+    right: 10px;
+    color: #ffd700;
+    font-size: 1.1rem;
+    font-weight: bold;
+    pointer-events: none;
+    animation: score-float 0.9s ease-out forwards;
+    z-index: 100;
+    text-shadow: 0 1px 4px rgba(0,0,0,0.4);
+}
+
+/* Game over overlay con blur y fade */
+@keyframes popup-fade-in {
+    from { opacity: 0; }
+    to   { opacity: 1; }
+}
+@keyframes popup-content-in {
+    from { opacity: 0; transform: scale(0.85); }
+    to   { opacity: 1; transform: scale(1); }
+}
+.popup {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    background: rgba(24,24,24,0.75);
+    backdrop-filter: blur(4px);
+    -webkit-backdrop-filter: blur(4px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+    animation: popup-fade-in 0.3s ease-out both;
+}
+.popup-content {
+    background: #242424;
+    padding: 2.5rem 3rem;
+    border-radius: 20px;
+    box-shadow: 0 4px 40px rgba(0,0,0,0.5);
+    text-align: center;
+    min-width: 280px;
+    max-width: 90vw;
+    animation: popup-content-in 0.3s ease-out both;
+}
+.popup-content h2 {
+    margin-top: 0;
+    color: #8fd3f4;
+    font-size: 2rem;
+}
+.popup-content p {
+    font-size: 1.5rem;
+    margin: 1.5rem 0;
+}
 
 #startBtn, #restartBtn {
     background: var(--grad-primary);
@@ -205,42 +337,10 @@ body {
 #playAgainBtn:hover {
     background: #5ec2e6;
 }
-/* Popup de fin de juego */
-.popup {
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100vw;
-    height: 100vh;
-    background: rgba(24,24,24,0.95);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    z-index: 1000;
-}
-.popup-content {
-    background: #242424;
-    padding: 2.5rem 3rem;
-    border-radius: 20px;
-    box-shadow: 0 4px 24px rgba(0,0,0,0.4);
-    text-align: center;
-    min-width: 280px;
-    max-width: 90vw;
-}
-.popup-content h2 {
-    margin-top: 0;
-    color: #8fd3f4;
-    font-size: 2rem;
-}
-.popup-content p {
-    font-size: 1.5rem;
-    margin: 1.5rem 0;
-}
 
 @media (max-width: 600px) {
-    .tile {
-        font-size: 1.8rem;
-    }
+    .tile { font-size: 1.8rem; }
     .tile-128, .tile-256, .tile-512 { font-size: 1.4rem; }
     .tile-1024, .tile-2048 { font-size: 1.1rem; }
+    .tile-super { font-size: 0.95rem; }
 }

@@ -4,14 +4,14 @@ var WORDS = [
     'NOCHE','OMEGA','PASEO','RADIO','SALSA','TECHO','ÚNICO','VALOR','YERNO','ZORRO',
     'ÁRBOL','BOLSO','CARRO','DIQUE','FINCA','GRAMO','HOTEL','LIBRO','MAGIA','NOBLE',
     'ORDEN','PLAZA','QUESO','ROCÍO','SALTO','TIGRE','VAPOR','VUELO','BRAZO','CRUEL',
-    'DULCE','FÁBRI','GANSO','HUMOR','IDEAL','JAMÓN','LACRE','MAYOR','NIETO','OCASO',
-    'PAPEL','REGAL','SEÑAL','TUMOR','UNIÓN','VIAJE','ZOMBI','ACERO','BEIGE','COGER',
-    'DISCO','ENOJO','FIERO','GENIO','HÁBIL','IMPAR','JAQUE','LLAVE','MADRE','NARIZ',
-    'OFRENDA','PERLA','RASGO','SUELO','TRUCO','ULTRA','VIGOR','ABRIR','BANCO','CIFRA',
-    'DENSO','ETAPA','FLOTA','GRUPO','ÍNDICE','JUSTO','LECHE','MEZCL','NIEVE','OJEAR',
-    'PALMA','QUEJA','RANGO','SABIO','TEXTO','UMBRA','VAINA','ABUELO','BUSTO','CLAVO',
-    'DELTA','ESFERA','FRUTA','GUSTO','INTRO','JUNCO','LIMÓN','MONJE','NUEVE','PESCA',
-    'REINA','SABER','TANGO','VELLO','AGUJA','BUCEO','CERDO','DEBER','ENFAD','FUROR'
+    'DULCE','GANSO','HUMOR','IDEAL','JAMÓN','LACRE','MAYOR','NIETO','OCASO',
+    'PAPEL','SEÑAL','TUMOR','UNIÓN','VIAJE','ZOMBI','ACERO','BEIGE','COGER',
+    'DISCO','ENOJO','GENIO','HÁBIL','IMPAR','JAQUE','LLAVE','MADRE','NARIZ',
+    'PERLA','RASGO','SUELO','TRUCO','ULTRA','VIGOR','ABRIR','BANCO','CIFRA',
+    'DENSO','ETAPA','FLOTA','GRUPO','JUSTO','LECHE','NIEVE',
+    'PALMA','QUEJA','RANGO','SABIO','TEXTO','VAINA','BUSTO','CLAVO',
+    'DELTA','FRUTA','GUSTO','JUNCO','LIMÓN','MONJE','NUEVE','PESCA',
+    'REINA','SABER','TANGO','VELLO','AGUJA','BUCEO','CERDO','DEBER','FUROR'
 ].filter(function(w) { return w.length === 5; });
 
 var KEYBOARD_ROWS = [
@@ -22,12 +22,16 @@ var KEYBOARD_ROWS = [
 
 var target, grid, currentRow, currentCol, isPlaying, gameEnded;
 var wins, streak, bestStreak;
-wins = parseInt(localStorage.getItem('wordleWins') || '0', 10);
-streak = parseInt(localStorage.getItem('wordleStreak') || '0', 10);
-bestStreak = parseInt(localStorage.getItem('wordleBestStreak') || '0', 10);
+wins        = parseInt(localStorage.getItem('wordleWins')       || '0', 10);
+streak      = parseInt(localStorage.getItem('wordleStreak')     || '0', 10);
+bestStreak  = parseInt(localStorage.getItem('wordleBestStreak') || '0', 10);
+
+// distribution[i] = number of wins in (i+1) attempts, i=0..5
+var distribution = JSON.parse(localStorage.getItem('wordleDist') || '[0,0,0,0,0,0]');
 
 var keyStatus = {}; // letter -> 'correct' | 'present' | 'absent'
 
+// ===================== GRID =====================
 function buildGrid() {
     var container = document.getElementById('wordleGrid');
     container.innerHTML = '';
@@ -44,6 +48,7 @@ function buildGrid() {
     }
 }
 
+// ===================== KEYBOARD =====================
 function buildKeyboard() {
     var rows = ['keyRow1','keyRow2','keyRow3'];
     for (var r = 0; r < 3; r++) {
@@ -71,8 +76,39 @@ function updateKeyboard() {
     }
 }
 
+// ===================== STATUS =====================
 function setStatus(msg) { document.getElementById('statusMsg').textContent = msg; }
 
+// ===================== TOAST =====================
+function showToast(msg) {
+    var old = document.getElementById('wordleToast');
+    if (old) old.remove();
+    var toast = document.createElement('div');
+    toast.id = 'wordleToast';
+    toast.textContent = msg;
+    document.body.appendChild(toast);
+    setTimeout(function() { if (toast.parentNode) toast.remove(); }, 3100);
+}
+
+// ===================== TILE HIGHLIGHT =====================
+function highlightCurrentTile() {
+    // Remove pulsing from all tiles in current row
+    for (var c = 0; c < 5; c++) {
+        if (grid[currentRow] && grid[currentRow][c]) {
+            var el = grid[currentRow][c].el;
+            el.classList.remove('filled');
+        }
+    }
+    // Add pulsing border to the tile that will receive the next letter
+    if (currentCol < 5 && grid[currentRow] && grid[currentRow][currentCol]) {
+        var nextTile = grid[currentRow][currentCol].el;
+        if (!nextTile.textContent) {
+            nextTile.classList.add('filled');
+        }
+    }
+}
+
+// ===================== INPUT =====================
 function handleKey(key) {
     if (!isPlaying || gameEnded) return;
     if (key === '⌫' || key === 'Backspace') {
@@ -80,21 +116,44 @@ function handleKey(key) {
             currentCol--;
             grid[currentRow][currentCol].letter = '';
             grid[currentRow][currentCol].el.textContent = '';
-            grid[currentRow][currentCol].el.classList.remove('filled');
+            grid[currentRow][currentCol].el.classList.remove('filled', 'pop');
+            highlightCurrentTile();
         }
     } else if (key === 'ENTER' || key === 'Enter') {
         submitGuess();
     } else if (/^[A-ZÑ]$/.test(key) && currentCol < 5) {
         grid[currentRow][currentCol].letter = key;
         grid[currentRow][currentCol].el.textContent = key;
-        grid[currentRow][currentCol].el.classList.add('filled');
+        // Remove filled (pulsing) from this tile, add pop
+        grid[currentRow][currentCol].el.classList.remove('filled', 'pop');
+        // Force reflow to restart animation
+        void grid[currentRow][currentCol].el.offsetWidth;
+        grid[currentRow][currentCol].el.classList.add('pop');
         currentCol++;
+        highlightCurrentTile();
     }
 }
 
+// ===================== SHAKE ROW =====================
+function shakeCurrentRow() {
+    var rowTiles = grid[currentRow].map(function(t) { return t.el; });
+    rowTiles.forEach(function(el) {
+        el.classList.remove('row-shake');
+        void el.offsetWidth;
+        el.classList.add('row-shake');
+        setTimeout(function() { el.classList.remove('row-shake'); }, 450);
+    });
+}
+
+// ===================== SUBMIT =====================
 function submitGuess() {
-    if (currentCol < 5) { setStatus('Escribe 5 letras'); return; }
+    if (currentCol < 5) {
+        setStatus('Escribe 5 letras');
+        shakeCurrentRow();
+        return;
+    }
     var guess = grid[currentRow].map(function(t) { return t.letter; }).join('');
+
     var targetArr = target.split('');
     var result = ['absent','absent','absent','absent','absent'];
 
@@ -111,34 +170,64 @@ function submitGuess() {
         }
     }
 
-    // Animate tiles
+    // Remove any pulsing border from current row before flipping
+    for (var c = 0; c < 5; c++) {
+        grid[currentRow][c].el.classList.remove('filled');
+    }
+
+    // Animate tiles: flip 3D, reveal color at mid-flip
     for (var i = 0; i < 5; i++) {
         (function(idx, res) {
+            var delay = idx * 200;
             setTimeout(function() {
-                grid[currentRow][idx].el.classList.add(res);
-                grid[currentRow][idx].el.classList.remove('filled');
-                // Update key status (priority: correct > present > absent)
-                var l = guess[idx];
-                if (!keyStatus[l] || (keyStatus[l] === 'absent' && res !== 'absent') || (keyStatus[l] === 'present' && res === 'correct')) {
-                    keyStatus[l] = res;
-                }
-                if (idx === 4) updateKeyboard();
-            }, idx * 100);
+                var el = grid[currentRow][idx].el;
+                el.classList.remove('pop', 'row-shake');
+                el.classList.add('flip');
+                // Apply color at midpoint (250ms into the 500ms flip)
+                setTimeout(function() {
+                    el.classList.add(res);
+                    el.classList.remove('flip');
+                    // Update key status (priority: correct > present > absent)
+                    var l = guess[idx];
+                    if (!keyStatus[l] || (keyStatus[l] === 'absent' && res !== 'absent') ||
+                        (keyStatus[l] === 'present' && res === 'correct')) {
+                        keyStatus[l] = res;
+                    }
+                    if (idx === 4) updateKeyboard();
+                }, 250);
+            }, delay);
         })(i, result[i]);
     }
 
+    var totalDelay = 4 * 200 + 500; // last tile starts at 800ms, finishes 250ms in
     setTimeout(function() {
         if (guess === target) {
             wins++; streak++;
             if (streak > bestStreak) bestStreak = streak;
+            distribution[currentRow]++;
             localStorage.setItem('wordleWins', wins);
             localStorage.setItem('wordleStreak', streak);
             localStorage.setItem('wordleBestStreak', bestStreak);
+            localStorage.setItem('wordleDist', JSON.stringify(distribution));
             updateScores();
-            document.getElementById('popupTitle').textContent = '¡Ganaste! 🎉';
-            document.getElementById('finalScore').textContent = 'Lo adivinaste en ' + (currentRow + 1) + (currentRow === 0 ? ' intento' : ' intentos');
-            document.getElementById('revealWord').textContent = '';
-            showPopup();
+            // Bounce winning row
+            for (var b = 0; b < 5; b++) {
+                (function(bi) {
+                    setTimeout(function() {
+                        var el = grid[currentRow][bi].el;
+                        el.classList.add('bounce');
+                        setTimeout(function() { el.classList.remove('bounce'); }, 600);
+                    }, bi * 100);
+                })(b);
+            }
+            var attemptsText = (currentRow + 1) === 1 ? '1 intento' : (currentRow + 1) + ' intentos';
+            showToast('¡Correcto en ' + attemptsText + '!');
+            setTimeout(function() {
+                document.getElementById('popupTitle').textContent = '¡Ganaste!';
+                document.getElementById('finalScore').textContent = 'Lo adivinaste en ' + attemptsText;
+                document.getElementById('revealWord').textContent = '';
+                showPopup();
+            }, 700);
             gameEnded = true;
         } else {
             currentRow++;
@@ -147,16 +236,20 @@ function submitGuess() {
                 streak = 0;
                 localStorage.setItem('wordleStreak', 0);
                 updateScores();
-                document.getElementById('popupTitle').textContent = '¡Sin suerte! 😔';
-                document.getElementById('finalScore').textContent = 'Usaste todos los intentos';
-                document.getElementById('revealWord').textContent = 'La palabra era: ' + target;
-                showPopup();
+                showToast('La palabra era: ' + target);
+                setTimeout(function() {
+                    document.getElementById('popupTitle').textContent = '¡Sin suerte!';
+                    document.getElementById('finalScore').textContent = 'Usaste todos los intentos';
+                    document.getElementById('revealWord').textContent = 'La palabra era: ' + target;
+                    showPopup();
+                }, 700);
                 gameEnded = true;
             } else {
                 setStatus('Intento ' + (currentRow + 1) + ' de 6');
+                highlightCurrentTile();
             }
         }
-    }, 600);
+    }, totalDelay);
 }
 
 function showPopup() {
@@ -165,13 +258,41 @@ function showPopup() {
     }, 400);
 }
 
+// ===================== SCORES + DISTRIBUTION =====================
 function updateScores() {
     document.getElementById('wins').textContent = wins;
     document.getElementById('streak').textContent = streak;
     document.getElementById('bestStreak').textContent = bestStreak;
     document.getElementById('mobileScore').textContent = 'Ganad:' + wins + ' Racha:' + streak;
+    updateDistribution();
 }
 
+function updateDistribution() {
+    var container = document.getElementById('distContainer');
+    if (!container) return;
+    var maxVal = Math.max.apply(null, distribution.concat([1]));
+    container.innerHTML = '';
+    for (var i = 0; i < 6; i++) {
+        var row = document.createElement('div');
+        row.className = 'dist-row';
+        var label = document.createElement('span');
+        label.className = 'dist-label';
+        label.textContent = (i + 1);
+        var wrap = document.createElement('div');
+        wrap.className = 'dist-bar-wrap';
+        var bar = document.createElement('div');
+        bar.className = 'dist-bar';
+        var pct = Math.max(4, Math.round((distribution[i] / maxVal) * 100));
+        bar.style.width = pct + '%';
+        bar.textContent = distribution[i] > 0 ? distribution[i] : '';
+        wrap.appendChild(bar);
+        row.appendChild(label);
+        row.appendChild(wrap);
+        container.appendChild(row);
+    }
+}
+
+// ===================== START =====================
 function startGame() {
     target = WORDS[Math.floor(Math.random() * WORDS.length)];
     currentRow = 0; currentCol = 0;
@@ -184,9 +305,11 @@ function startGame() {
     document.getElementById('startBtn').disabled = true;
     document.getElementById('restartBtn').disabled = false;
     updateScores();
+    // Highlight first tile
+    setTimeout(highlightCurrentTile, 50);
 }
 
-// Physical keyboard
+// ===================== PHYSICAL KEYBOARD =====================
 document.addEventListener('keydown', function(e) {
     if (!isPlaying) return;
     var key = e.key.toUpperCase();
@@ -194,6 +317,27 @@ document.addEventListener('keydown', function(e) {
     else if (key === 'ENTER') handleKey('Enter');
     else if (/^[A-ZÑ]$/.test(key)) handleKey(key);
 });
+
+// ===================== INJECT STATS SECTION =====================
+(function injectStats() {
+    var infoSide = document.getElementById('infoSide');
+    if (!infoSide) return;
+
+    // Update score panel labels with icons
+    var scorePanel = infoSide.querySelector('.score-panel');
+    if (scorePanel) {
+        scorePanel.innerHTML =
+            '<span><span class="streak-icon">🏆</span> Victorias: <span id="wins">0</span></span>' +
+            '<span><span class="streak-icon">🔥</span> Racha: <span id="streak">0</span></span>' +
+            '<span><span class="streak-icon">⭐</span> Mejor racha: <span id="bestStreak">0</span></span>';
+    }
+
+    // Add distribution section
+    var statsSection = document.createElement('div');
+    statsSection.className = 'stats-section';
+    statsSection.innerHTML = '<h3>Distribución de intentos</h3><div id="distContainer"></div>';
+    infoSide.appendChild(statsSection);
+})();
 
 document.getElementById('startBtn').addEventListener('click', startGame);
 document.getElementById('restartBtn').addEventListener('click', startGame);

@@ -1,5 +1,40 @@
 @import url('../styles.css');
 
+/* ---- Keyframe animations ---- */
+@keyframes revealPop {
+    0%   { transform: scale(0.8); opacity: 0; }
+    100% { transform: scale(1);   opacity: 1; }
+}
+@keyframes flagBounceIn {
+    0%   { transform: scale(0); }
+    60%  { transform: scale(1.3); }
+    100% { transform: scale(1); }
+}
+@keyframes flagRemove {
+    0%   { transform: scale(1); opacity: 1; }
+    100% { transform: scale(0); opacity: 0; }
+}
+@keyframes minePulse {
+    0%, 100% { background: #f44336; transform: scale(1); }
+    50%       { background: #ff1744; transform: scale(1.1); }
+}
+@keyframes mineReveal {
+    0%   { transform: scale(0.5); opacity: 0; }
+    60%  { transform: scale(1.2); }
+    100% { transform: scale(1);   opacity: 1; }
+}
+@keyframes wonWave {
+    0%   { background: #ddd; }
+    40%  { background: #a5d6a7; box-shadow: 0 0 8px #66bb6a; }
+    100% { background: #c8e6c9; }
+}
+@keyframes scoreCountUp {
+    0%   { transform: scale(1); }
+    50%  { transform: scale(1.3); color: #ffd54f; }
+    100% { transform: scale(1); }
+}
+
+/* ---- Layout ---- */
 .mobile-score {
     display: none;
     position: absolute;
@@ -90,51 +125,143 @@ body {
     margin: 0;
 }
 
+/* ---- Difficulty selector ---- */
+.diff-selector {
+    display: flex;
+    gap: 0.5rem;
+    margin-bottom: 1.2rem;
+    flex-wrap: wrap;
+}
+.diff-btn {
+    padding: 0.45rem 1.1rem;
+    border: 2px solid rgba(255,255,255,0.25);
+    border-radius: 8px;
+    background: rgba(255,255,255,0.08);
+    color: #ccc;
+    font-size: 0.95rem;
+    font-weight: bold;
+    cursor: pointer;
+    transition: background 0.2s, border-color 0.2s, color 0.2s, transform 0.15s;
+}
+.diff-btn:hover {
+    background: rgba(255,255,255,0.18);
+    border-color: rgba(255,255,255,0.5);
+    color: #fff;
+    transform: scale(1.05);
+}
+.diff-btn.active {
+    background: var(--grad-primary);
+    border-color: transparent;
+    color: #222;
+}
+
+/* ---- Board ---- */
 .mine-board {
     display: grid;
-    grid-template-columns: repeat(16, 1fr);
     gap: 2px;
-    background: #888;
-    border: 4px solid #777;
-    border-radius: 8px;
+    background: #5a7a5a;
+    border: 4px solid #3d5a3d;
+    border-radius: 10px;
     padding: 4px;
     box-sizing: border-box;
     width: 500px;
     height: 380px;
     user-select: none;
+    box-shadow: 0 8px 32px rgba(0,0,0,0.45), inset 0 1px 0 rgba(255,255,255,0.15);
 }
+
+/* ---- Cells ---- */
 .mine-cell {
-    background: #c0c0c0;
-    border: 2px outset #d4d0c8;
+    /* 3D relief look */
+    background: #c8c8c8;
+    border-style: solid;
+    border-width: 2px;
+    border-color: #e8e8e8 #888 #888 #e8e8e8;
+    box-shadow:
+        inset 2px 2px 4px rgba(255,255,255,0.6),
+        inset -2px -2px 4px rgba(0,0,0,0.25);
     border-radius: 2px;
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 0.7rem;
+    font-size: 0.75rem;
     font-weight: bold;
     cursor: pointer;
     touch-action: manipulation;
     user-select: none;
-    transition: background 0.1s;
+    transition: background 0.1s, box-shadow 0.1s;
+    position: relative;
+    overflow: hidden;
 }
-.mine-cell:hover { background: #d4d0c8; }
+.mine-cell:hover:not(.revealed) {
+    background: #d4d0c8;
+    border-color: #f0ece0 #999 #999 #f0ece0;
+}
+.mine-cell:active:not(.revealed) {
+    border-color: #888 #e8e8e8 #e8e8e8 #888;
+    box-shadow:
+        inset -2px -2px 4px rgba(255,255,255,0.3),
+        inset 2px 2px 4px rgba(0,0,0,0.2);
+    background: #b8b8b8;
+}
+
 .mine-cell.revealed {
-    background: #ddd;
-    border: 1px solid #bbb;
+    background: #d8d8d8;
+    border: 1px solid #aaa;
+    box-shadow: inset 1px 1px 3px rgba(0,0,0,0.15);
     cursor: default;
 }
-.mine-cell.revealed:hover { background: #ddd; }
-.mine-cell.flagged { font-size: 0.85rem; }
-.mine-cell.exploded { background: #f44336 !important; }
-.n1 { color: #1565c0; }
-.n2 { color: #2e7d32; }
-.n3 { color: #c62828; }
-.n4 { color: #4a148c; }
-.n5 { color: #b71c1c; }
-.n6 { color: #006064; }
-.n7 { color: #212121; }
-.n8 { color: #616161; }
+.mine-cell.revealed:hover { background: #d8d8d8; }
 
+/* Cascade reveal animation */
+.mine-cell.reveal-animate {
+    animation: revealPop 150ms ease-out both;
+}
+
+/* Flag styles */
+.mine-cell.flagged {
+    font-size: 0.85rem;
+    background: #c8c8c8;
+}
+.mine-cell.flag-bounce .flag-icon {
+    display: inline-block;
+    animation: flagBounceIn 250ms cubic-bezier(0.36,0.07,0.19,0.97) both;
+}
+.mine-cell.flag-remove {
+    animation: flagRemove 150ms ease-in forwards;
+}
+.flag-icon {
+    display: inline-block;
+}
+
+/* Mine hit */
+.mine-cell.mine-hit {
+    background: #f44336 !important;
+    border-color: #d32f2f !important;
+    animation: minePulse 0.5s ease-in-out 3;
+    z-index: 2;
+}
+/* Mine cascade reveal */
+.mine-cell.mine-reveal {
+    animation: mineReveal 300ms ease-out both;
+}
+
+/* Victory wave */
+.mine-cell.cell-won {
+    animation: wonWave 600ms ease forwards;
+}
+
+/* ---- Number colors (enhanced) ---- */
+.n1 { color: #1565c0; font-weight: bold; font-size: 0.85rem; }
+.n2 { color: #2e7d32; font-weight: bold; font-size: 0.85rem; }
+.n3 { color: #c62828; font-weight: bold; font-size: 0.85rem; }
+.n4 { color: #4527a0; font-weight: bold; font-size: 0.85rem; }
+.n5 { color: #4e342e; font-weight: bold; font-size: 0.85rem; }
+.n6 { color: #006064; font-weight: bold; font-size: 0.85rem; }
+.n7 { color: #212121; font-weight: bold; font-size: 0.85rem; }
+.n8 { color: #757575; font-weight: bold; font-size: 0.85rem; }
+
+/* ---- Flag toggle (mobile) ---- */
 .flag-toggle {
     display: none;
     margin-top: 0.8rem;
@@ -148,11 +275,31 @@ body {
     cursor: pointer;
     touch-action: manipulation;
     user-select: none;
+    transition: background 0.2s, transform 0.15s;
 }
+.flag-toggle:active { transform: scale(0.96); }
 @media (max-width: 900px) {
     .flag-toggle { display: inline-block; }
 }
 
+/* ---- Score panel ---- */
+.score-panel {
+    display: flex;
+    flex-direction: column;
+    gap: 0.4rem;
+    margin-bottom: 0.5rem;
+}
+.score-panel span {
+    color: var(--text-muted);
+    font-size: 0.95rem;
+}
+
+/* Best time trophy icon */
+#highScore::before {
+    content: '🏆 ';
+}
+
+/* ---- Buttons ---- */
 #startBtn, #restartBtn {
     background: var(--grad-primary);
     color: #222;
@@ -167,6 +314,8 @@ body {
     transition: background 0.2s, transform 0.2s;
 }
 #startBtn:hover, #restartBtn:hover { opacity: 0.9; transform: scale(1.05); }
+#startBtn:disabled, #restartBtn:disabled { opacity: 0.45; cursor: not-allowed; transform: none; }
+
 #playAgainBtn {
     background: #8fd3f4;
     color: #222;
@@ -180,6 +329,7 @@ body {
     margin-top: 1rem;
 }
 #playAgainBtn:hover { background: #5ec2e6; }
+
 .popup {
     position: fixed;
     top: 0; left: 0;

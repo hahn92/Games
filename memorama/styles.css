@@ -64,6 +64,7 @@
     display: flex;
     gap: 1rem;
     margin-top: 1.5rem;
+    flex-wrap: wrap;
 }
 @media (max-width: 900px) {
     .responsive-layout {
@@ -95,48 +96,295 @@ body {
     margin: 0;
 }
 
+/* =====================
+   SELECTOR DE DIFICULTAD
+   ===================== */
+.difficulty-selector {
+    display: flex;
+    gap: 0.5rem;
+    margin-bottom: 1.2rem;
+    flex-wrap: wrap;
+}
+.diff-btn {
+    padding: 0.45rem 1.1rem;
+    border-radius: 8px;
+    border: 2px solid transparent;
+    background: rgba(255,255,255,0.1);
+    color: #fff;
+    font-size: 0.95rem;
+    font-weight: bold;
+    cursor: pointer;
+    transition: background 0.18s, border-color 0.18s, transform 0.15s;
+}
+.diff-btn:hover {
+    background: rgba(255,255,255,0.18);
+    transform: scale(1.04);
+}
+.diff-btn.active {
+    background: var(--grad-primary);
+    color: #222;
+    border-color: transparent;
+}
+
+/* =====================
+   PANEL DE ESTADÍSTICAS
+   ===================== */
+.score-panel {
+    display: flex;
+    flex-direction: column;
+    gap: 0.4rem;
+    font-size: 1.05rem;
+    color: var(--text-muted);
+}
+.stat-row {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+.stat-label {
+    color: #aaa;
+    font-size: 0.9rem;
+}
+.stat-value {
+    font-weight: bold;
+    color: var(--text-muted);
+    transition: transform 0.15s, color 0.15s;
+}
+.stat-value.bump {
+    transform: scale(1.35);
+    color: #fff;
+}
+.best-time-highlight {
+    color: #4caf50;
+    font-weight: bold;
+}
+
+/* Timer urgente */
+.timer-urgent {
+    color: #ff5252 !important;
+    animation: timer-pulse 0.6s ease-in-out infinite alternate;
+}
+@keyframes timer-pulse {
+    from { opacity: 1; }
+    to   { opacity: 0.55; }
+}
+
+/* =====================
+   TABLERO Y CARTAS
+   ===================== */
 .memorama-board {
     display: grid;
-    grid-template-columns: repeat(4, 1fr);
-    grid-template-rows: repeat(4, 1fr);
     gap: 10px;
-    width: 400px;
-    height: 400px;
-    perspective: 1000px;
+    perspective: 600px;
+    /* columns/rows set by JS via inline style or data-cols */
 }
+/* Grid configs por dificultad */
+.memorama-board[data-cols="4"] {
+    grid-template-columns: repeat(4, 1fr);
+}
+.memorama-board[data-cols="6"] {
+    grid-template-columns: repeat(6, 1fr);
+}
+
+/* Tamaño base — height driven by JS via data-rows to keep cells square */
+.memorama-board {
+    width: 400px;
+    box-sizing: border-box;
+}
+/* Height adjustment per difficulty: easy=3 rows, normal=4, hard=4 */
+.memorama-board[data-cols="4"][data-rows="3"] { height: 310px; }
+.memorama-board[data-cols="4"][data-rows="4"] { height: 400px; }
+.memorama-board[data-cols="6"][data-rows="4"] { width: 480px; height: 320px; }
+
+/* === Flip 3D real === */
 .card {
     width: 100%;
     height: 100%;
     position: relative;
     transform-style: preserve-3d;
-    transition: transform 0.6s;
+    transition: transform 0.45s cubic-bezier(0.4, 0.2, 0.2, 1);
     cursor: pointer;
     touch-action: manipulation;
     user-select: none;
+    border-radius: 10px;
+}
+.card:not(.flipped):not(.matched):hover {
+    box-shadow: 0 0 0 3px rgba(143,211,244,0.6), 0 4px 16px rgba(0,0,0,0.35);
+    transform: scale(1.04);
 }
 .card.flipped {
     transform: rotateY(180deg);
 }
-.card-front, .card-back {
+.card.matched {
+    transform: rotateY(180deg);
+    pointer-events: none;
+}
+
+/* Caras de la carta */
+.card-front,
+.card-back {
     position: absolute;
     width: 100%;
     height: 100%;
     backface-visibility: hidden;
-    border-radius: 8px;
+    -webkit-backface-visibility: hidden;
+    border-radius: 10px;
     display: flex;
     align-items: center;
     justify-content: center;
     font-size: 2rem;
-    box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+    font-weight: bold;
+    box-shadow: 0 4px 10px rgba(0,0,0,0.25);
+    overflow: hidden;
 }
+
+/* Cara trasera — reverso con gradiente y patrón de puntos */
 .card-front {
-    background: #2c3e50;
-    color: #fff;
+    background: linear-gradient(135deg, #1a2980 0%, #26d0ce 100%);
+    color: transparent;
 }
+/* Patrón de puntos en el reverso usando pseudo-elemento */
+.card-front::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background-image: radial-gradient(circle, rgba(255,255,255,0.18) 1.5px, transparent 1.5px);
+    background-size: 10px 10px;
+    border-radius: 10px;
+}
+/* Icono central en el reverso */
+.card-front::after {
+    content: '';
+    display: block;
+    width: 38%;
+    height: 38%;
+    border-radius: 50%;
+    background: rgba(255,255,255,0.15);
+    border: 2.5px solid rgba(255,255,255,0.35);
+    position: absolute;
+}
+
+/* Cara frontal — el valor */
 .card-back {
     background: #ecf0f1;
     color: #222;
     transform: rotateY(180deg);
+    font-size: clamp(1rem, 4cqi, 2.2rem);
+}
+
+/* === Match: pulso verde persistente === */
+@keyframes match-pulse {
+    0%   { box-shadow: 0 0 0 0 rgba(76,175,80,0.7); }
+    60%  { box-shadow: 0 0 0 8px rgba(76,175,80,0.0); }
+    100% { box-shadow: 0 0 0 4px rgba(76,175,80,0.45); }
+}
+.card.matched .card-back {
+    background: #e8f5e9;
+    animation: match-pulse 0.5s ease-out forwards;
+    box-shadow: 0 0 0 4px #4caf50;
+}
+
+/* === Mismatch: shake === */
+@keyframes card-shake {
+    0%   { transform: rotateY(180deg) translateX(0); }
+    20%  { transform: rotateY(180deg) translateX(-5px); }
+    40%  { transform: rotateY(180deg) translateX(5px); }
+    60%  { transform: rotateY(180deg) translateX(-4px); }
+    80%  { transform: rotateY(180deg) translateX(3px); }
+    100% { transform: rotateY(180deg) translateX(0); }
+}
+.card.mismatch {
+    animation: card-shake 0.35s ease-out;
+}
+
+/* === Pantalla de victoria === */
+@keyframes victory-in {
+    from { opacity: 0; transform: scale(0.7); }
+    to   { opacity: 1; transform: scale(1); }
+}
+.victory-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(24,24,24,0.82);
+    backdrop-filter: blur(5px);
+    -webkit-backdrop-filter: blur(5px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1100;
+}
+.victory-box {
+    background: linear-gradient(135deg, #1a2980 0%, #26d0ce 100%);
+    border-radius: 20px;
+    padding: 2.5rem 3.5rem;
+    text-align: center;
+    box-shadow: 0 8px 40px rgba(0,0,0,0.5);
+    color: #fff;
+    min-width: 260px;
+    max-width: 90vw;
+    animation: victory-in 0.4s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+}
+.victory-box h2 {
+    font-size: 2rem;
+    margin: 0 0 0.5rem 0;
+    text-shadow: 0 2px 8px rgba(0,0,0,0.3);
+}
+.victory-box .victory-stats {
+    font-size: 1.1rem;
+    margin: 1rem 0;
+    opacity: 0.92;
+    line-height: 1.7;
+}
+.victory-box .best-label {
+    font-size: 0.95rem;
+    color: #ffd700;
+    margin-top: 0.3rem;
+}
+
+/* =====================
+   POPUP DE FIN DE JUEGO
+   ===================== */
+@keyframes popup-fade-in {
+    from { opacity: 0; }
+    to   { opacity: 1; }
+}
+@keyframes popup-content-in {
+    from { opacity: 0; transform: scale(0.85); }
+    to   { opacity: 1; transform: scale(1); }
+}
+.popup {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    background: rgba(24,24,24,0.8);
+    backdrop-filter: blur(4px);
+    -webkit-backdrop-filter: blur(4px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+    animation: popup-fade-in 0.3s ease-out both;
+}
+.popup-content {
+    background: #242424;
+    padding: 2.5rem 3rem;
+    border-radius: 20px;
+    box-shadow: 0 4px 40px rgba(0,0,0,0.5);
+    text-align: center;
+    min-width: 280px;
+    max-width: 90vw;
+    animation: popup-content-in 0.3s ease-out both;
+}
+.popup-content h2 {
+    margin-top: 0;
+    color: #8fd3f4;
+    font-size: 2rem;
+}
+.popup-content p {
+    font-size: 1.4rem;
+    margin: 1.2rem 0;
 }
 
 #startBtn, #restartBtn {
@@ -172,34 +420,12 @@ body {
 #playAgainBtn:hover {
     background: #5ec2e6;
 }
-/* Popup de fin de juego */
-.popup {
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100vw;
-    height: 100vh;
-    background: rgba(24,24,24,0.95);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    z-index: 1000;
-}
-.popup-content {
-    background: #242424;
-    padding: 2.5rem 3rem;
-    border-radius: 20px;
-    box-shadow: 0 4px 24px rgba(0,0,0,0.4);
-    text-align: center;
-    min-width: 280px;
-    max-width: 90vw;
-}
-.popup-content h2 {
-    margin-top: 0;
-    color: #8fd3f4;
-    font-size: 2rem;
-}
-.popup-content p {
-    font-size: 1.5rem;
-    margin: 1.5rem 0;
+
+@media (max-width: 600px) {
+    .card-back {
+        font-size: 1.4rem;
+    }
+    .victory-box {
+        padding: 2rem 1.5rem;
+    }
 }

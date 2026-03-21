@@ -1,4 +1,4 @@
-// Endless Runner — animaciones completas
+// Endless Runner — animaciones completas + variedad de obstáculos + crouch + progresión
 var canvas = document.getElementById('runnerCanvas');
 var ctx = canvas.getContext('2d');
 
@@ -9,6 +9,7 @@ var GRAVITY     = 0.6;
 var JUMP_FORCE  = -12;
 var GROUND_Y    = 155;
 var PLAYER_SIZE = 36;
+var CROUCH_H    = 20;   // altura dino agachado
 var PLAYER_SPEED = 4;
 var PLAYER_MIN_X = 20;
 var PLAYER_MAX_X = 320;
@@ -17,47 +18,77 @@ var PLAYER_MAX_X = 320;
 var player = {};
 var obstacles = [];
 var dustParticles = [];
+var milestoneMsg = null;   // { text, alpha, y }
 var SPEED = 4;
 var frame = 0;
 var score = 0;
 var highScore = parseInt(localStorage.getItem('runnerHighScore') || '0', 10);
 var isPlaying = false;
 var isDying   = false;
+var isCrouching = false;
 var animFrameId = null;
 var nextObstacle = 90;
 var keys = {};
 
 // Animation state
-var animTick    = 0;   // increments every game frame
-var blinkTimer  = 100; // countdown to next blink
-var squishX     = 1;   // scale X (squish/stretch)
-var squishY     = 1;   // scale Y
+var animTick    = 0;
+var blinkTimer  = 100;
+var squishX     = 1;
+var squishY     = 1;
 var wasOnGround = true;
 var deathAngle  = 0;
 var deathVY     = 0;
 var screenShake = 0;
 
-// Clouds
+// Milestone
+var lastMilestone = 0;
+
+// Clouds (parallax)
 var clouds = [
-    { x: 100, y: 28, w: 64, h: 22 },
-    { x: 310, y: 46, w: 80, h: 26 },
-    { x: 520, y: 22, w: 52, h: 18 },
+    { x: 100, y: 28, w: 64, h: 22, speed: 0.22 },
+    { x: 310, y: 46, w: 80, h: 26, speed: 0.18 },
+    { x: 520, y: 22, w: 52, h: 18, speed: 0.28 },
 ];
 
-// ─── OBSTACLE ──────────────────────────────────────────────
+// ─── OBSTACLE TYPES ─────────────────────────────────────────
+// type 0: cactus alto  (normal, saltar)
+// type 1: cactus bajo  (pequeño, saltar O agacharse)
+// type 2: pájaro volador (media altura, SOLO agacharse)
+
 function spawnObstacle() {
-    var w = 18 + Math.random() * 14;
-    var h = 28 + Math.random() * 44;
-    obstacles.push({ x: WIDTH, width: w, height: h });
+    var type = Math.floor(Math.random() * 3);
+    var o;
+    if (type === 0) {
+        // Cactus alto clásico
+        var w = 18 + Math.random() * 14;
+        var h = 32 + Math.random() * 30;
+        o = { x: WIDTH, width: w, height: h, type: 0 };
+    } else if (type === 1) {
+        // Cactus bajo — se puede esquivar saltando O agachándose
+        var w = 14 + Math.random() * 10;
+        var h = 16 + Math.random() * 12;
+        o = { x: WIDTH, width: w, height: h, type: 1 };
+    } else {
+        // Pájaro volador — vuela a media altura (SOLO agacharse)
+        o = {
+            x: WIDTH,
+            width: 36,
+            height: 20,
+            type: 2,
+            flapTick: 0,
+            // Y fijo a media altura del jugador
+            flyY: GROUND_Y - 26 + Math.random() * 10   // ala media
+        };
+    }
+    obstacles.push(o);
 }
 
-// ─── JUMP ──────────────────────────────────────────────────
+// ─── JUMP / CROUCH ──────────────────────────────────────────
 function jump() {
     if (!isPlaying || isDying) return;
-    if (player.onGround) {
+    if (player.onGround && !isCrouching) {
         player.vy = JUMP_FORCE;
         player.onGround = false;
-        // Launch stretch
         squishX = 0.75;
         squishY = 1.35;
         spawnDustBurst();
@@ -68,6 +99,10 @@ function checkJumpKeys() {
     if (keys[' '] || keys['ArrowUp'] || keys['w'] || keys['W']) jump();
 }
 
+function checkCrouchKeys() {
+    isCrouching = !!(keys['ArrowDown'] || keys['s'] || keys['S']) && player.onGround;
+}
+
 // ─── PLAYER UPDATE ─────────────────────────────────────────
 function updatePlayer() {
     if (keys['ArrowLeft']  || keys['a'] || keys['A'])
@@ -75,13 +110,13 @@ function updatePlayer() {
     if (keys['ArrowRight'] || keys['d'] || keys['D'])
         player.x = Math.min(PLAYER_MAX_X, player.x + PLAYER_SPEED);
 
+    checkCrouchKeys();
+
     player.vy += GRAVITY;
     player.y  += player.vy;
 
-    // Landing
     if (player.y >= GROUND_Y) {
         if (!player.onGround) {
-            // Landing squish
             squishX = 1.4;
             squishY = 0.6;
             spawnDustBurst();
@@ -91,11 +126,9 @@ function updatePlayer() {
         player.onGround = true;
     }
 
-    // Lerp squish back to 1
     squishX += (1 - squishX) * 0.18;
     squishY += (1 - squishY) * 0.18;
 
-    // Blink timer
     blinkTimer--;
     if (blinkTimer < 0) blinkTimer = 90 + Math.floor(Math.random() * 140);
 }
@@ -116,7 +149,7 @@ function spawnDustBurst() {
 }
 
 function spawnRunDust() {
-    if (frame % 10 === 0 && player.onGround) {
+    if (frame % 10 === 0 && player.onGround && !isCrouching) {
         dustParticles.push({
             x: player.x + 6 + Math.random() * 10,
             y: GROUND_Y + PLAYER_SIZE - 1,
@@ -155,29 +188,117 @@ function drawDust() {
 function updateObstacles() {
     for (var i = obstacles.length - 1; i >= 0; i--) {
         obstacles[i].x -= SPEED;
+        if (obstacles[i].type === 2) obstacles[i].flapTick++;
         if (obstacles[i].x + obstacles[i].width < 0) obstacles.splice(i, 1);
     }
 }
 
 function drawObstacles() {
     for (var i = 0; i < obstacles.length; i++) {
-        var o  = obstacles[i];
-        var oy = GROUND_Y + PLAYER_SIZE - o.height;
-        var grad = ctx.createLinearGradient(o.x, oy, o.x + o.width, oy);
-        grad.addColorStop(0, '#2e7d32');
-        grad.addColorStop(1, '#1b5e20');
-        ctx.fillStyle = grad;
-        ctx.beginPath();
-        ctx.roundRect(o.x, oy, o.width, o.height, 4);
-        ctx.fill();
-        ctx.fillStyle = 'rgba(255,255,255,0.13)';
-        ctx.fillRect(o.x + 2, oy + 2, o.width / 3, o.height - 4);
+        var o = obstacles[i];
+        if (o.type === 0 || o.type === 1) {
+            drawCactus(o);
+        } else if (o.type === 2) {
+            drawBird(o);
+        }
     }
+}
+
+function drawCactus(o) {
+    var oy = GROUND_Y + PLAYER_SIZE - o.height;
+    var grad = ctx.createLinearGradient(o.x, oy, o.x + o.width, oy);
+    grad.addColorStop(0, '#2e7d32');
+    grad.addColorStop(1, '#1b5e20');
+    ctx.fillStyle = grad;
+    ctx.beginPath();
+    ctx.roundRect(o.x, oy, o.width, o.height, 4);
+    ctx.fill();
+    ctx.fillStyle = 'rgba(255,255,255,0.13)';
+    ctx.fillRect(o.x + 2, oy + 2, o.width / 3, o.height - 4);
+
+    if (o.type === 0) {
+        // Arms on tall cactus
+        var midY = oy + o.height * 0.4;
+        ctx.fillStyle = '#2e7d32';
+        // Left arm
+        ctx.beginPath(); ctx.roundRect(o.x - 8, midY, 9, 5, 2); ctx.fill();
+        ctx.beginPath(); ctx.roundRect(o.x - 9, midY - 8, 5, 10, 2); ctx.fill();
+        // Right arm
+        ctx.beginPath(); ctx.roundRect(o.x + o.width - 1, midY + 4, 9, 5, 2); ctx.fill();
+        ctx.beginPath(); ctx.roundRect(o.x + o.width + 4, midY - 4, 5, 10, 2); ctx.fill();
+    }
+}
+
+function drawBird(o) {
+    var bx = o.x + o.width / 2;
+    var by = o.flyY;
+    var flap = Math.sin(o.flapTick * 0.3) > 0;
+
+    ctx.save();
+    ctx.translate(bx, by);
+
+    // Body
+    ctx.fillStyle = '#5c3317';
+    ctx.beginPath();
+    ctx.ellipse(0, 0, 16, 9, 0, 0, Math.PI * 2);
+    ctx.fill();
+
+    // Wing
+    ctx.fillStyle = '#7a4520';
+    if (flap) {
+        // Wing up
+        ctx.beginPath();
+        ctx.ellipse(-2, -7, 13, 5, -0.3, 0, Math.PI * 2);
+        ctx.fill();
+    } else {
+        // Wing down
+        ctx.beginPath();
+        ctx.ellipse(-2, 5, 13, 5, 0.3, 0, Math.PI * 2);
+        ctx.fill();
+    }
+
+    // Head
+    ctx.fillStyle = '#5c3317';
+    ctx.beginPath();
+    ctx.arc(13, -4, 7, 0, Math.PI * 2);
+    ctx.fill();
+
+    // Eye
+    ctx.fillStyle = '#fff';
+    ctx.beginPath();
+    ctx.arc(15, -6, 2.5, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.fillStyle = '#111';
+    ctx.beginPath();
+    ctx.arc(16, -6.5, 1.3, 0, Math.PI * 2);
+    ctx.fill();
+
+    // Beak
+    ctx.fillStyle = '#e65100';
+    ctx.beginPath();
+    ctx.moveTo(19, -4);
+    ctx.lineTo(26, -3);
+    ctx.lineTo(19, -1);
+    ctx.closePath();
+    ctx.fill();
+
+    // Tail
+    ctx.fillStyle = '#3e2206';
+    ctx.beginPath();
+    ctx.moveTo(-14, -2);
+    ctx.lineTo(-24, -6);
+    ctx.lineTo(-22, 0);
+    ctx.lineTo(-24, 5);
+    ctx.lineTo(-14, 2);
+    ctx.closePath();
+    ctx.fill();
+
+    ctx.restore();
 }
 
 function updateClouds() {
     for (var i = 0; i < clouds.length; i++) {
-        clouds[i].x -= SPEED * 0.25;
+        clouds[i].x -= SPEED * clouds[i].speed;
         if (clouds[i].x + clouds[i].w < 0) {
             clouds[i].x = WIDTH + 20;
             clouds[i].y = 12 + Math.random() * 50;
@@ -188,15 +309,40 @@ function updateClouds() {
 // ─── COLLISION ─────────────────────────────────────────────
 function checkCollision() {
     var margin = 7;
-    var px = player.x + margin, py = player.y + margin;
-    var pw = PLAYER_SIZE - margin * 2, ph = PLAYER_SIZE - margin * 2;
+    // Hitbox changes when crouching
+    var ph = isCrouching ? CROUCH_H : (PLAYER_SIZE - margin * 2);
+    var py = isCrouching ? (GROUND_Y + PLAYER_SIZE - CROUCH_H) : (player.y + margin);
+    var px = player.x + margin;
+    var pw = PLAYER_SIZE - margin * 2;
+
     for (var i = 0; i < obstacles.length; i++) {
-        var o  = obstacles[i];
-        var ox = o.x, oy = GROUND_Y + PLAYER_SIZE - o.height;
-        if (px < ox + o.width && px + pw > ox && py < oy + o.height && py + ph > oy)
-            return true;
+        var o = obstacles[i];
+        if (o.type === 0 || o.type === 1) {
+            var ox = o.x, oy = GROUND_Y + PLAYER_SIZE - o.height;
+            if (px < ox + o.width && px + pw > ox && py < oy + o.height && py + ph > oy)
+                return true;
+        } else if (o.type === 2) {
+            // Bird hitbox
+            var bx = o.x, bby = o.flyY - 10, bw = o.width, bh = 20;
+            if (px < bx + bw && px + pw > bx && py < bby + bh && py + ph > bby)
+                return true;
+        }
     }
     return false;
+}
+
+// ─── MILESTONE ─────────────────────────────────────────────
+function checkMilestone() {
+    var m = Math.floor(score / 100) * 100;
+    if (m > 0 && m !== lastMilestone) {
+        lastMilestone = m;
+        milestoneMsg = { text: '+VELOCIDAD! x' + m, alpha: 1.0, y: HEIGHT / 2 - 20 };
+    }
+    if (milestoneMsg) {
+        milestoneMsg.alpha -= 0.018;
+        milestoneMsg.y -= 0.4;
+        if (milestoneMsg.alpha <= 0) milestoneMsg = null;
+    }
 }
 
 // ─── DRAW BACKGROUND ───────────────────────────────────────
@@ -240,16 +386,18 @@ function drawBackground() {
 
 // ─── DRAW DINO ─────────────────────────────────────────────
 function drawDino(x, y, running, dead, deathAng) {
-    var lp      = (running && player.onGround) ? Math.floor(animTick / 7) % 2 : 0;
+    var lp      = (running && player.onGround && !isCrouching) ? Math.floor(animTick / 7) % 2 : 0;
     var isJump  = !player.onGround && !dead;
     var isBlink = blinkTimer < 3;
+    var crouch  = isCrouching && !dead;
 
-    // Squish/stretch transform
     var sx = dead ? 1 : squishX;
     var sy = dead ? 1 : squishY;
 
+    // When crouching, flatten the dino
+    if (crouch) { sx = 1.3; sy = 0.55; }
+
     ctx.save();
-    // Pivot around center of dino for squish
     var pivotX = x + 18;
     var pivotY = y + PLAYER_SIZE;
 
@@ -267,8 +415,8 @@ function drawDino(x, y, running, dead, deathAng) {
     var G2 = '#2e7d32';
     var G3 = '#a5d6a7';
 
-    // --- Tail (animated wave) ---
-    var tailWave = running ? Math.sin(animTick * 0.25) * 3 : 0;
+    // Tail
+    var tailWave = running && !crouch ? Math.sin(animTick * 0.25) * 3 : 0;
     ctx.fillStyle = G1;
     ctx.beginPath();
     ctx.moveTo(2, 14);
@@ -278,48 +426,47 @@ function drawDino(x, y, running, dead, deathAng) {
     ctx.closePath();
     ctx.fill();
 
-    // --- Body ---
+    // Body
     ctx.fillStyle = G1;
     ctx.beginPath();
     ctx.roundRect(2, 10, 22, 17, 5);
     ctx.fill();
 
-    // --- Belly ---
+    // Belly
     ctx.fillStyle = G3;
     ctx.beginPath();
     ctx.ellipse(13, 19, 6, 5, 0, 0, Math.PI * 2);
     ctx.fill();
 
-    // --- Neck ---
+    // Neck
     ctx.fillStyle = G1;
     ctx.beginPath();
     ctx.roundRect(18, 5, 9, 13, 4);
     ctx.fill();
 
-    // --- Head (slight forward lean when running) ---
+    // Head
     var headLean = running && player.onGround ? 2 : 0;
     ctx.fillStyle = G1;
     ctx.beginPath();
     ctx.roundRect(15 + headLean, 0, 20, 12, 4);
     ctx.fill();
 
-    // --- Snout ---
+    // Snout
     ctx.fillStyle = G2;
     ctx.beginPath();
     ctx.roundRect(28 + headLean, 6, 9, 5, [0, 2, 2, 0]);
     ctx.fill();
 
-    // --- Nostril ---
+    // Nostril
     ctx.fillStyle = G2;
     ctx.beginPath();
     ctx.arc(34 + headLean, 3, 1.2, 0, Math.PI * 2);
     ctx.fill();
 
-    // --- Eye (with blink) ---
+    // Eye
     ctx.fillStyle = '#fff';
     ctx.beginPath();
     if (isBlink) {
-        // Closed eye = thin ellipse
         ctx.ellipse(23 + headLean, 4, 3, 0.8, 0, 0, Math.PI * 2);
     } else {
         ctx.arc(23 + headLean, 4, 3, 0, Math.PI * 2);
@@ -330,32 +477,34 @@ function drawDino(x, y, running, dead, deathAng) {
         ctx.beginPath();
         ctx.arc(24 + headLean, 4, 1.5, 0, Math.PI * 2);
         ctx.fill();
-        // Shine
         ctx.fillStyle = '#fff';
         ctx.beginPath();
         ctx.arc(25 + headLean, 3, 0.7, 0, Math.PI * 2);
         ctx.fill();
     }
 
-    // --- Arm ---
+    // Arm
     ctx.fillStyle = G2;
     ctx.beginPath();
     ctx.roundRect(20, 17, 6, 4, 2);
     ctx.fill();
     ctx.fillRect(24, 19, 4, 2);
 
-    // --- Legs ---
+    // Legs
     ctx.fillStyle = G2;
     if (dead) {
-        // Dead: both legs out flat
         ctx.beginPath(); ctx.roundRect(4,  26, 7, 4, 2); ctx.fill();
         ctx.beginPath(); ctx.roundRect(14, 26, 7, 4, 2); ctx.fill();
+    } else if (crouch) {
+        // Crouched legs — spread out low
+        ctx.beginPath(); ctx.roundRect(2,  28, 8, 5, 2); ctx.fill();
+        ctx.beginPath(); ctx.roundRect(14, 28, 8, 5, 2); ctx.fill();
+        ctx.beginPath(); ctx.roundRect(0,  31, 12, 4, [0,0,2,2]); ctx.fill();
+        ctx.beginPath(); ctx.roundRect(12, 31, 12, 4, [0,0,2,2]); ctx.fill();
     } else if (isJump) {
-        // Jump pose: legs tucked back
         ctx.save();
         ctx.beginPath(); ctx.roundRect(3,  26, 6, 7, 2); ctx.fill();
         ctx.beginPath(); ctx.roundRect(13, 26, 6, 7, 2); ctx.fill();
-        // Angled feet
         ctx.beginPath();
         ctx.moveTo(3, 32); ctx.lineTo(10, 30); ctx.lineTo(10, 33); ctx.closePath();
         ctx.fill();
@@ -382,14 +531,42 @@ function drawPlayer() {
     drawDino(player.x, player.y, isPlaying, false, 0);
 }
 
-// ─── SCORE ─────────────────────────────────────────────────
+// ─── SCORE / HUD ───────────────────────────────────────────
 function drawScore() {
+    var level = Math.floor((SPEED - 4) / 0.5) + 1;
     ctx.fillStyle = 'rgba(0,0,0,0.5)';
     ctx.font = 'bold 15px monospace';
     ctx.textBaseline = 'top';
     ctx.textAlign = 'right';
     ctx.fillText('Puntaje: ' + score, WIDTH - 12, 10);
+    ctx.fillText('Record: ' + highScore, WIDTH - 12, 28);
+    ctx.fillText('Vel x' + SPEED.toFixed(1), WIDTH - 12, 46);
     ctx.textAlign = 'left';
+
+    // Milestone message
+    if (milestoneMsg) {
+        ctx.save();
+        ctx.globalAlpha = milestoneMsg.alpha;
+        ctx.font = 'bold 20px monospace';
+        ctx.fillStyle = '#ff9800';
+        ctx.textAlign = 'center';
+        ctx.fillText(milestoneMsg.text, WIDTH / 2, milestoneMsg.y);
+        ctx.restore();
+    }
+
+    // Crouch hint when bird approaching
+    for (var i = 0; i < obstacles.length; i++) {
+        if (obstacles[i].type === 2 && obstacles[i].x < WIDTH && obstacles[i].x > player.x - 30) {
+            ctx.save();
+            ctx.globalAlpha = 0.75;
+            ctx.font = 'bold 12px monospace';
+            ctx.fillStyle = '#fff';
+            ctx.textAlign = 'center';
+            ctx.fillText('AGACHATE!', player.x + 20, player.y - 12);
+            ctx.restore();
+            break;
+        }
+    }
 }
 
 function updateScore() {
@@ -449,9 +626,13 @@ function gameLoop() {
     SPEED += 0.001;
     score = Math.floor(frame / 6);
 
+    checkMilestone();
+
     if (frame >= nextObstacle) {
         spawnObstacle();
-        nextObstacle = frame + 78 + Math.floor(Math.random() * 40);
+        // Gap shrinks slightly with speed but never below 60
+        var gap = Math.max(60, 78 - (SPEED - 4) * 6);
+        nextObstacle = frame + gap + Math.floor(Math.random() * 40);
     }
 
     checkJumpKeys();
@@ -468,7 +649,6 @@ function gameLoop() {
 
     updateScore();
 
-    // Screen shake offset
     var shakeX = 0, shakeY = 0;
     if (screenShake > 0) {
         shakeX = (Math.random() - 0.5) * 5;
@@ -492,6 +672,8 @@ function startGame() {
     player = { x: 80, y: GROUND_Y, vy: 0, onGround: true };
     obstacles = [];
     dustParticles = [];
+    milestoneMsg = null;
+    lastMilestone = 0;
     SPEED = 4;
     frame = 0;
     animTick = 0;
@@ -499,6 +681,7 @@ function startGame() {
     nextObstacle = 90;
     isPlaying = true;
     isDying   = false;
+    isCrouching = false;
     deathAngle = 0;
     deathVY = 0;
     squishX = 1; squishY = 1;
@@ -519,7 +702,6 @@ function gameOver() {
     isDying = true;
     cancelAnimationFrame(animFrameId);
 
-    // Kick death animation
     deathAngle = 0;
     deathVY = -7;
     screenShake = 14;
@@ -552,7 +734,8 @@ function addHold(id, key) {
     btn.addEventListener('mouseleave',  function()  { keys[key] = false; });
 }
 addHold('btnLeft',  'ArrowLeft');
-addHold('btnRight', 'ArrowRight');
+// Reasignar btnRight a agacharse en móvil
+addHold('btnRight', 'ArrowDown');
 
 var btnJump = document.getElementById('btnJump');
 if (btnJump) {

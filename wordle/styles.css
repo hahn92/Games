@@ -63,7 +63,7 @@
 }
 body { background: var(--grad-bg); color: #fff; min-height: 100vh; margin: 0; }
 
-/* Wordle grid */
+/* ===================== WORDLE GRID ===================== */
 .wordle-grid {
     display: grid;
     grid-template-rows: repeat(6, 1fr);
@@ -72,10 +72,51 @@ body { background: var(--grad-bg); color: #fff; min-height: 100vh; margin: 0; }
     width: 320px;
     height: 380px;
 }
+
+/* Tile flip animation */
+@keyframes flipTile {
+    0%   { transform: rotateX(0deg); }
+    49%  { transform: rotateX(90deg); }
+    50%  { transform: rotateX(90deg); }
+    100% { transform: rotateX(0deg); }
+}
+
+/* Shake animation for invalid word */
+@keyframes shakeRow {
+    0%,100% { transform: translateX(0); }
+    15%  { transform: translateX(-6px); }
+    30%  { transform: translateX(6px); }
+    45%  { transform: translateX(-6px); }
+    60%  { transform: translateX(6px); }
+    75%  { transform: translateX(-4px); }
+    90%  { transform: translateX(4px); }
+}
+
+/* Bounce animation for winning tiles */
+@keyframes bounceTile {
+    0%,100% { transform: translateY(0); }
+    30%     { transform: translateY(-16px); }
+    60%     { transform: translateY(-6px); }
+    80%     { transform: translateY(-10px); }
+}
+
+/* Pop animation when typing a letter */
+@keyframes popTile {
+    0%   { transform: scale(1); }
+    50%  { transform: scale(1.12); }
+    100% { transform: scale(1); }
+}
+
+/* Pulsing border for current active tile */
+@keyframes pulseBorder {
+    0%,100% { border-color: #8fd3f4; box-shadow: 0 0 0 0 rgba(143,211,244,0); }
+    50%     { border-color: #5ec2e6; box-shadow: 0 0 0 3px rgba(143,211,244,0.25); }
+}
+
 .wordle-tile {
     background: #333;
     border: 2px solid #555;
-    border-radius: 4px;
+    border-radius: 6px;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -83,15 +124,55 @@ body { background: var(--grad-bg); color: #fff; min-height: 100vh; margin: 0; }
     font-weight: bold;
     color: #fff;
     text-transform: uppercase;
-    transition: background 0.3s, border-color 0.3s, transform 0.1s;
     user-select: none;
+    perspective: 400px;
+    transform-style: preserve-3d;
+    transition: background 0.1s, border-color 0.2s;
+    backface-visibility: hidden;
 }
-.wordle-tile.filled { border-color: #888; transform: scale(1.05); }
-.wordle-tile.correct { background: #538d4e; border-color: #538d4e; }
-.wordle-tile.present { background: #b59f3b; border-color: #b59f3b; }
-.wordle-tile.absent  { background: #3a3a3c; border-color: #3a3a3c; }
 
-/* On-screen keyboard */
+.wordle-tile.filled {
+    border-color: #8fd3f4;
+    animation: pulseBorder 1.4s ease-in-out infinite;
+}
+
+.wordle-tile.pop {
+    animation: popTile 0.1s ease-out forwards;
+}
+
+.wordle-tile.flip {
+    animation: flipTile 0.5s ease-in-out forwards;
+}
+
+.wordle-tile.bounce {
+    animation: bounceTile 0.5s ease-in-out forwards;
+}
+
+.wordle-tile.correct {
+    background: #538d4e;
+    border-color: #538d4e;
+    animation: none;
+}
+.wordle-tile.present {
+    background: #b59f3b;
+    border-color: #b59f3b;
+    animation: none;
+}
+.wordle-tile.absent {
+    background: #3a3a3c;
+    border-color: #3a3a3c;
+    animation: none;
+}
+
+/* Row shake */
+.wordle-row-wrap {
+    display: contents;
+}
+.row-shake {
+    animation: shakeRow 0.4s ease-in-out;
+}
+
+/* ===================== KEYBOARD ===================== */
 .wordle-keyboard {
     margin-top: 12px;
     display: flex;
@@ -114,14 +195,19 @@ body { background: var(--grad-bg); color: #fff; min-height: 100vh; margin: 0; }
     touch-action: manipulation;
     user-select: none;
     text-transform: uppercase;
-    transition: background 0.2s;
+    transition: background 0.3s, transform 0.15s, box-shadow 0.3s;
 }
 .key-btn.wide { min-width: 56px; font-size: 0.75rem; }
-.key-btn:active { opacity: 0.8; }
-.key-btn.correct { background: #538d4e; }
+.key-btn:active { opacity: 0.8; transform: scale(0.93); }
+.key-btn.correct {
+    background: #538d4e;
+    box-shadow: 0 0 8px rgba(83,141,78,0.5);
+    transform: scale(1.05);
+}
 .key-btn.present { background: #b59f3b; }
 .key-btn.absent  { background: #3a3a3c; }
 
+/* ===================== STATUS MSG ===================== */
 #statusMsg {
     font-size: 1rem;
     color: var(--text-muted);
@@ -130,6 +216,98 @@ body { background: var(--grad-bg); color: #fff; min-height: 100vh; margin: 0; }
     text-align: center;
 }
 
+/* ===================== TOAST ===================== */
+@keyframes slideDown {
+    0%   { transform: translateY(-40px) translateX(-50%); opacity: 0; }
+    15%  { transform: translateY(0) translateX(-50%); opacity: 1; }
+    75%  { transform: translateY(0) translateX(-50%); opacity: 1; }
+    100% { transform: translateY(-40px) translateX(-50%); opacity: 0; }
+}
+
+#wordleToast {
+    position: fixed;
+    top: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: rgba(36,36,36,0.97);
+    color: #8fd3f4;
+    padding: 0.8rem 2rem;
+    border-radius: 12px;
+    font-size: 1.15rem;
+    font-weight: bold;
+    z-index: 2000;
+    pointer-events: none;
+    border: 1.5px solid #8fd3f4;
+    box-shadow: 0 4px 24px rgba(0,0,0,0.35);
+    animation: slideDown 3s ease forwards;
+    white-space: nowrap;
+}
+
+/* ===================== STATS / DISTRIBUTION ===================== */
+.stats-section {
+    margin-top: 1.5rem;
+    width: 100%;
+}
+.stats-section h3 {
+    font-size: 1rem;
+    color: var(--text-muted);
+    margin: 0 0 0.7rem 0;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+}
+.dist-row {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin-bottom: 4px;
+    font-size: 0.85rem;
+}
+.dist-label {
+    width: 14px;
+    text-align: right;
+    color: #aaa;
+    font-weight: bold;
+    flex-shrink: 0;
+}
+.dist-bar-wrap {
+    flex: 1;
+    background: #333;
+    border-radius: 3px;
+    height: 18px;
+    overflow: hidden;
+}
+.dist-bar {
+    height: 100%;
+    background: var(--grad-primary);
+    border-radius: 3px;
+    min-width: 4px;
+    transition: width 0.5s ease;
+    display: flex;
+    align-items: center;
+    padding-left: 6px;
+    font-size: 0.78rem;
+    font-weight: bold;
+    color: #222;
+    box-sizing: border-box;
+}
+
+/* Streak display */
+.score-panel {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    font-size: 1rem;
+    color: var(--text-muted);
+    width: 100%;
+}
+.score-panel span {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+}
+.streak-icon { font-size: 1.1em; }
+
+/* ===================== BUTTONS ===================== */
 #startBtn, #restartBtn {
     background: var(--grad-primary); color: #222; border: none; border-radius: 8px;
     padding: 0.9rem 2rem; font-size: 1.1rem; font-weight: bold; cursor: pointer;

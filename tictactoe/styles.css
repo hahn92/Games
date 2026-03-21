@@ -1,5 +1,48 @@
 @import url('../styles.css');
 
+/* ---- Keyframes ---- */
+@keyframes drawX1 {
+    from { stroke-dashoffset: 100; }
+    to   { stroke-dashoffset: 0; }
+}
+@keyframes drawX2 {
+    0%   { stroke-dashoffset: 100; opacity: 0; }
+    30%  { opacity: 1; }
+    100% { stroke-dashoffset: 0; }
+}
+@keyframes drawO {
+    from { stroke-dashoffset: 220; }
+    to   { stroke-dashoffset: 0; }
+}
+@keyframes winLineGrow {
+    from { transform: rotate(var(--win-angle, 0deg)) scaleX(0); }
+    to   { transform: rotate(var(--win-angle, 0deg)) scaleX(1); }
+}
+@keyframes cellExit {
+    0%   { transform: scale(1); opacity: 1; }
+    100% { transform: scale(0); opacity: 0; }
+}
+@keyframes drawFlash {
+    0%   { background: rgba(255,255,255,0.15); }
+    25%  { background: rgba(255,160,0,0.45); box-shadow: 0 0 24px rgba(255,160,0,0.4); }
+    75%  { background: rgba(255,200,0,0.3); }
+    100% { background: rgba(255,255,255,0.15); }
+}
+@keyframes scoreBump {
+    0%   { transform: scale(1); }
+    45%  { transform: scale(1.6); color: #ffd54f; }
+    100% { transform: scale(1); }
+}
+@keyframes thinkingPulse {
+    0%, 100% { opacity: 1; }
+    50%       { opacity: 0.4; }
+}
+@keyframes turnGlow {
+    0%, 100% { color: #8fd3f4; }
+    50%       { color: #fff; text-shadow: 0 0 8px #8fd3f4; }
+}
+
+/* ---- Layout ---- */
 .mobile-score {
     display: none;
     position: absolute;
@@ -90,47 +133,261 @@ body {
     margin: 0;
 }
 
+/* ---- AI difficulty selector ---- */
+.ai-diff-wrap {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin-bottom: 1.2rem;
+    flex-wrap: wrap;
+}
+.ai-diff-label {
+    color: var(--text-muted);
+    font-size: 0.95rem;
+    font-weight: bold;
+    margin-right: 0.2rem;
+}
+.ai-diff-btn {
+    padding: 0.4rem 1rem;
+    border: 2px solid rgba(255,255,255,0.25);
+    border-radius: 8px;
+    background: rgba(255,255,255,0.08);
+    color: #ccc;
+    font-size: 0.9rem;
+    font-weight: bold;
+    cursor: pointer;
+    transition: background 0.2s, border-color 0.2s, color 0.2s, transform 0.15s;
+}
+.ai-diff-btn:hover {
+    background: rgba(255,255,255,0.18);
+    color: #fff;
+    border-color: rgba(255,255,255,0.5);
+    transform: scale(1.05);
+}
+.ai-diff-btn.active {
+    background: var(--grad-primary);
+    border-color: transparent;
+    color: #222;
+}
+
+/* ---- Score panel ---- */
+.score-panel {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.8rem;
+    margin-bottom: 0.8rem;
+}
+.score-panel span {
+    color: var(--text-muted);
+    font-size: 0.95rem;
+}
+.score-panel span span {
+    display: inline-block;
+    font-weight: bold;
+    color: #8fd3f4;
+    transition: color 0.3s;
+}
+.score-bump {
+    animation: scoreBump 400ms ease-out;
+}
+
+/* ---- Board ---- */
 .ttt-board {
     display: grid;
     grid-template-columns: repeat(3, 1fr);
     grid-template-rows: repeat(3, 1fr);
-    gap: 8px;
-    background: rgba(255,255,255,0.15);
-    border-radius: 16px;
-    padding: 12px;
+    gap: 0;
+    border-radius: 20px;
+    padding: 0;
     width: 360px;
     height: 360px;
     box-sizing: border-box;
+    position: relative;
+    background: transparent;
+    /* Stylized grid lines via pseudo-elements on individual cells */
+    transition: background 0.3s, box-shadow 0.3s;
+    overflow: hidden;
 }
+
+/* Draw flash effect */
+.ttt-board.draw-flash {
+    animation: drawFlash 600ms ease;
+}
+
+/* Board background glow */
+.ttt-board::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: 20px;
+    background: radial-gradient(ellipse at 50% 50%, rgba(143,211,244,0.08) 0%, transparent 70%);
+    pointer-events: none;
+    z-index: 0;
+}
+
+/* ---- Cells ---- */
 .ttt-cell {
-    background: rgba(255,255,255,0.1);
-    border-radius: 12px;
+    background: rgba(255,255,255,0.07);
+    border-radius: 0;
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 4.5rem;
+    font-size: 0;  /* text hidden; SVG used instead */
     font-weight: bold;
     cursor: pointer;
     touch-action: manipulation;
     user-select: none;
-    transition: background 0.15s, transform 0.1s;
+    transition: background 0.15s, transform 0.15s, opacity 0.15s;
+    position: relative;
+    z-index: 1;
+    /* Grid line effect via gradient borders */
+    outline: none;
+    box-shadow:
+        1px 0 0 0 rgba(255,255,255,0.18),
+        0 1px 0 0 rgba(255,255,255,0.18),
+        1px 1px 0 0 rgba(255,255,255,0.18);
 }
-.ttt-cell:hover { background: rgba(255,255,255,0.2); }
-.ttt-cell.x { color: #ff512f; }
-.ttt-cell.o { color: #8fd3f4; }
+
+/* Remove double borders on edges */
+.ttt-cell:nth-child(3)  { box-shadow: 0 1px 0 0 rgba(255,255,255,0.18); }
+.ttt-cell:nth-child(6)  { box-shadow: 0 1px 0 0 rgba(255,255,255,0.18); }
+.ttt-cell:nth-child(9)  { box-shadow: none; }
+.ttt-cell:nth-child(7)  { box-shadow: 1px 0 0 0 rgba(255,255,255,0.18); }
+.ttt-cell:nth-child(8)  { box-shadow: 1px 0 0 0 rgba(255,255,255,0.18); }
+
+.ttt-cell:hover {
+    background: rgba(255,255,255,0.13);
+}
+
+/* Hover ghost X preview */
+.ttt-cell.hover-x:not(.x):not(.o):empty::after {
+    content: '';
+    position: absolute;
+    inset: 18%;
+    background:
+        linear-gradient(45deg, transparent 40%, #ff512f 40%, #ff512f 60%, transparent 60%),
+        linear-gradient(-45deg, transparent 40%, #ff512f 40%, #ff512f 60%, transparent 60%);
+    opacity: 0.18;
+    pointer-events: none;
+    border-radius: 4px;
+}
+/* Hover ghost O preview */
+.ttt-cell.hover-o:not(.x):not(.o):empty::after {
+    content: '';
+    position: absolute;
+    inset: 22%;
+    border-radius: 50%;
+    border: 6px solid #8fd3f4;
+    opacity: 0.18;
+    pointer-events: none;
+    box-sizing: border-box;
+}
+
+/* Winner highlight */
 .ttt-cell.winner {
-    background: rgba(255,255,255,0.3);
-    transform: scale(1.06);
+    background: rgba(255,255,255,0.22);
+    box-shadow: inset 0 0 20px rgba(143,211,244,0.3), 1px 0 0 0 rgba(255,255,255,0.18), 0 1px 0 0 rgba(255,255,255,0.18);
 }
 
+/* Cell exit animation (reset) */
+.ttt-cell.cell-exit {
+    animation: cellExit 180ms ease-in forwards;
+}
+
+/* ---- SVG pieces ---- */
+.piece-svg {
+    width: 68%;
+    height: 68%;
+    display: block;
+    overflow: visible;
+}
+
+/* X lines */
+.x-svg .x-line1,
+.x-svg .x-line2 {
+    stroke: #ff512f;
+    stroke-width: 10;
+    stroke-linecap: round;
+    fill: none;
+    stroke-dasharray: 100;
+}
+.x-svg .x-line1 {
+    stroke-dashoffset: 0;
+    animation: drawX1 280ms ease-out both;
+}
+.x-svg .x-line2 {
+    stroke-dashoffset: 0;
+    animation: drawX2 280ms ease-out 80ms both;
+}
+
+/* O circle */
+.o-svg .o-circle {
+    stroke: #8fd3f4;
+    stroke-width: 9;
+    fill: none;
+    stroke-dasharray: 220;
+    stroke-dashoffset: 0;
+    animation: drawO 320ms ease-out both;
+    stroke-linecap: round;
+}
+
+/* ---- Win line ---- */
+.win-line {
+    position: absolute;
+    height: 6px;
+    border-radius: 3px;
+    background: linear-gradient(90deg, #ffd54f, #ff512f);
+    box-shadow: 0 0 12px rgba(255,213,79,0.6);
+    transform-origin: left center;
+    top: 0; left: 0;
+    /* animation done inline via class */
+    animation: winLineGrow 400ms cubic-bezier(0.22,1,0.36,1) forwards;
+    margin-top: -3px;
+    z-index: 10;
+    pointer-events: none;
+}
+
+/* ---- Status message ---- */
 #statusMsg {
-    font-size: 1.1rem;
-    color: var(--text-muted);
-    margin-top: 0.8rem;
-    min-height: 1.4em;
+    font-size: 1.15rem;
+    margin-top: 1rem;
+    min-height: 1.5em;
     text-align: center;
+    font-weight: bold;
+    letter-spacing: 0.02em;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+}
+#statusMsg.thinking {
+    color: #ffd54f;
+    animation: thinkingPulse 0.8s ease-in-out infinite;
+}
+#statusMsg.thinking::before {
+    content: '';
+    display: inline-block;
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    background: #ffd54f;
+    animation: thinkingPulse 0.8s ease-in-out infinite;
+}
+#statusMsg.your-turn {
+    color: #8fd3f4;
+    animation: turnGlow 2s ease-in-out infinite;
+}
+#statusMsg.your-turn::before {
+    content: '';
+    display: inline-block;
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    background: #8fd3f4;
+    box-shadow: 0 0 6px #8fd3f4;
 }
 
+/* ---- Buttons ---- */
 #startBtn, #restartBtn {
     background: var(--grad-primary);
     color: #222;
@@ -145,6 +402,8 @@ body {
     transition: background 0.2s, transform 0.2s;
 }
 #startBtn:hover, #restartBtn:hover { opacity: 0.9; transform: scale(1.05); }
+#startBtn:disabled, #restartBtn:disabled { opacity: 0.45; cursor: not-allowed; transform: none; }
+
 #playAgainBtn {
     background: #8fd3f4;
     color: #222;
@@ -158,6 +417,7 @@ body {
     margin-top: 1rem;
 }
 #playAgainBtn:hover { background: #5ec2e6; }
+
 .popup {
     position: fixed;
     top: 0; left: 0;
@@ -179,3 +439,12 @@ body {
 }
 .popup-content h2 { margin-top: 0; color: #8fd3f4; font-size: 2rem; }
 .popup-content p { font-size: 1.5rem; margin: 1.5rem 0; }
+
+/* ---- Mobile adjustments ---- */
+@media (max-width: 900px) {
+    .ttt-board {
+        width: min(85vw, 360px);
+        height: min(85vw, 360px);
+    }
+    .piece-svg { width: 60%; height: 60%; }
+}

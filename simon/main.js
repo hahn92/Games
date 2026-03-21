@@ -1,6 +1,22 @@
 // Simon Says
 const COLORS = ['red', 'blue', 'green', 'yellow'];
 
+// Musical note labels per color (visual only, no audio)
+const COLOR_NOTES = {
+    red:    'Mi',
+    blue:   'Sol',
+    green:  'Do',
+    yellow: 'Re'
+};
+
+// Glow colors for status messages
+const COLOR_HEX = {
+    red:    '#ff5252',
+    blue:   '#2979ff',
+    green:  '#00e676',
+    yellow: '#ffd740'
+};
+
 let sequence = [];
 let playerSeq = [];
 let round = 0;
@@ -10,21 +26,105 @@ let isPlaying = false;
 let isFlashing = false;
 let playerTurn = false;
 
-function setStatus(msg) {
-    document.getElementById('status').textContent = msg;
+/* ---- Add note labels to buttons ---- */
+function initNoteLabels() {
+    COLORS.forEach(function(color) {
+        const btn = document.getElementById('btn-' + color);
+        if (!btn.querySelector('.btn-note')) {
+            const note = document.createElement('span');
+            note.className = 'btn-note';
+            note.textContent = COLOR_NOTES[color];
+            btn.appendChild(note);
+        }
+    });
 }
 
+/* ---- Add speed mode label below score panel ---- */
+function initSpeedMode() {
+    const infoSide = document.querySelector('.info-side');
+    if (!infoSide || document.getElementById('speedMode')) return;
+    const lbl = document.createElement('div');
+    lbl.className = 'speed-mode';
+    lbl.id = 'speedMode';
+    const scorePanel = infoSide.querySelector('.score-panel');
+    if (scorePanel) {
+        infoSide.insertBefore(lbl, scorePanel.nextSibling);
+    } else {
+        infoSide.appendChild(lbl);
+    }
+}
+
+function updateSpeedMode() {
+    const lbl = document.getElementById('speedMode');
+    if (!lbl) return;
+    if (round <= 5)       lbl.textContent = 'Modo: Normal';
+    else if (round <= 10) lbl.textContent = 'Modo: Rapido';
+    else                  lbl.textContent = 'Modo: Experto';
+}
+
+/* ---- Flash timings by level ---- */
+function getFlashDuration() {
+    if (round <= 5)  return 520;
+    if (round <= 10) return 360;
+    return 240;
+}
+
+function getFlashGap() {
+    if (round <= 5)  return 220;
+    if (round <= 10) return 160;
+    return 100;
+}
+
+/* ---- Status ---- */
+function setStatus(msg, isError) {
+    const el = document.getElementById('status');
+    el.textContent = msg;
+    if (isError) {
+        el.classList.add('error');
+    } else {
+        el.classList.remove('error');
+    }
+}
+
+/* ---- Score update with bump ---- */
 function updateScore() {
-    document.getElementById('score').textContent = score;
+    const scoreEl = document.getElementById('score');
+    scoreEl.textContent = score;
+    scoreEl.classList.remove('bump');
+    void scoreEl.offsetWidth;
+    scoreEl.classList.add('bump');
+    setTimeout(function() { scoreEl.classList.remove('bump'); }, 200);
+
     document.getElementById('level').textContent = round;
     document.getElementById('mobileScore').textContent = 'Ronda: ' + round + ' | Puntaje: ' + score;
+
     if (score > highScore) {
         highScore = score;
         localStorage.setItem('simonHighScore', highScore);
     }
     document.getElementById('highScore').textContent = highScore;
+
+    updateSpeedMode();
 }
 
+/* ---- Level badge animation ---- */
+function showLevelBadge() {
+    const levelEl = document.getElementById('level');
+    // Remove existing badge if any
+    const existing = levelEl.parentElement.querySelector('.level-badge');
+    if (existing) existing.remove();
+
+    const badge = document.createElement('span');
+    badge.className = 'level-badge';
+    badge.textContent = 'Nivel ' + round;
+    levelEl.parentElement.appendChild(badge);
+
+    setTimeout(function() {
+        badge.remove();
+    }, 1800);
+}
+
+/* ---- Flash a single button ---- */
 function flash(color, duration) {
     return new Promise(function(resolve) {
         var btn = document.getElementById('btn-' + color);
@@ -37,29 +137,30 @@ function flash(color, duration) {
 }
 
 function delay(ms) {
-    return new Promise(function(resolve) {
-        setTimeout(resolve, ms);
-    });
+    return new Promise(function(resolve) { setTimeout(resolve, ms); });
 }
 
+/* ---- Flash the full sequence ---- */
 async function flashSequence() {
     isFlashing = true;
     playerTurn = false;
-    setStatus('Observa...');
-    // Disable buttons during flash
+    setStatus('Observa...', false);
     setBtnsEnabled(false);
 
     await delay(500);
 
+    const flashDur = getFlashDuration();
+    const flashGap = getFlashGap();
+
     for (var i = 0; i < sequence.length; i++) {
-        await flash(sequence[i], 500);
-        await delay(200);
+        await flash(sequence[i], flashDur);
+        await delay(flashGap);
     }
 
     isFlashing = false;
     playerTurn = true;
     setBtnsEnabled(true);
-    setStatus('¡Tu turno!');
+    setStatus('Tu turno!', false);
 }
 
 function setBtnsEnabled(enabled) {
@@ -74,37 +175,76 @@ function addToSequence() {
     sequence.push(color);
     round = sequence.length;
     updateScore();
+    showLevelBadge();
     flashSequence();
 }
 
+/* ---- Pressed animation (player input) ---- */
+function pressBtn(color) {
+    return new Promise(function(resolve) {
+        var btn = document.getElementById('btn-' + color);
+        btn.classList.add('pressed');
+        setTimeout(function() {
+            btn.classList.remove('pressed');
+            resolve();
+        }, 200);
+    });
+}
+
+/* ---- Fail animation: shake board + flash all buttons red ---- */
+async function playFailAnimation() {
+    const board = document.getElementById('simonBoard');
+    board.classList.add('fail-shake');
+
+    COLORS.forEach(function(color) {
+        var btn = document.getElementById('btn-' + color);
+        btn.classList.add('fail-flash');
+    });
+
+    await delay(800);
+
+    board.classList.remove('fail-shake');
+    COLORS.forEach(function(color) {
+        var btn = document.getElementById('btn-' + color);
+        btn.classList.remove('fail-flash');
+    });
+}
+
+/* ---- Handle player input ---- */
 async function handleInput(color) {
     if (!isPlaying || !playerTurn || isFlashing) return;
 
     playerSeq.push(color);
     var idx = playerSeq.length - 1;
 
-    // Flash button on input
-    await flash(color, 200);
+    // Press visual feedback
+    await pressBtn(color);
 
-    // Check if correct
+    // Check correctness
     if (playerSeq[idx] !== sequence[idx]) {
+        playerTurn = false;
+        setBtnsEnabled(false);
+        await playFailAnimation();
+        setStatus('Error! Llegaste al nivel ' + round, true);
+        await delay(700);
         gameOver();
         return;
     }
 
-    // Check if full sequence completed
+    // Full sequence completed
     if (playerSeq.length === sequence.length) {
         score += round;
         updateScore();
         playerSeq = [];
         playerTurn = false;
         setBtnsEnabled(false);
-        setStatus('¡Correcto! Siguiente ronda...');
+        setStatus('Correcto! Siguiente ronda...', false);
         await delay(1000);
         addToSequence();
     }
 }
 
+/* ---- Game flow ---- */
 function startGame() {
     sequence = [];
     playerSeq = [];
@@ -118,12 +258,17 @@ function startGame() {
     document.getElementById('startBtn').disabled = true;
     document.getElementById('restartBtn').disabled = false;
 
-    updateScore();
-    setStatus('');
+    // Reset buttons visual state
+    COLORS.forEach(function(color) {
+        var btn = document.getElementById('btn-' + color);
+        btn.classList.remove('lit', 'pressed', 'fail-flash');
+    });
+    document.getElementById('simonBoard').classList.remove('fail-shake');
 
-    setTimeout(function() {
-        addToSequence();
-    }, 500);
+    updateScore();
+    setStatus('', false);
+
+    setTimeout(function() { addToSequence(); }, 500);
 }
 
 function restartGame() {
@@ -134,9 +279,14 @@ function gameOver() {
     isPlaying = false;
     playerTurn = false;
     setBtnsEnabled(false);
-    setStatus('');
+    setStatus('', false);
 
-    document.getElementById('finalScore').textContent = 'Puntaje: ' + score;
+    const newRecord = score >= highScore && score > 0;
+    const finalEl = document.getElementById('finalScore');
+    finalEl.innerHTML = 'Puntaje: ' + score +
+        (newRecord ? '<br><span style="color:#ffd700;font-size:1rem;">Nuevo record!</span>' : '') +
+        '<br><span style="font-size:1rem;color:#8fd3f4;">Mejor: ' + highScore + ' | Nivel max: ' + round + '</span>';
+
     document.getElementById('gameOverPopup').style.display = 'flex';
     document.getElementById('startBtn').disabled = false;
     document.getElementById('restartBtn').disabled = true;
@@ -146,14 +296,11 @@ function gameOver() {
     }
 }
 
-// Wire up buttons
+/* ---- Wire up buttons ---- */
 COLORS.forEach(function(color) {
     var btn = document.getElementById('btn-' + color);
 
-    btn.addEventListener('click', function() {
-        handleInput(color);
-    });
-
+    btn.addEventListener('click', function() { handleInput(color); });
     btn.addEventListener('touchstart', function(e) {
         e.preventDefault();
         handleInput(color);
@@ -167,8 +314,22 @@ document.getElementById('playAgainBtn').addEventListener('click', function() {
     startGame();
 });
 
-// Init UI
-document.getElementById('score').textContent = '0';
-document.getElementById('level').textContent = '0';
-document.getElementById('highScore').textContent = highScore;
-setBtnsEnabled(false);
+/* ---- Init ---- */
+function init() {
+    initNoteLabels();
+    initSpeedMode();
+
+    const scoreEl = document.getElementById('score');
+    if (scoreEl) scoreEl.classList.add('score-animated');
+
+    document.getElementById('score').textContent = '0';
+    document.getElementById('level').textContent = '0';
+    document.getElementById('highScore').textContent = highScore;
+    setBtnsEnabled(false);
+    updateSpeedMode();
+}
+
+document.addEventListener('DOMContentLoaded', init);
+if (document.readyState !== 'loading') {
+    init();
+}
