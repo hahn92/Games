@@ -487,47 +487,149 @@ function drawInvader(inv) {
 }
 
 function drawPlayer() {
-    const px = playerX;
+    const cx = playerX + PLAYER_WIDTH / 2;
     const py = canvas.height - PLAYER_HEIGHT - 10;
+    const by = py + PLAYER_HEIGHT;
+    const glowPulse = 0.65 + 0.35 * Math.sin(frame * 0.12);
 
-    // Cache gradient (only rebuild when x changes)
-    if (playerGradX !== px) {
-        playerGrad = ctx.createLinearGradient(px, py, px + PLAYER_WIDTH, py + PLAYER_HEIGHT);
-        playerGrad.addColorStop(0, '#26d0ce');
-        playerGrad.addColorStop(1, '#1a7a7a');
-        playerGradX = px;
+    // --- Engine exhaust plumes (behind ship) ---
+    ctx.save();
+    ctx.shadowBlur = 0;
+    for (const side of [-1, 1]) {
+        const ex = cx + side * 14;
+        const eg = ctx.createRadialGradient(ex, by + 2, 0, ex, by + 3, 10);
+        eg.addColorStop(0,    `rgba(140,240,255,${0.95 * glowPulse})`);
+        eg.addColorStop(0.4,  `rgba(0,170,255,${0.55 * glowPulse})`);
+        eg.addColorStop(1,    'rgba(0,50,200,0)');
+        ctx.fillStyle = eg;
+        ctx.beginPath();
+        ctx.ellipse(ex, by + 3, 5, 9 * glowPulse, 0, 0, Math.PI * 2);
+        ctx.fill();
     }
+    ctx.restore();
 
-    ctx.shadowBlur = 10;
+    // --- Wings (swept-back delta) ---
+    const wingGradL = ctx.createLinearGradient(cx - 4, py + 8, cx - 22, by);
+    wingGradL.addColorStop(0, '#1e8888');
+    wingGradL.addColorStop(1, '#0b3d40');
+    ctx.fillStyle = wingGradL;
+    ctx.beginPath();
+    ctx.moveTo(cx - 6,  py + 8);
+    ctx.lineTo(cx - 8,  by);
+    ctx.lineTo(cx - 15, by);
+    ctx.lineTo(cx - 22, by - 5);
+    ctx.closePath();
+    ctx.fill();
+    ctx.strokeStyle = 'rgba(38,208,206,0.55)';
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.moveTo(cx - 6, py + 8);
+    ctx.lineTo(cx - 22, by - 5);
+    ctx.stroke();
+
+    const wingGradR = ctx.createLinearGradient(cx + 4, py + 8, cx + 22, by);
+    wingGradR.addColorStop(0, '#1e8888');
+    wingGradR.addColorStop(1, '#0b3d40');
+    ctx.fillStyle = wingGradR;
+    ctx.beginPath();
+    ctx.moveTo(cx + 6,  py + 8);
+    ctx.lineTo(cx + 8,  by);
+    ctx.lineTo(cx + 15, by);
+    ctx.lineTo(cx + 22, by - 5);
+    ctx.closePath();
+    ctx.fill();
+    ctx.strokeStyle = 'rgba(38,208,206,0.55)';
+    ctx.beginPath();
+    ctx.moveTo(cx + 6, py + 8);
+    ctx.lineTo(cx + 22, by - 5);
+    ctx.stroke();
+
+    // --- Engine pods at wing tips ---
+    ctx.shadowBlur = 5;
+    ctx.shadowColor = '#00e5ff';
+    ctx.fillStyle = '#0d5a5a';
+    ctx.beginPath();
+    ctx.ellipse(cx - 17, by - 4, 6, 4, 0, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.beginPath();
+    ctx.ellipse(cx + 17, by - 4, 6, 4, 0, 0, Math.PI * 2);
+    ctx.fill();
+    // Nozzle inner glow
+    ctx.fillStyle = `rgba(100,245,255,${0.75 * glowPulse})`;
+    ctx.shadowBlur = 7;
+    ctx.beginPath();
+    ctx.ellipse(cx - 17, by - 4, 3, 2, 0, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.beginPath();
+    ctx.ellipse(cx + 17, by - 4, 3, 2, 0, 0, Math.PI * 2);
+    ctx.fill();
+
+    // --- Main fuselage ---
+    if (playerGradX !== playerX) {
+        playerGrad = ctx.createLinearGradient(cx, py - 2, cx, by);
+        playerGrad.addColorStop(0,    '#b8eef5');
+        playerGrad.addColorStop(0.22, '#26d0ce');
+        playerGrad.addColorStop(0.7,  '#137070');
+        playerGrad.addColorStop(1,    '#092f30');
+        playerGradX = playerX;
+    }
+    ctx.shadowBlur = 12;
     ctx.shadowColor = '#26d0ce';
-
     ctx.fillStyle = playerGrad;
     ctx.beginPath();
-    ctx.moveTo(px + PLAYER_WIDTH / 2, py);
-    ctx.lineTo(px, py + PLAYER_HEIGHT);
-    ctx.lineTo(px + PLAYER_WIDTH, py + PLAYER_HEIGHT);
+    ctx.moveTo(cx,      py - 2);
+    ctx.lineTo(cx + 10, py + 9);
+    ctx.lineTo(cx + 8,  by);
+    ctx.lineTo(cx - 8,  by);
+    ctx.lineTo(cx - 10, py + 9);
     ctx.closePath();
     ctx.fill();
 
-    ctx.fillStyle = 'rgba(255,255,255,0.15)';
+    // Fuselage center highlight stripe
+    ctx.fillStyle = 'rgba(255,255,255,0.18)';
     ctx.beginPath();
-    ctx.moveTo(px + PLAYER_WIDTH / 2, py + 4);
-    ctx.lineTo(px + 6, py + PLAYER_HEIGHT);
-    ctx.lineTo(px + PLAYER_WIDTH / 2 - 4, py + PLAYER_HEIGHT);
+    ctx.moveTo(cx,      py - 2);
+    ctx.lineTo(cx + 3,  py + 10);
+    ctx.lineTo(cx,      py + 15);
+    ctx.lineTo(cx - 3,  py + 10);
     ctx.closePath();
     ctx.fill();
 
-    ctx.shadowBlur = 6;
+    // Fuselage side panel lines
+    ctx.strokeStyle = 'rgba(38,208,206,0.35)';
+    ctx.lineWidth = 1;
+    ctx.beginPath(); ctx.moveTo(cx + 5, py + 7); ctx.lineTo(cx + 7, by - 2); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(cx - 5, py + 7); ctx.lineTo(cx - 7, by - 2); ctx.stroke();
+
+    // --- Cockpit dome ---
+    const cg = ctx.createRadialGradient(cx - 1.5, py + 4, 0.5, cx, py + 7, 6);
+    cg.addColorStop(0,   'rgba(225,250,255,1)');
+    cg.addColorStop(0.5, 'rgba(80,210,235,0.85)');
+    cg.addColorStop(1,   'rgba(20,90,130,0.3)');
+    ctx.shadowBlur = 5;
     ctx.shadowColor = '#8fd3f4';
-    ctx.fillStyle = '#8fd3f4';
+    ctx.fillStyle = cg;
     ctx.beginPath();
-    ctx.ellipse(px + PLAYER_WIDTH / 2, py + 8, 6, 5, 0, 0, Math.PI * 2);
+    ctx.ellipse(cx, py + 7, 5, 4, 0, 0, Math.PI * 2);
     ctx.fill();
 
-    ctx.shadowBlur = 8;
+    // --- Cannon ---
+    ctx.shadowBlur = 9;
     ctx.shadowColor = '#76ff03';
     ctx.fillStyle = '#76ff03';
-    ctx.fillRect(px + PLAYER_WIDTH / 2 - 2, py - 6, 4, 8);
+    ctx.beginPath();
+    ctx.moveTo(cx - 2,   py - 2);
+    ctx.lineTo(cx + 2,   py - 2);
+    ctx.lineTo(cx + 1.5, py - 11);
+    ctx.lineTo(cx - 1.5, py - 11);
+    ctx.closePath();
+    ctx.fill();
+    // Cannon tip
+    ctx.fillStyle = '#ccff88';
+    ctx.shadowBlur = 5;
+    ctx.beginPath();
+    ctx.arc(cx, py - 11, 2.5, 0, Math.PI * 2);
+    ctx.fill();
 
     ctx.shadowBlur = 0;
 }

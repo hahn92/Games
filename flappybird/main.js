@@ -24,6 +24,9 @@ let scorePopFrame = 0;
 let shakeFrames = 0;
 let flashAlpha  = 0;
 
+// Wing flap animation
+let wingFlapTimer = 0;  // counts down from 15 on each flap
+
 // Day/night
 let dayPhase = 0;           // 0 = full day, 1 = full night
 let dayTarget = 0;
@@ -128,6 +131,7 @@ function resetGame() {
     groundOffset = 0;
     shakeFrames = 0;
     flashAlpha  = 0;
+    wingFlapTimer = 0;
     deathAnimDone = false;
     isPlaying = false;
     dayPhase  = 0;
@@ -206,6 +210,7 @@ function update() {
 
     if (shakeFrames > 0) shakeFrames--;
     if (flashAlpha > 0) flashAlpha = Math.max(0, flashAlpha - 0.07);
+    if (wingFlapTimer > 0) wingFlapTimer--;
 
     updateParticles();
 
@@ -449,11 +454,27 @@ function drawBird() {
     ctx.fill();
     ctx.restore();
 
-    // Wing
+    // Wing with flap animation
+    // flapT: 1 = just flapped, 0 = idle; smoothstep easing for organic feel
+    const flapT = wingFlapTimer / 15;
+    const eased = flapT * flapT * (3 - 2 * flapT);
+    const idleBob = Math.sin(frame * 0.22) * 3;
+    // angle: 0.45 rad = drooped down, -0.95 rad = swept up on flap
+    const wingAngle = 0.45 - eased * 1.4;
+    const wingLen = 12 + eased * 5;
+    const wingH   = 6  + eased * 3;
     ctx.save();
-    ctx.fillStyle = '#e65100';
+    ctx.translate(-3, eased > 0.01 ? 0 : idleBob * 0.4);
+    ctx.rotate(wingAngle);
+    // Main wing
+    ctx.fillStyle = '#bf360c';
     ctx.beginPath();
-    ctx.ellipse(-4, wingOffset - 2, 10, 7, -0.3, 0, Math.PI * 2);
+    ctx.ellipse(-wingLen * 0.3, 0, wingLen, wingH, 0, 0, Math.PI * 2);
+    ctx.fill();
+    // Wing highlight
+    ctx.fillStyle = 'rgba(255,140,60,0.55)';
+    ctx.beginPath();
+    ctx.ellipse(-wingLen * 0.4, -wingH * 0.35, wingLen * 0.55, wingH * 0.5, -0.1, 0, Math.PI * 2);
     ctx.fill();
     ctx.restore();
 
@@ -601,9 +622,14 @@ function draw() {
     }
 }
 
+function flap() {
+    birdV = FLAP;
+    wingFlapTimer = 15;
+}
+
 canvas.addEventListener('mousedown', () => {
     if (!isPlaying) return;
-    birdV = FLAP;
+    flap();
 });
 // Touch feedback visual
 var touchFeedback = null;
@@ -624,16 +650,16 @@ canvas.addEventListener('touchstart', function(e) {
         } else {
             startGame();
         }
-        birdV = FLAP;
+        flap();
     } else {
-        birdV = FLAP;
+        flap();
     }
     var tc = document.getElementById('touchControls');
     if (tc) tc.style.display = 'none';
 }, { passive: false });
 document.addEventListener('keydown', e => {
     if (!isPlaying) return;
-    if (e.code === 'Space' || e.code === 'ArrowUp') birdV = FLAP;
+    if (e.code === 'Space' || e.code === 'ArrowUp') flap();
 });
 document.getElementById('startBtn').addEventListener('click', startGame);
 document.getElementById('restartBtn').addEventListener('click', restartGame);
