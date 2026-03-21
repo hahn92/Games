@@ -179,8 +179,10 @@ function update() {
     }
 
     // Move player
-    if (keys['ArrowLeft']) playerX -= PLAYER_SPEED;
-    if (keys['ArrowRight']) playerX += PLAYER_SPEED;
+    if (!touchActive) {
+        if (keys['ArrowLeft']) playerX -= PLAYER_SPEED;
+        if (keys['ArrowRight']) playerX += PLAYER_SPEED;
+    }
     playerX = Math.max(0, Math.min(canvas.width - PLAYER_WIDTH, playerX));
 
     // Move player bullets
@@ -668,3 +670,56 @@ document.getElementById('btnShoot').addEventListener('click', () => {
 });
 
 resetGame();
+
+// ─── CANVAS TOUCH CONTROLS ──────────────────────────────────
+var touchActive = false;
+
+(function() {
+    var autoShootInterval = null;
+
+    function getCanvasX(touch) {
+        var rect = canvas.getBoundingClientRect();
+        return (touch.clientX - rect.left) * (canvas.width / rect.width);
+    }
+
+    function doShoot() {
+        if (!isPlaying) return;
+        bullets.push({
+            x: playerX + PLAYER_WIDTH / 2 - BULLET_WIDTH / 2,
+            y: canvas.height - PLAYER_HEIGHT - 10
+        });
+    }
+
+    canvas.addEventListener('touchstart', function(e) {
+        e.preventDefault();
+        if (!isPlaying) return;
+        touchActive = true;
+        playerX = Math.max(0, Math.min(canvas.width - PLAYER_WIDTH,
+            getCanvasX(e.touches[0]) - PLAYER_WIDTH / 2));
+        doShoot();
+        autoShootInterval = setInterval(doShoot, 400);
+    }, { passive: false });
+
+    canvas.addEventListener('touchmove', function(e) {
+        e.preventDefault();
+        if (!touchActive || !isPlaying) return;
+        playerX = Math.max(0, Math.min(canvas.width - PLAYER_WIDTH,
+            getCanvasX(e.touches[0]) - PLAYER_WIDTH / 2));
+    }, { passive: false });
+
+    canvas.addEventListener('touchend', function(e) {
+        e.preventDefault();
+        touchActive = false;
+        clearInterval(autoShootInterval);
+        autoShootInterval = null;
+    }, { passive: false });
+
+    canvas.addEventListener('touchcancel', function() {
+        touchActive = false;
+        clearInterval(autoShootInterval);
+        autoShootInterval = null;
+    }, { passive: false });
+
+    var tc = document.getElementById('touchControls');
+    if (tc) tc.style.display = 'none';
+})();

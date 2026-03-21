@@ -567,6 +567,38 @@ window.addEventListener('keydown', e => {
     if (e.key === 'ArrowDown' && direction !== 'UP') { direction = 'DOWN'; moveSound.currentTime = 0; moveSound.play(); }
 });
 
+// Swipe gestures en el canvas
+(function() {
+    var swipeStartX, swipeStartY;
+    var MIN_SWIPE = 30;
+
+    canvas.addEventListener('touchstart', function(e) {
+        e.preventDefault();
+        swipeStartX = e.touches[0].clientX;
+        swipeStartY = e.touches[0].clientY;
+        // Ocultar botones táctiles al usar swipe en canvas
+        var tc = document.getElementById('touchControls');
+        if (tc) tc.style.display = 'none';
+    }, { passive: false });
+
+    canvas.addEventListener('touchend', function(e) {
+        e.preventDefault();
+        var dx = e.changedTouches[0].clientX - swipeStartX;
+        var dy = e.changedTouches[0].clientY - swipeStartY;
+        var absDx = Math.abs(dx), absDy = Math.abs(dy);
+        if (Math.max(absDx, absDy) < MIN_SWIPE) {
+            // TAP: iniciar si no ha empezado, reiniciar si hay game over
+            if (!isPlaying) { startGame(); }
+        } else if (absDx > absDy) {
+            if (dx > 0) { if (direction !== 'LEFT') { direction = 'RIGHT'; moveSound.currentTime = 0; moveSound.play(); } }
+            else        { if (direction !== 'RIGHT') { direction = 'LEFT';  moveSound.currentTime = 0; moveSound.play(); } }
+        } else {
+            if (dy > 0) { if (direction !== 'UP')   { direction = 'DOWN';  moveSound.currentTime = 0; moveSound.play(); } }
+            else        { if (direction !== 'DOWN')  { direction = 'UP';    moveSound.currentTime = 0; moveSound.play(); } }
+        }
+    }, { passive: false });
+})();
+
 const startBtn = document.getElementById('startBtn');
 const restartBtn = document.getElementById('restartBtn');
 

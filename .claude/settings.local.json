@@ -2,7 +2,12 @@
   "permissions": {
     "allow": [
       "Bash(ls -la /Users/hahn/Documents/Desarrollo/Games/*/main.js)",
-      "Bash(sort -k6,7)"
+      "Bash(sort -k6,7)",
+      "Bash(for f:*)",
+      "Bash(do)",
+      "Bash(echo -n \"$f: \")",
+      "Bash(__NEW_LINE_5c9c8796a0c9a892__ grep:*)",
+      "Bash(__NEW_LINE_5c9c8796a0c9a892__ done:*)"
     ]
   }
 }

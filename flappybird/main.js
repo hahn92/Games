@@ -570,6 +570,23 @@ function draw() {
         ctx.restore();
     }
 
+    // Touch feedback visual
+    if (touchFeedback) {
+        touchFeedback.alpha -= 0.06;
+        touchFeedback.r += 2;
+        if (touchFeedback.alpha <= 0) {
+            touchFeedback = null;
+        } else {
+            ctx.globalAlpha = touchFeedback.alpha;
+            ctx.strokeStyle = '#fff';
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            ctx.arc(touchFeedback.x, touchFeedback.y, touchFeedback.r, 0, Math.PI * 2);
+            ctx.stroke();
+            ctx.globalAlpha = 1;
+        }
+    }
+
     ctx.restore();
 
     // DOM score update
@@ -588,11 +605,32 @@ canvas.addEventListener('mousedown', () => {
     if (!isPlaying) return;
     birdV = FLAP;
 });
-canvas.addEventListener('touchstart', (e) => {
-    if (!isPlaying) return;
+// Touch feedback visual
+var touchFeedback = null;
+canvas.addEventListener('touchstart', function(e) {
     e.preventDefault();
-    birdV = FLAP;
-});
+    var rect = canvas.getBoundingClientRect();
+    touchFeedback = {
+        x: (e.touches[0].clientX - rect.left) * (canvas.width / rect.width),
+        y: (e.touches[0].clientY - rect.top) * (canvas.height / rect.height),
+        alpha: 0.6,
+        r: 20
+    };
+    if (!isPlaying) {
+        var popup = document.getElementById('gameOverPopup');
+        if (popup && popup.style.display === 'flex') {
+            popup.style.display = 'none';
+            startGame();
+        } else {
+            startGame();
+        }
+        birdV = FLAP;
+    } else {
+        birdV = FLAP;
+    }
+    var tc = document.getElementById('touchControls');
+    if (tc) tc.style.display = 'none';
+}, { passive: false });
 document.addEventListener('keydown', e => {
     if (!isPlaying) return;
     if (e.code === 'Space' || e.code === 'ArrowUp') birdV = FLAP;

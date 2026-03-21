@@ -437,6 +437,31 @@ function draw() {
     ctx.globalAlpha = 1;
 
     ship.draw();
+
+    // Touch zone overlay (solo visible con opacidad muy baja)
+    if (isPlaying) {
+        var W = canvas.width, H = canvas.height;
+        ctx.globalAlpha = 0.08;
+        ctx.fillStyle = '#fff';
+        // Zona izquierda
+        ctx.fillRect(0, 0, W * 0.30, H);
+        // Zona derecha
+        ctx.fillRect(W * 0.70, 0, W * 0.30, H);
+        // Zona central
+        ctx.fillRect(W * 0.30, 0, W * 0.40, H);
+        ctx.globalAlpha = 1;
+
+        // Iconos de zona (muy sutiles)
+        ctx.globalAlpha = 0.25;
+        ctx.fillStyle = '#8fd3f4';
+        ctx.font = 'bold 28px Arial';
+        ctx.textAlign = 'center';
+        ctx.fillText('◄', W * 0.15, H * 0.92);
+        ctx.fillText('▲', W * 0.50, H * 0.92);
+        ctx.fillText('►', W * 0.85, H * 0.92);
+        ctx.globalAlpha = 1;
+        ctx.textAlign = 'left';
+    }
 }
 
 function updateHUD() {
@@ -510,6 +535,82 @@ document.getElementById('playAgainBtn').addEventListener('click', function() {
     document.getElementById('gameOverPopup').style.display = 'none';
     startGame();
 });
+
+// Canvas touch zone controls (virtual joystick by zones)
+(function() {
+    var W = canvas.width, H = canvas.height;
+    var touchZones = {};
+    var touchStartTime = {};
+    var touchStartPos = {};
+
+    function getZone(x, y) {
+        var leftBound = W * 0.30;
+        var rightBound = W * 0.70;
+        if (x < leftBound) return 'left';
+        if (x > rightBound) return 'right';
+        return 'center';
+    }
+
+    canvas.addEventListener('touchstart', function(e) {
+        e.preventDefault();
+        for (var i = 0; i < e.changedTouches.length; i++) {
+            var t = e.changedTouches[i];
+            var rect = canvas.getBoundingClientRect();
+            var cx = (t.clientX - rect.left) * (W / rect.width);
+            var cy = (t.clientY - rect.top) * (H / rect.height);
+            var zone = getZone(cx, cy);
+            touchZones[t.identifier] = zone;
+            touchStartTime[t.identifier] = Date.now();
+            touchStartPos[t.identifier] = { x: cx, y: cy };
+            if (zone === 'left')   keys['ArrowLeft'] = true;
+            if (zone === 'right')  keys['ArrowRight'] = true;
+            if (zone === 'center') keys['thrust'] = true;
+        }
+    }, { passive: false });
+
+    canvas.addEventListener('touchend', function(e) {
+        e.preventDefault();
+        for (var i = 0; i < e.changedTouches.length; i++) {
+            var t = e.changedTouches[i];
+            var zone = touchZones[t.identifier];
+            var dt = Date.now() - (touchStartTime[t.identifier] || 0);
+            var startPos = touchStartPos[t.identifier] || {};
+            var rect = canvas.getBoundingClientRect();
+            var cx = (t.clientX - rect.left) * (W / rect.width);
+            var cy = (t.clientY - rect.top) * (H / rect.height);
+            var moved = Math.hypot(cx - (startPos.x || 0), cy - (startPos.y || 0));
+
+            // Tap rápido (< 250ms, sin mucho movimiento) = disparar
+            if (dt < 250 && moved < 30) {
+                keys['fire'] = true;
+                setTimeout(function() { keys['fire'] = false; }, 80);
+            }
+
+            if (zone === 'left')   keys['ArrowLeft'] = false;
+            if (zone === 'right')  keys['ArrowRight'] = false;
+            if (zone === 'center') keys['thrust'] = false;
+
+            delete touchZones[t.identifier];
+            delete touchStartTime[t.identifier];
+            delete touchStartPos[t.identifier];
+        }
+    }, { passive: false });
+
+    canvas.addEventListener('touchcancel', function(e) {
+        for (var i = 0; i < e.changedTouches.length; i++) {
+            var t = e.changedTouches[i];
+            var zone = touchZones[t.identifier];
+            if (zone === 'left')   keys['ArrowLeft'] = false;
+            if (zone === 'right')  keys['ArrowRight'] = false;
+            if (zone === 'center') keys['thrust'] = false;
+            delete touchZones[t.identifier];
+        }
+    }, { passive: false });
+
+    // Ocultar botones de touchControls al usar controles de canvas
+    var tc = document.getElementById('touchControls');
+    if (tc) tc.style.display = 'none';
+})();
 
 // Init draw
 ctx.fillStyle = '#000'; ctx.fillRect(0, 0, W, H);

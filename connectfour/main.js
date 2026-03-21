@@ -568,6 +568,31 @@ canvas.addEventListener('touchstart', function(e) {
     if (col >= 0 && col < COLS) playerDrop(col);
 }, { passive: false });
 
+canvas.addEventListener('touchmove', function(e) {
+    e.preventDefault();
+    if (!isPlaying || aiThinking) return;
+    var rect = canvas.getBoundingClientRect();
+    var x = (e.touches[0].clientX - rect.left) * (canvas.width / rect.width);
+    var cs = canvas.width / COLS;
+    var col = Math.floor(x / cs);
+    if (col < 0 || col >= COLS) col = -1;
+    if (col !== hoverCol) {
+        hoverCol = col;
+        drawBoard();
+    }
+}, { passive: false });
+
+canvas.addEventListener('touchend', function() {
+    hoverCol = -1;
+    if (isPlaying) drawBoard();
+});
+
+// Ocultar touchControls al usar controles directos en canvas
+(function() {
+    var tc = document.getElementById('touchControls');
+    if (tc) tc.style.display = 'none';
+})();
+
 // Touch column buttons
 document.querySelectorAll('.col-btn').forEach(function(btn) {
     btn.addEventListener('click', function() {

@@ -718,10 +718,59 @@ document.addEventListener('keydown', function(e) {
 document.addEventListener('keyup', function(e) { keys[e.key] = false; });
 
 canvas.addEventListener('click', function() { jump(); });
-canvas.addEventListener('touchstart', function(e) {
-    e.preventDefault();
-    jump();
-}, { passive: false });
+
+// ─── CANVAS TOUCH CONTROLS ──────────────────────────────────
+(function() {
+    var swipeStartX, swipeStartY, swipeStartTime;
+    var MIN_SWIPE = 40;
+    var isCrouchTouch = false;
+
+    canvas.addEventListener('touchstart', function(e) {
+        e.preventDefault();
+        swipeStartX = e.touches[0].clientX;
+        swipeStartY = e.touches[0].clientY;
+        swipeStartTime = Date.now();
+    }, { passive: false });
+
+    canvas.addEventListener('touchmove', function(e) {
+        e.preventDefault();
+        if (!isPlaying) return;
+        var dy = e.touches[0].clientY - swipeStartY;
+        if (dy > MIN_SWIPE && !isCrouchTouch) {
+            isCrouchTouch = true;
+            keys['ArrowDown'] = true;
+        }
+    }, { passive: false });
+
+    canvas.addEventListener('touchend', function(e) {
+        e.preventDefault();
+        var dx = e.changedTouches[0].clientX - swipeStartX;
+        var dy = e.changedTouches[0].clientY - swipeStartY;
+        var dt = Date.now() - swipeStartTime;
+        var absDx = Math.abs(dx), absDy = Math.abs(dy);
+
+        if (isCrouchTouch) {
+            isCrouchTouch = false;
+            keys['ArrowDown'] = false;
+        }
+
+        if (absDx < MIN_SWIPE && absDy < MIN_SWIPE && dt < 300) {
+            if (!isPlaying) {
+                document.getElementById('startBtn').click();
+            } else {
+                jump();
+            }
+        }
+    }, { passive: false });
+
+    canvas.addEventListener('touchcancel', function() {
+        isCrouchTouch = false;
+        keys['ArrowDown'] = false;
+    }, { passive: false });
+
+    var tc = document.getElementById('touchControls');
+    if (tc) tc.style.display = 'none';
+})();
 
 function addHold(id, key) {
     var btn = document.getElementById(id);

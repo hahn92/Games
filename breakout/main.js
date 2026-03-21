@@ -660,3 +660,26 @@ btnRight.addEventListener('touchcancel', () => { keys['right'] = false; });
 document.getElementById('score').textContent = score;
 document.getElementById('highScore').textContent = highScore;
 draw();
+
+// Controles táctiles directos en canvas
+(function() {
+    canvas.addEventListener('touchstart', function(e) {
+        e.preventDefault();
+        if (!isPlaying) {
+            startGame();
+        }
+    }, { passive: false });
+    canvas.addEventListener('touchmove', function(e) {
+        e.preventDefault();
+        if (!isPlaying) return;
+        var rect = canvas.getBoundingClientRect();
+        var scaleX = canvas.width / rect.width;
+        var tx = (e.touches[0].clientX - rect.left) * scaleX;
+        paddleX = Math.max(0, Math.min(WIDTH - paddleWidth, tx - paddleWidth / 2));
+    }, { passive: false });
+    canvas.addEventListener('touchend', function(e) {
+        e.preventDefault();
+    }, { passive: false });
+    var tc = document.getElementById('touchControls');
+    if (tc) tc.style.display = 'none';
+})();
