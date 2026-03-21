@@ -347,40 +347,67 @@ function checkMilestone() {
 
 // ─── DRAW BACKGROUND ───────────────────────────────────────
 function drawBackground() {
-    var sky = ctx.createLinearGradient(0, 0, 0, GROUND_Y + PLAYER_SIZE);
-    sky.addColorStop(0, '#87CEEB');
-    sky.addColorStop(1, '#cae8f7');
+    var gY = GROUND_Y + PLAYER_SIZE;
+
+    // Sky gradient
+    var sky = ctx.createLinearGradient(0, 0, 0, gY);
+    sky.addColorStop(0,    '#4a8fc8');
+    sky.addColorStop(0.55, '#87CEEB');
+    sky.addColorStop(1,    '#b5ddf5');
     ctx.fillStyle = sky;
     ctx.fillRect(0, 0, WIDTH, HEIGHT);
 
-    ctx.fillStyle = 'rgba(255,255,255,0.82)';
-    for (var i = 0; i < clouds.length; i++) {
-        var c = clouds[i];
+    // Distant rolling hills (slow parallax)
+    var hillOff = (frame * SPEED * 0.07) % 120;
+    ctx.fillStyle = 'rgba(115,180,128,0.28)';
+    for (var hi = 0; hi < 6; hi++) {
         ctx.beginPath();
-        ctx.ellipse(c.x + c.w / 2, c.y + c.h / 2, c.w / 2, c.h / 2, 0, 0, Math.PI * 2);
-        ctx.fill();
-        ctx.beginPath();
-        ctx.ellipse(c.x + c.w * 0.3, c.y + c.h * 0.7, c.w * 0.3, c.h * 0.55, 0, 0, Math.PI * 2);
-        ctx.fill();
-        ctx.beginPath();
-        ctx.ellipse(c.x + c.w * 0.72, c.y + c.h * 0.65, c.w * 0.28, c.h * 0.5, 0, 0, Math.PI * 2);
+        ctx.ellipse(-hillOff + hi * 120 + 60, gY + 2, 68, 30, 0, Math.PI, Math.PI * 2);
         ctx.fill();
     }
 
-    // Ground
-    ctx.fillStyle = '#4caf50';
-    ctx.fillRect(0, GROUND_Y + PLAYER_SIZE, WIDTH, HEIGHT - GROUND_Y - PLAYER_SIZE);
-    ctx.fillStyle = '#388e3c';
-    ctx.fillRect(0, GROUND_Y + PLAYER_SIZE, WIDTH, 4);
+    // Clouds — puffier multi-ellipse shape
+    for (var ci = 0; ci < clouds.length; ci++) {
+        var c = clouds[ci];
+        var hw = c.w / 2, hh = c.h / 2;
+        ctx.fillStyle = 'rgba(255,255,255,0.92)';
+        ctx.beginPath(); ctx.ellipse(c.x + hw,         c.y + hh * 0.8,  hw,        hh * 0.75, 0, 0, Math.PI * 2); ctx.fill();
+        ctx.beginPath(); ctx.ellipse(c.x + hw * 0.35,  c.y + hh * 0.85, hw * 0.5,  hh * 0.65, 0, 0, Math.PI * 2); ctx.fill();
+        ctx.beginPath(); ctx.ellipse(c.x + hw * 1.65,  c.y + hh * 0.85, hw * 0.44, hh * 0.6,  0, 0, Math.PI * 2); ctx.fill();
+        ctx.fillStyle = 'rgba(255,255,255,0.75)';
+        ctx.beginPath(); ctx.ellipse(c.x + hw,         c.y + hh * 0.3,  hw * 0.35, hh * 0.5,  0, 0, Math.PI * 2); ctx.fill();
+    }
 
-    // Ground detail lines
-    ctx.strokeStyle = 'rgba(56,142,60,0.4)';
+    // Ground — soil + grass layers
+    ctx.fillStyle = '#5c3d10';
+    ctx.fillRect(0, gY + 18, WIDTH, HEIGHT - gY - 18);
+    ctx.fillStyle = '#7a5218';
+    ctx.fillRect(0, gY + 6,  WIDTH, 12);
+    ctx.fillStyle = '#52a854';
+    ctx.fillRect(0, gY,      WIDTH, 8);
+    ctx.fillStyle = '#68c46a';
+    ctx.fillRect(0, gY,      WIDTH, 2);
+
+    // Ground detail stripes (moving)
+    ctx.strokeStyle = 'rgba(38,100,40,0.38)';
     ctx.lineWidth = 1;
-    for (var x = (frame * SPEED * 0.5) % 40; x < WIDTH; x += 40) {
+    var gOff = (frame * SPEED * 0.5) % 40;
+    for (var gx = -gOff; gx < WIDTH; gx += 40) {
         ctx.beginPath();
-        ctx.moveTo(x, GROUND_Y + PLAYER_SIZE + 6);
-        ctx.lineTo(x + 18, GROUND_Y + PLAYER_SIZE + 6);
+        ctx.moveTo(gx,      gY + 11);
+        ctx.lineTo(gx + 16, gY + 11);
         ctx.stroke();
+    }
+
+    // Player ground shadow
+    if ((isPlaying || isDying) && player.x !== undefined) {
+        var airRatio    = Math.max(0, (GROUND_Y - player.y) / GROUND_Y);
+        var shadowAlpha = Math.max(0.04, 0.22 - airRatio * 0.18);
+        var shadowRX    = player.onGround ? 16 * squishX : 11;
+        ctx.fillStyle = 'rgba(0,0,0,' + shadowAlpha + ')';
+        ctx.beginPath();
+        ctx.ellipse(player.x + 18, gY + 3, shadowRX, 4, 0, 0, Math.PI * 2);
+        ctx.fill();
     }
 }
 
@@ -391,11 +418,83 @@ function drawDino(x, y, running, dead, deathAng) {
     var isBlink = blinkTimer < 3;
     var crouch  = isCrouching && !dead;
 
+    var G1 = '#43a047';   // body green
+    var G2 = '#2e7d32';   // dark green (detail)
+    var G3 = '#c8e6c9';   // belly highlight
+    var G4 = '#66bb6a';   // lighter highlight
+
+    // ── CROUCHING: pose separado sin scale para evitar distorsión ──
+    if (crouch) {
+        ctx.save();
+        // Origen: esquina izquierda inferior del hitbox (nivel del suelo)
+        ctx.translate(x, y + PLAYER_SIZE);
+
+        // Cola (curvada hacia atrás-arriba)
+        ctx.fillStyle = G1;
+        ctx.beginPath();
+        ctx.moveTo(2, -14);
+        ctx.quadraticCurveTo(-8, -9, -13, -3);
+        ctx.lineTo(-7,  0);
+        ctx.lineTo( 3, -8);
+        ctx.closePath();
+        ctx.fill();
+
+        // Cuerpo horizontal
+        ctx.fillStyle = G1;
+        ctx.beginPath(); ctx.roundRect(0, -18, 28, 13, 6); ctx.fill();
+        // Highlight superior del cuerpo
+        ctx.fillStyle = G4;
+        ctx.beginPath(); ctx.roundRect(2, -17, 11, 5, 3); ctx.fill();
+        // Panza
+        ctx.fillStyle = G3;
+        ctx.beginPath(); ctx.ellipse(14, -11, 8, 4, 0, 0, Math.PI * 2); ctx.fill();
+
+        // Cuello (conecta cuerpo con cabeza)
+        ctx.fillStyle = G1;
+        ctx.beginPath(); ctx.roundRect(24, -21, 8, 11, 4); ctx.fill();
+
+        // Cabeza extendida hacia adelante
+        ctx.fillStyle = G1;
+        ctx.beginPath(); ctx.roundRect(28, -24, 19, 14, 5); ctx.fill();
+        // Cresta superior de la cabeza
+        ctx.fillStyle = G2;
+        ctx.beginPath(); ctx.roundRect(34, -27, 11, 5, 2); ctx.fill();
+
+        // Hocico
+        ctx.fillStyle = G2;
+        ctx.beginPath(); ctx.roundRect(45, -19, 9, 6, [0,2,2,0]); ctx.fill();
+        // Fosa nasal
+        ctx.fillStyle = G1;
+        ctx.beginPath(); ctx.arc(51, -22, 1.2, 0, Math.PI * 2); ctx.fill();
+
+        // Ojo
+        ctx.fillStyle = '#fff';
+        ctx.beginPath();
+        if (isBlink) { ctx.ellipse(37, -18, 3.5, 0.9, 0, 0, Math.PI * 2); }
+        else          { ctx.arc(37, -18, 3.5, 0, Math.PI * 2); }
+        ctx.fill();
+        if (!isBlink) {
+            ctx.fillStyle = '#1a1a1a';
+            ctx.beginPath(); ctx.arc(38.5, -18, 2, 0, Math.PI * 2); ctx.fill();
+            ctx.fillStyle = '#fff';
+            ctx.beginPath(); ctx.arc(39.5, -19, 0.8, 0, Math.PI * 2); ctx.fill();
+        }
+
+        // Patas dobladas
+        ctx.fillStyle = G2;
+        ctx.beginPath(); ctx.roundRect( 4, -7, 10, 7, 2); ctx.fill();
+        ctx.beginPath(); ctx.roundRect(16, -7, 10, 7, 2); ctx.fill();
+        // Pies
+        ctx.beginPath(); ctx.roundRect( 2, -3, 14, 4, [0,0,2,2]); ctx.fill();
+        ctx.beginPath(); ctx.roundRect(14, -3, 14, 4, [0,0,2,2]); ctx.fill();
+
+        ctx.restore();
+        return;
+    }
+
+    // ── POSE NORMAL / SALTO / MUERTE (con squish desde pivot) ──
     var sx = dead ? 1 : squishX;
     var sy = dead ? 1 : squishY;
-
-    // When crouching, flatten the dino
-    if (crouch) { sx = 1.3; sy = 0.55; }
 
     ctx.save();
     var pivotX = x + 18;
@@ -411,117 +510,102 @@ function drawDino(x, y, running, dead, deathAng) {
         ctx.translate(-18, -PLAYER_SIZE);
     }
 
-    var G1 = '#43a047';
-    var G2 = '#2e7d32';
-    var G3 = '#a5d6a7';
+    var headLean = (running && player.onGround && !dead) ? 2 : 0;
 
-    // Tail
-    var tailWave = running && !crouch ? Math.sin(animTick * 0.25) * 3 : 0;
+    // Cola — bezier más gruesa y con onda
+    var tailWave = (running && !dead) ? Math.sin(animTick * 0.22) * 4 : 0;
     ctx.fillStyle = G1;
     ctx.beginPath();
-    ctx.moveTo(2, 14);
-    ctx.quadraticCurveTo(-4, 18 + tailWave, -10, 24 + tailWave);
-    ctx.lineTo(-3, 27 + tailWave);
-    ctx.lineTo(4, 22);
+    ctx.moveTo(6, 16);
+    ctx.bezierCurveTo(1, 19, -4, 21 + tailWave * 0.4, -10, 27 + tailWave);
+    ctx.lineTo(-6, 31 + tailWave);
+    ctx.bezierCurveTo(-2, 26 + tailWave * 0.6, 5, 21, 9, 18);
     ctx.closePath();
     ctx.fill();
 
-    // Body
+    // Cuerpo principal
     ctx.fillStyle = G1;
-    ctx.beginPath();
-    ctx.roundRect(2, 10, 22, 17, 5);
-    ctx.fill();
-
-    // Belly
+    ctx.beginPath(); ctx.roundRect(2, 12, 22, 18, 6); ctx.fill();
+    // Highlight del cuerpo
+    ctx.fillStyle = G4;
+    ctx.beginPath(); ctx.roundRect(4, 13, 10, 7, 3); ctx.fill();
+    // Panza
     ctx.fillStyle = G3;
-    ctx.beginPath();
-    ctx.ellipse(13, 19, 6, 5, 0, 0, Math.PI * 2);
-    ctx.fill();
+    ctx.beginPath(); ctx.ellipse(13, 22, 7, 6, 0, 0, Math.PI * 2); ctx.fill();
 
-    // Neck
-    ctx.fillStyle = G1;
-    ctx.beginPath();
-    ctx.roundRect(18, 5, 9, 13, 4);
-    ctx.fill();
-
-    // Head
-    var headLean = running && player.onGround ? 2 : 0;
-    ctx.fillStyle = G1;
-    ctx.beginPath();
-    ctx.roundRect(15 + headLean, 0, 20, 12, 4);
-    ctx.fill();
-
-    // Snout
+    // Espinas dorsales (3 picos en la espalda/cuello)
     ctx.fillStyle = G2;
-    ctx.beginPath();
-    ctx.roundRect(28 + headLean, 6, 9, 5, [0, 2, 2, 0]);
-    ctx.fill();
+    for (var si = 0; si < 3; si++) {
+        ctx.beginPath();
+        ctx.moveTo(18 + si * 3 - 2, 13 - si * 2);
+        ctx.lineTo(18 + si * 3,      8 - si * 2);
+        ctx.lineTo(18 + si * 3 + 2, 13 - si * 2);
+        ctx.closePath();
+        ctx.fill();
+    }
 
-    // Nostril
+    // Cuello
+    ctx.fillStyle = G1;
+    ctx.beginPath(); ctx.roundRect(19, 6, 9, 13, 4); ctx.fill();
+
+    // Cabeza
+    ctx.fillStyle = G1;
+    ctx.beginPath(); ctx.roundRect(15 + headLean, 0, 22, 13, 5); ctx.fill();
+    // Cresta/reborde superior cabeza
     ctx.fillStyle = G2;
-    ctx.beginPath();
-    ctx.arc(34 + headLean, 3, 1.2, 0, Math.PI * 2);
-    ctx.fill();
+    ctx.beginPath(); ctx.roundRect(22 + headLean, -3, 13, 5, 2); ctx.fill();
 
-    // Eye
+    // Hocico
+    ctx.fillStyle = G2;
+    ctx.beginPath(); ctx.roundRect(30 + headLean, 6, 10, 6, [0,2,2,0]); ctx.fill();
+    // Fosa nasal
+    ctx.fillStyle = G1;
+    ctx.beginPath(); ctx.arc(37 + headLean, 3, 1.2, 0, Math.PI * 2); ctx.fill();
+
+    // Ojo
     ctx.fillStyle = '#fff';
     ctx.beginPath();
-    if (isBlink) {
-        ctx.ellipse(23 + headLean, 4, 3, 0.8, 0, 0, Math.PI * 2);
-    } else {
-        ctx.arc(23 + headLean, 4, 3, 0, Math.PI * 2);
-    }
+    if (isBlink) { ctx.ellipse(24 + headLean, 5, 3.5, 0.9, 0, 0, Math.PI * 2); }
+    else          { ctx.arc(24 + headLean, 5, 3.5, 0, Math.PI * 2); }
     ctx.fill();
     if (!isBlink) {
-        ctx.fillStyle = '#111';
-        ctx.beginPath();
-        ctx.arc(24 + headLean, 4, 1.5, 0, Math.PI * 2);
-        ctx.fill();
+        ctx.fillStyle = '#1a1a1a';
+        ctx.beginPath(); ctx.arc(25.5 + headLean, 5, 2, 0, Math.PI * 2); ctx.fill();
         ctx.fillStyle = '#fff';
-        ctx.beginPath();
-        ctx.arc(25 + headLean, 3, 0.7, 0, Math.PI * 2);
-        ctx.fill();
+        ctx.beginPath(); ctx.arc(26.5 + headLean, 4, 0.8, 0, Math.PI * 2); ctx.fill();
     }
 
-    // Arm
+    // Brazo T-Rex (codo doblado)
     ctx.fillStyle = G2;
-    ctx.beginPath();
-    ctx.roundRect(20, 17, 6, 4, 2);
-    ctx.fill();
-    ctx.fillRect(24, 19, 4, 2);
+    ctx.beginPath(); ctx.roundRect(21, 19, 5, 5, 2); ctx.fill();  // brazo superior
+    ctx.beginPath(); ctx.roundRect(24, 22, 6, 3, 1); ctx.fill();  // antebrazo
+    // Garras
+    ctx.beginPath(); ctx.arc(29, 23, 1.3, 0, Math.PI * 2); ctx.fill();
+    ctx.beginPath(); ctx.arc(30, 25, 1.3, 0, Math.PI * 2); ctx.fill();
 
-    // Legs
+    // Patas
     ctx.fillStyle = G2;
     if (dead) {
-        ctx.beginPath(); ctx.roundRect(4,  26, 7, 4, 2); ctx.fill();
-        ctx.beginPath(); ctx.roundRect(14, 26, 7, 4, 2); ctx.fill();
-    } else if (crouch) {
-        // Crouched legs — spread out low
-        ctx.beginPath(); ctx.roundRect(2,  28, 8, 5, 2); ctx.fill();
-        ctx.beginPath(); ctx.roundRect(14, 28, 8, 5, 2); ctx.fill();
-        ctx.beginPath(); ctx.roundRect(0,  31, 12, 4, [0,0,2,2]); ctx.fill();
-        ctx.beginPath(); ctx.roundRect(12, 31, 12, 4, [0,0,2,2]); ctx.fill();
+        ctx.beginPath(); ctx.roundRect( 4, 28, 7, 4, 2); ctx.fill();
+        ctx.beginPath(); ctx.roundRect(14, 28, 7, 4, 2); ctx.fill();
     } else if (isJump) {
-        ctx.save();
-        ctx.beginPath(); ctx.roundRect(3,  26, 6, 7, 2); ctx.fill();
-        ctx.beginPath(); ctx.roundRect(13, 26, 6, 7, 2); ctx.fill();
-        ctx.beginPath();
-        ctx.moveTo(3, 32); ctx.lineTo(10, 30); ctx.lineTo(10, 33); ctx.closePath();
-        ctx.fill();
-        ctx.beginPath();
-        ctx.moveTo(13, 32); ctx.lineTo(20, 30); ctx.lineTo(20, 33); ctx.closePath();
-        ctx.fill();
-        ctx.restore();
+        // Patas recogidas al saltar
+        ctx.beginPath(); ctx.roundRect( 3, 26, 6, 7, 2); ctx.fill();
+        ctx.beginPath(); ctx.roundRect(14, 26, 6, 7, 2); ctx.fill();
+        ctx.beginPath(); ctx.moveTo( 3,32); ctx.lineTo(11,30); ctx.lineTo(11,33); ctx.closePath(); ctx.fill();
+        ctx.beginPath(); ctx.moveTo(14,32); ctx.lineTo(22,30); ctx.lineTo(22,33); ctx.closePath(); ctx.fill();
     } else if (lp === 0) {
-        ctx.beginPath(); ctx.roundRect(5,  26, 6, 10, 2); ctx.fill();
-        ctx.beginPath(); ctx.roundRect(15, 26, 6, 10, 2); ctx.fill();
-        ctx.beginPath(); ctx.roundRect(3,  33, 10, 4, [0,0,2,2]); ctx.fill();
-        ctx.beginPath(); ctx.roundRect(13, 33, 11, 4, [0,0,2,2]); ctx.fill();
+        // Pierna izquierda adelante
+        ctx.beginPath(); ctx.roundRect( 5, 26, 6, 11, 2); ctx.fill();
+        ctx.beginPath(); ctx.roundRect(15, 26, 6,  8, 2); ctx.fill();
+        ctx.beginPath(); ctx.roundRect( 3, 34, 11, 4, [0,0,2,2]); ctx.fill();
+        ctx.beginPath(); ctx.roundRect(13, 31, 10, 4, [0,0,2,2]); ctx.fill();
     } else {
-        ctx.beginPath(); ctx.roundRect(3,  26, 6, 8,  2); ctx.fill();
-        ctx.beginPath(); ctx.roundRect(16, 26, 6, 10, 2); ctx.fill();
-        ctx.beginPath(); ctx.roundRect(1,  31, 9,  4, [0,0,2,2]); ctx.fill();
-        ctx.beginPath(); ctx.roundRect(14, 33, 11, 4, [0,0,2,2]); ctx.fill();
+        // Pierna derecha adelante
+        ctx.beginPath(); ctx.roundRect( 3, 26, 6,  8, 2); ctx.fill();
+        ctx.beginPath(); ctx.roundRect(16, 26, 6, 11, 2); ctx.fill();
+        ctx.beginPath(); ctx.roundRect( 1, 31, 10, 4, [0,0,2,2]); ctx.fill();
+        ctx.beginPath(); ctx.roundRect(14, 34, 11, 4, [0,0,2,2]); ctx.fill();
     }
 
     ctx.restore();
@@ -606,8 +690,6 @@ function runDeathAnim() {
         document.getElementById('gameOverPopup').style.display = 'flex';
         document.getElementById('startBtn').disabled = false;
         document.getElementById('restartBtn').disabled = true;
-        if (document.getElementById('mobileStartBtn'))
-            document.getElementById('mobileStartBtn').style.display = 'block';
     }
 }
 
