@@ -14,25 +14,25 @@ var shipGlowPhase = 0;
 
 highScore = parseInt(localStorage.getItem('asteroidsHigh') || '0', 10);
 
-// Improved star field: 3 size tiers, some blinking
+// Star field — pequeños cuadrados blancos (estilo fruitcatcher)
 var starField = [];
 (function() {
-    for (var i = 0; i < 120; i++) {
-        var tier = Math.random();
-        var size, blink;
-        if (tier < 0.6) { size = 1; blink = false; }
-        else if (tier < 0.88) { size = 1.5; blink = Math.random() < 0.3; }
-        else { size = 2.5; blink = Math.random() < 0.5; }
+    for (var i = 0; i < 160; i++) {
         starField.push({
             x: Math.random() * W,
             y: Math.random() * H,
-            s: size,
-            blink: blink,
+            s: Math.random() < 0.28 ? 2 : 1,
+            blink: Math.random() < 0.22,
             blinkPhase: Math.random() * Math.PI * 2,
-            blinkSpeed: 0.03 + Math.random() * 0.05
+            blinkSpeed: 0.018 + Math.random() * 0.03
         });
     }
 })();
+
+// Gradiente de fondo cacheado — azul espacio oscuro (igual que fruitcatcher)
+var bgGrad = ctx.createLinearGradient(0, 0, 0, H);
+bgGrad.addColorStop(0, '#0d1b4b');
+bgGrad.addColorStop(1, '#111e55');
 
 function Ship(x, y) {
     this.x = x; this.y = y;
@@ -218,7 +218,7 @@ function drawAsteroid(a) {
         ctx.translate(trailPos.x, trailPos.y);
         ctx.rotate(trailPos.angle);
         ctx.globalAlpha = trailAlpha;
-        ctx.strokeStyle = '#888';
+        ctx.strokeStyle = '#9090a8';
         ctx.lineWidth = 1;
         ctx.beginPath();
         ctx.moveTo(a.pts[0].x, a.pts[0].y);
@@ -233,10 +233,10 @@ function drawAsteroid(a) {
     ctx.rotate(a.angle);
     ctx.globalAlpha = 1;
 
-    // Fill with subtle gradient
+    // Fill — gris rocoso opaco, visible sobre fondo oscuro
     var astGrad = ctx.createRadialGradient(0, 0, 0, 0, 0, a.radius);
-    astGrad.addColorStop(0, 'rgba(180,180,180,0.15)');
-    astGrad.addColorStop(1, 'rgba(80,80,80,0.05)');
+    astGrad.addColorStop(0, 'rgba(155,148,135,0.92)');
+    astGrad.addColorStop(1, 'rgba(72,68,60,0.88)');
 
     ctx.beginPath();
     ctx.moveTo(a.pts[0].x, a.pts[0].y);
@@ -245,7 +245,7 @@ function drawAsteroid(a) {
     ctx.fillStyle = astGrad;
     ctx.fill();
 
-    ctx.strokeStyle = '#ccc';
+    ctx.strokeStyle = '#c8bfaa';
     ctx.lineWidth = 1.5;
     ctx.stroke();
     ctx.restore();
@@ -339,28 +339,21 @@ function update() {
 }
 
 function draw() {
-    ctx.fillStyle = '#000';
+    // Fondo azul espacio oscuro
+    ctx.fillStyle = bgGrad;
     ctx.fillRect(0, 0, W, H);
 
-    // Improved star field
+    // Estrellas — cuadraditos blancos con parpadeo opcional
     for (var i = 0; i < starField.length; i++) {
         var st = starField[i];
-        var alpha = 0.6;
+        var alpha = 0.45;
         if (st.blink) {
             st.blinkPhase += st.blinkSpeed;
-            alpha = 0.3 + 0.5 * (0.5 + 0.5 * Math.sin(st.blinkPhase));
-        }
-        // Parallax for large stars based on ship velocity
-        var parallaxX = st.x, parallaxY = st.y;
-        if (st.s >= 2 && isPlaying) {
-            parallaxX = (st.x - ship.vx * 0.3 + W) % W;
-            parallaxY = (st.y - ship.vy * 0.3 + H) % H;
+            alpha = 0.12 + 0.45 * (0.5 + 0.5 * Math.sin(st.blinkPhase));
         }
         ctx.globalAlpha = alpha;
         ctx.fillStyle = '#fff';
-        ctx.beginPath();
-        ctx.arc(parallaxX, parallaxY, st.s / 2, 0, Math.PI * 2);
-        ctx.fill();
+        ctx.fillRect(st.x, st.y, st.s, st.s);
     }
     ctx.globalAlpha = 1;
 
@@ -613,5 +606,5 @@ document.getElementById('playAgainBtn').addEventListener('click', function() {
 })();
 
 // Init draw
-ctx.fillStyle = '#000'; ctx.fillRect(0, 0, W, H);
+ctx.fillStyle = bgGrad; ctx.fillRect(0, 0, W, H);  // fondo inicial
 updateHUD();
