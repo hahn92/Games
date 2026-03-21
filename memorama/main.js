@@ -350,9 +350,11 @@ function setupDifficultyButtons() {
     const btns = document.querySelectorAll('.diff-btn');
     btns.forEach(btn => {
         btn.addEventListener('click', () => {
+            if (btn.dataset.diff === currentDifficulty) return;
             currentDifficulty = btn.dataset.diff;
             btns.forEach(b => b.classList.remove('active'));
             btn.classList.add('active');
+            if (isPlaying) startGame();
         });
     });
 }
@@ -370,8 +372,8 @@ function injectInfoUI() {
         const diffDiv = document.createElement('div');
         diffDiv.className = 'difficulty-selector';
         diffDiv.innerHTML =
-            '<button class="diff-btn active" data-diff="easy">Facil</button>' +
-            '<button class="diff-btn" data-diff="normal">Normal</button>' +
+            '<button class="diff-btn" data-diff="easy">Facil</button>' +
+            '<button class="diff-btn active" data-diff="normal">Normal</button>' +
             '<button class="diff-btn" data-diff="hard">Dificil</button>';
         infoSide.insertBefore(diffDiv, scorePanel);
         setupDifficultyButtons();
