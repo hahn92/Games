@@ -211,6 +211,9 @@ body { background: var(--grad-bg); color: #fff; min-height: 100vh; margin: 0; }
     background-clip: text;
     display: block;
     width: 100%;
+    overflow-wrap: break-word;
+    word-break: break-word;
+    transition: font-size 0.1s, letter-spacing 0.1s;
 }
 .target-word.fade-out {
     animation: wordFadeOut 0.1s ease-in forwards;

@@ -267,13 +267,18 @@ function injectSizeSelector() {
         btn.dataset.size = s;
         btn.id = 'sizeBtn' + s;
         btn.addEventListener('click', function() {
-            if (isPlaying) return;
-            SIZE = parseInt(this.dataset.size);
+            var newSize = parseInt(this.dataset.size);
+            if (newSize === SIZE) return;
+            SIZE = newSize;
             document.querySelectorAll('.size-btn').forEach(function(b) { b.classList.remove('active'); });
             this.classList.add('active');
-            tiles = goalState();
-            renderBoard();
-            updateHUD();
+            if (isPlaying) {
+                startGame();
+            } else {
+                tiles = goalState();
+                renderBoard();
+                updateHUD();
+            }
         });
         wrap.appendChild(btn);
     });

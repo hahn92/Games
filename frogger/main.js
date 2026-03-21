@@ -144,6 +144,26 @@ function drawBackground() {
         if (isFilled) {
             // Draw a small frog in the goal
             drawFrogShape(gx + CELL/2, CELL/2, CELL * 0.35, false);
+        } else {
+            // Small flower on empty lily pad
+            var flCx = gx + CELL/2;
+            var flCy = CELL/2;
+            var petalR = 3.2;
+            ctx.fillStyle = 'rgba(255,255,255,0.72)';
+            for (var p = 0; p < 5; p++) {
+                var pa = (p / 5) * Math.PI * 2 - Math.PI / 2;
+                ctx.beginPath();
+                ctx.ellipse(flCx + Math.cos(pa) * petalR, flCy + Math.sin(pa) * petalR, 2.4, 1.8, pa, 0, Math.PI * 2);
+                ctx.fill();
+            }
+            ctx.fillStyle = '#ffd54f';
+            ctx.beginPath();
+            ctx.arc(flCx, flCy, 2.2, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.fillStyle = '#f9a825';
+            ctx.beginPath();
+            ctx.arc(flCx, flCy, 1.0, 0, Math.PI * 2);
+            ctx.fill();
         }
         ctx.restore();
     }
@@ -172,38 +192,73 @@ function drawBackground() {
     }
     ctx.restore();
 
-    // Median row 5
+    // Median row 5 (safety strip with patterned curb)
     ctx.fillStyle = '#4caf50';
     ctx.fillRect(0, CELL * 5, W, CELL);
-    // Grass texture lines
+    // Curb stripes on top/bottom edges
+    var curbW = 10;
+    for (var cb = 0; cb < W; cb += curbW * 2) {
+        ctx.fillStyle = 'rgba(255,255,255,0.55)';
+        ctx.fillRect(cb, CELL * 5, curbW, 4);
+        ctx.fillRect(cb, CELL * 6 - 4, curbW, 4);
+    }
+    // Grass blade detail
     ctx.save();
-    ctx.strokeStyle = 'rgba(0,0,0,0.12)';
+    ctx.strokeStyle = 'rgba(56,130,40,0.5)';
     ctx.lineWidth = 1;
-    for (var gLine = 0; gLine < W; gLine += 8) {
+    for (var gLine = 3; gLine < W; gLine += 7) {
         ctx.beginPath();
-        ctx.moveTo(gLine, CELL * 5);
-        ctx.lineTo(gLine, CELL * 6);
+        ctx.moveTo(gLine, CELL * 6 - 4);
+        ctx.lineTo(gLine - 2, CELL * 5 + CELL * 0.5);
         ctx.stroke();
     }
     ctx.restore();
 
     // Road rows 6-10
-    ctx.fillStyle = '#424242';
+    ctx.fillStyle = '#3a3a3a';
     ctx.fillRect(0, CELL * 6, W, CELL * 5);
-    // Lane lines
+    // Road edge lines (yellow solid)
+    ctx.strokeStyle = '#ffd54f';
+    ctx.lineWidth = 2;
+    ctx.setLineDash([]);
+    ctx.beginPath();
+    ctx.moveTo(0, CELL * 6 + 1); ctx.lineTo(W, CELL * 6 + 1);
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.moveTo(0, CELL * 11 - 1); ctx.lineTo(W, CELL * 11 - 1);
+    ctx.stroke();
+    // Dashed center dividers
     ctx.strokeStyle = '#757575';
-    ctx.lineWidth = 1;
-    ctx.setLineDash([12, 12]);
+    ctx.lineWidth = 1.5;
+    ctx.setLineDash([14, 10]);
     for (var r = 7; r <= 10; r++) {
         ctx.beginPath();
         ctx.moveTo(0, r * CELL); ctx.lineTo(W, r * CELL);
         ctx.stroke();
     }
     ctx.setLineDash([]);
+    // Asphalt texture (subtle horizontal lines)
+    ctx.strokeStyle = 'rgba(255,255,255,0.04)';
+    ctx.lineWidth = 1;
+    for (var ar = 0; ar < 5; ar++) {
+        ctx.beginPath();
+        ctx.moveTo(0, CELL * 6 + ar * CELL + CELL * 0.5);
+        ctx.lineTo(W, CELL * 6 + ar * CELL + CELL * 0.5);
+        ctx.stroke();
+    }
 
-    // Start row 11
+    // Start row 11 (grass strip with texture)
     ctx.fillStyle = '#33691e';
     ctx.fillRect(0, CELL * 11, W, CELL);
+    // Grass blades
+    ctx.strokeStyle = 'rgba(56,120,30,0.6)';
+    ctx.lineWidth = 1;
+    for (var gs2 = 4; gs2 < W; gs2 += 6) {
+        ctx.beginPath();
+        ctx.moveTo(gs2, CELL * 12);
+        ctx.lineTo(gs2 - 2, CELL * 11 + CELL * 0.4);
+        ctx.stroke();
+    }
 }
 
 function drawLogs() {
@@ -282,67 +337,121 @@ function drawCars() {
             var o = lane.objects[i];
             var oy = r * CELL + 4;
             var ow = o.w, oh = o.h;
-
-            // Car body gradient (lighter on top)
+            var dir = lane.dir;
             var rgb = hexToRgb(o.color);
+
+            // Car body: more rounded at front, squared at back
             var carGrad = ctx.createLinearGradient(o.x, oy, o.x, oy + oh);
-            carGrad.addColorStop(0, 'rgba(' + Math.min(rgb.r+50,255) + ',' + Math.min(rgb.g+50,255) + ',' + Math.min(rgb.b+50,255) + ',1)');
-            carGrad.addColorStop(0.5, o.color);
-            carGrad.addColorStop(1, 'rgba(' + Math.max(rgb.r-40,0) + ',' + Math.max(rgb.g-40,0) + ',' + Math.max(rgb.b-40,0) + ',1)');
-
+            carGrad.addColorStop(0, 'rgba(' + Math.min(rgb.r+65,255) + ',' + Math.min(rgb.g+65,255) + ',' + Math.min(rgb.b+65,255) + ',1)');
+            carGrad.addColorStop(0.45, o.color);
+            carGrad.addColorStop(1, 'rgba(' + Math.max(rgb.r-55,0) + ',' + Math.max(rgb.g-55,0) + ',' + Math.max(rgb.b-55,0) + ',1)');
             ctx.fillStyle = carGrad;
+            // Directional corner radii: rounded at front, sharp at back
+            var fR = 9, bR = 2;
+            var radii = dir > 0 ? [bR, fR, fR, bR] : [fR, bR, bR, fR];
             ctx.beginPath();
-            ctx.roundRect(o.x, oy, ow, oh, 4);
+            ctx.roundRect(o.x, oy, ow, oh, radii);
+            ctx.fill();
+            // Body outline
+            ctx.strokeStyle = 'rgba(0,0,0,0.22)';
+            ctx.lineWidth = 0.8;
+            ctx.stroke();
+
+            // Hood line (panel crease near front)
+            var hoodX = dir > 0 ? o.x + ow * 0.72 : o.x + ow * 0.28;
+            ctx.strokeStyle = 'rgba(0,0,0,0.18)';
+            ctx.lineWidth = 1;
+            ctx.beginPath();
+            ctx.moveTo(hoodX, oy + oh * 0.08);
+            ctx.lineTo(hoodX, oy + oh * 0.92);
+            ctx.stroke();
+
+            // Windshield (front glass, angled trapezoid)
+            var windFrontX = dir > 0 ? o.x + ow * 0.58 : o.x + ow * 0.12;
+            var windRearX  = dir > 0 ? o.x + ow * 0.50 : o.x + ow * 0.20;
+            var windW = ow * 0.22;
+            ctx.fillStyle = 'rgba(160,215,255,0.6)';
+            ctx.beginPath();
+            ctx.moveTo(windFrontX, oy + oh * 0.12);
+            ctx.lineTo(windFrontX + windW * dir, oy + oh * 0.18);
+            ctx.lineTo(windFrontX + windW * dir, oy + oh * 0.82);
+            ctx.lineTo(windFrontX, oy + oh * 0.88);
+            ctx.closePath();
             ctx.fill();
 
-            // Car roof / windshield
-            var roofX = o.x + ow * 0.2;
-            var roofW = ow * 0.6;
-            var roofY = oy + oh * 0.15;
-            var roofH = oh * 0.45;
-            ctx.fillStyle = 'rgba(180,220,255,0.55)';
+            // Cabin / roof glass
+            var cabinX = dir > 0 ? o.x + ow * 0.25 : o.x + ow * 0.32;
+            var cabinW = ow * 0.28;
+            ctx.fillStyle = 'rgba(140,200,245,0.45)';
+            ctx.strokeStyle = 'rgba(0,0,0,0.12)';
+            ctx.lineWidth = 0.5;
             ctx.beginPath();
-            ctx.roundRect(roofX, roofY, roofW, roofH, 3);
+            ctx.roundRect(cabinX, oy + oh * 0.15, cabinW, oh * 0.7, 2);
+            ctx.fill();
+            ctx.stroke();
+
+            // Side mirrors (small bumps on top and bottom edges)
+            var mirrorX = o.x + ow * (dir > 0 ? 0.62 : 0.30);
+            ctx.fillStyle = 'rgba(' + Math.max(rgb.r-40,0) + ',' + Math.max(rgb.g-40,0) + ',' + Math.max(rgb.b-40,0) + ',1)';
+            ctx.beginPath();
+            ctx.roundRect(mirrorX, oy - 3, ow * 0.12, 4, 1);
+            ctx.fill();
+            ctx.beginPath();
+            ctx.roundRect(mirrorX, oy + oh - 1, ow * 0.12, 4, 1);
             ctx.fill();
 
-            // Wheels
-            ctx.fillStyle = '#222';
-            var wheelR = oh * 0.25;
-            var wheelPositions = [
-                { x: o.x + ow * 0.22, y: oy + oh },
-                { x: o.x + ow * 0.78, y: oy + oh }
-            ];
-            for (var w = 0; w < wheelPositions.length; w++) {
+            // Wheels (4 visible, top and bottom edges)
+            var wPairX = [o.x + ow * 0.20, o.x + ow * 0.74];
+            var wheelRx = oh * 0.26;
+            var wheelRy = oh * 0.17;
+            for (var w = 0; w < 2; w++) {
+                // Top wheel
+                ctx.fillStyle = '#1a1a1a';
                 ctx.beginPath();
-                ctx.ellipse(wheelPositions[w].x, wheelPositions[w].y - wheelR * 0.2, wheelR * 1.1, wheelR * 0.7, 0, 0, Math.PI * 2);
+                ctx.ellipse(wPairX[w], oy + 2, wheelRx, wheelRy, 0, 0, Math.PI * 2);
                 ctx.fill();
-                // Hubcap
-                ctx.fillStyle = '#888';
+                ctx.fillStyle = '#555';
                 ctx.beginPath();
-                ctx.ellipse(wheelPositions[w].x, wheelPositions[w].y - wheelR * 0.2, wheelR * 0.45, wheelR * 0.3, 0, 0, Math.PI * 2);
+                ctx.ellipse(wPairX[w], oy + 2, wheelRx * 0.45, wheelRy * 0.55, 0, 0, Math.PI * 2);
                 ctx.fill();
-                ctx.fillStyle = '#222';
+                // Bottom wheel
+                ctx.fillStyle = '#1a1a1a';
+                ctx.beginPath();
+                ctx.ellipse(wPairX[w], oy + oh - 2, wheelRx, wheelRy, 0, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.fillStyle = '#555';
+                ctx.beginPath();
+                ctx.ellipse(wPairX[w], oy + oh - 2, wheelRx * 0.45, wheelRy * 0.55, 0, 0, Math.PI * 2);
+                ctx.fill();
             }
 
-            // Headlights / tail lights
-            var lightColor = lane.dir > 0 ? '#fff9c4' : '#ef9a9a';
-            ctx.fillStyle = lightColor;
-            if (lane.dir > 0) {
-                // Moving right: lights on right
-                ctx.fillRect(o.x + ow - 4, oy + 3, 4, 5);
-                ctx.fillRect(o.x + ow - 4, oy + oh - 8, 4, 5);
-                // Tail light on left (red)
-                ctx.fillStyle = '#ef5350';
-                ctx.fillRect(o.x, oy + 3, 4, 5);
-                ctx.fillRect(o.x, oy + oh - 8, 4, 5);
-            } else {
-                // Moving left: lights on left
-                ctx.fillRect(o.x, oy + 3, 4, 5);
-                ctx.fillRect(o.x, oy + oh - 8, 4, 5);
-                ctx.fillStyle = '#ef5350';
-                ctx.fillRect(o.x + ow - 4, oy + 3, 4, 5);
-                ctx.fillRect(o.x + ow - 4, oy + oh - 8, 4, 5);
-            }
+            // Headlights (bright circles at front)
+            var frontEdge = dir > 0 ? o.x + ow - 3 : o.x + 3;
+            ctx.fillStyle = '#fffde7';
+            ctx.beginPath();
+            ctx.arc(frontEdge, oy + oh * 0.22, 3.5, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.beginPath();
+            ctx.arc(frontEdge, oy + oh * 0.78, 3.5, 0, Math.PI * 2);
+            ctx.fill();
+            // Inner bright spot
+            ctx.fillStyle = '#fff';
+            ctx.beginPath();
+            ctx.arc(frontEdge, oy + oh * 0.22, 1.8, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.beginPath();
+            ctx.arc(frontEdge, oy + oh * 0.78, 1.8, 0, Math.PI * 2);
+            ctx.fill();
+
+            // Taillights (red rectangles at rear)
+            var rearEdge = dir > 0 ? o.x : o.x + ow - 5;
+            ctx.fillStyle = '#ef5350';
+            ctx.fillRect(rearEdge, oy + 2, 5, oh * 0.28);
+            ctx.fillRect(rearEdge, oy + oh - oh * 0.28 - 2, 5, oh * 0.28);
+            // Tail light highlight
+            ctx.fillStyle = 'rgba(255,160,150,0.6)';
+            ctx.fillRect(rearEdge + 1, oy + 3, 2, oh * 0.14);
+            ctx.fillRect(rearEdge + 1, oy + oh - oh * 0.28 - 1, 2, oh * 0.14);
         }
     }
 }
@@ -351,59 +460,138 @@ var frogRidingX = null;
 
 // Draw the frog shape at (cx, cy) with given radius
 function drawFrogShape(cx, cy, r, moving) {
-    var brightness = (moving && frogMoveFlash > 0) ? frogMoveFlash / 8 : 0;
+    // Jump animation: frogMoveFlash goes 8→0 after each hop
+    var jumpT = (moving && frogMoveFlash > 0) ? frogMoveFlash / 8 : 0;
+    var jE = jumpT * jumpT * (3 - 2 * jumpT); // smoothstep easing
+
+    // Idle breathing when not jumping
+    var breathe = (moving && jumpT < 0.01) ? Math.sin(frame * 0.04) * 0.012 : 0;
+
+    var brightness = jumpT;
     var g1 = Math.min(255, 150 + Math.floor(brightness * 80));
     var bodyColor = 'rgb(56,' + g1 + ',56)';
     var darkGreen = '#2d5a27';
-    var lightGreen = 'rgb(100,' + Math.min(255, 200 + Math.floor(brightness*30)) + ',80)';
+    var lightGreen = 'rgb(100,' + Math.min(255, 200 + Math.floor(brightness * 30)) + ',80)';
 
-    // Back legs (drawn behind body)
+    // ======= BACK LEGS (behind body) =======
+    // Jump: legs spread wider and extend further back/outward
+    var bThighX  = r * (0.60 + jE * 0.28);
+    var bThighY  = r * (0.20 - jE * 0.05);
+    var bThighAng = Math.PI * (0.32 + jE * 0.22);
+    var bLowerX  = r * (0.92 + jE * 0.32);
+    var bLowerY  = r * (0.48 + jE * 0.18);
+    var bLowerAng = Math.PI * (0.08 - jE * 0.18);
+
     ctx.fillStyle = darkGreen;
-    // Left back leg
+    // Left back thigh
     ctx.beginPath();
-    ctx.ellipse(cx - r * 0.75, cy + r * 0.35, r * 0.35, r * 0.18, Math.PI * 0.35, 0, Math.PI * 2);
+    ctx.ellipse(cx - bThighX, cy + bThighY, r * 0.34, r * 0.17, bThighAng, 0, Math.PI * 2);
     ctx.fill();
+    // Left back lower leg
     ctx.beginPath();
-    ctx.ellipse(cx - r * 0.9, cy + r * 0.55, r * 0.18, r * 0.3, Math.PI * 0.1, 0, Math.PI * 2);
+    ctx.ellipse(cx - bLowerX, cy + bLowerY, r * 0.17, r * (0.28 + jE * 0.1), bLowerAng, 0, Math.PI * 2);
     ctx.fill();
-    // Right back leg
-    ctx.beginPath();
-    ctx.ellipse(cx + r * 0.75, cy + r * 0.35, r * 0.35, r * 0.18, -Math.PI * 0.35, 0, Math.PI * 2);
-    ctx.fill();
-    ctx.beginPath();
-    ctx.ellipse(cx + r * 0.9, cy + r * 0.55, r * 0.18, r * 0.3, -Math.PI * 0.1, 0, Math.PI * 2);
-    ctx.fill();
+    // Left toes (3 small toe pads)
+    var ltX = cx - bLowerX - r * (0.12 + jE * 0.06);
+    var ltY = cy + bLowerY + r * (0.30 + jE * 0.08);
+    ctx.fillStyle = '#1a4a14';
+    for (var ti = -1; ti <= 1; ti++) {
+        ctx.beginPath();
+        ctx.arc(ltX + ti * r * 0.09, ltY + Math.abs(ti) * r * 0.05, r * 0.055, 0, Math.PI * 2);
+        ctx.fill();
+    }
 
-    // Body (ovalado)
-    var bodyGrad = ctx.createRadialGradient(cx - r*0.2, cy - r*0.2, r*0.05, cx, cy, r * 0.75);
+    // Right back thigh
+    ctx.fillStyle = darkGreen;
+    ctx.beginPath();
+    ctx.ellipse(cx + bThighX, cy + bThighY, r * 0.34, r * 0.17, -bThighAng, 0, Math.PI * 2);
+    ctx.fill();
+    // Right back lower leg
+    ctx.beginPath();
+    ctx.ellipse(cx + bLowerX, cy + bLowerY, r * 0.17, r * (0.28 + jE * 0.1), -bLowerAng, 0, Math.PI * 2);
+    ctx.fill();
+    // Right toes
+    var rtX = cx + bLowerX + r * (0.12 + jE * 0.06);
+    var rtY = cy + bLowerY + r * (0.30 + jE * 0.08);
+    ctx.fillStyle = '#1a4a14';
+    for (var ti = -1; ti <= 1; ti++) {
+        ctx.beginPath();
+        ctx.arc(rtX + ti * r * 0.09, rtY + Math.abs(ti) * r * 0.05, r * 0.055, 0, Math.PI * 2);
+        ctx.fill();
+    }
+
+    // ======= BODY =======
+    var bodyRx = r * 0.62 * (1 - jE * 0.06 + breathe);
+    var bodyRy = r * 0.50 * (1 + jE * 0.14 + breathe);
+    var bodyGrad = ctx.createRadialGradient(cx - r * 0.2, cy - r * 0.2, r * 0.05, cx, cy, r * 0.75);
     bodyGrad.addColorStop(0, lightGreen);
     bodyGrad.addColorStop(0.6, bodyColor);
     bodyGrad.addColorStop(1, darkGreen);
-
     ctx.fillStyle = bodyGrad;
     ctx.beginPath();
-    ctx.ellipse(cx, cy, r * 0.62, r * 0.5, 0, 0, Math.PI * 2);
+    ctx.ellipse(cx, cy, bodyRx, bodyRy, 0, 0, Math.PI * 2);
     ctx.fill();
+    // Body outline
+    ctx.strokeStyle = 'rgba(30,70,20,0.5)';
+    ctx.lineWidth = 0.8;
+    ctx.stroke();
 
     // Belly (lighter underside)
-    ctx.fillStyle = 'rgba(180,230,160,0.45)';
+    ctx.fillStyle = 'rgba(180,230,160,0.4)';
     ctx.beginPath();
-    ctx.ellipse(cx, cy + r * 0.1, r * 0.38, r * 0.28, 0, 0, Math.PI * 2);
+    ctx.ellipse(cx, cy + r * 0.1, r * 0.36, r * 0.26, 0, 0, Math.PI * 2);
     ctx.fill();
 
-    // Front legs
+    // Dorsal stripe
+    ctx.strokeStyle = 'rgba(25,65,15,0.38)';
+    ctx.lineWidth = r * 0.11;
+    ctx.lineCap = 'round';
+    ctx.beginPath();
+    ctx.moveTo(cx, cy - bodyRy + r * 0.06);
+    ctx.lineTo(cx, cy + bodyRy - r * 0.1);
+    ctx.stroke();
+
+    // Back spots
+    ctx.fillStyle = 'rgba(25,65,15,0.42)';
+    ctx.beginPath();
+    ctx.ellipse(cx - r * 0.21, cy - r * 0.12, r * 0.09, r * 0.07, 0.3, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.beginPath();
+    ctx.ellipse(cx + r * 0.21, cy - r * 0.12, r * 0.09, r * 0.07, -0.3, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.beginPath();
+    ctx.ellipse(cx, cy + r * 0.1, r * 0.07, r * 0.06, 0, 0, Math.PI * 2);
+    ctx.fill();
+
+    // ======= FRONT LEGS =======
+    // Jump: arms reach slightly forward (toward head)
+    var fLegX = r * (0.52 + jE * 0.04);
+    var fLegY = r * (0.10 - jE * 0.12);
     ctx.fillStyle = darkGreen;
     ctx.beginPath();
-    ctx.ellipse(cx - r * 0.55, cy + r * 0.1, r * 0.22, r * 0.12, Math.PI * 0.5, 0, Math.PI * 2);
+    ctx.ellipse(cx - fLegX, cy + fLegY, r * 0.20, r * 0.11, Math.PI * 0.5, 0, Math.PI * 2);
     ctx.fill();
     ctx.beginPath();
-    ctx.ellipse(cx + r * 0.55, cy + r * 0.1, r * 0.22, r * 0.12, -Math.PI * 0.5, 0, Math.PI * 2);
+    ctx.ellipse(cx + fLegX, cy + fLegY, r * 0.20, r * 0.11, -Math.PI * 0.5, 0, Math.PI * 2);
     ctx.fill();
+    // Front toes (3 pads per side)
+    ctx.fillStyle = '#1a4a14';
+    var ftOff = [[-0.06, -0.09], [0.0, 0.0], [-0.06, 0.09]];
+    for (var fi = 0; fi < 3; fi++) {
+        ctx.beginPath();
+        ctx.arc(cx - fLegX - r * (0.18 + ftOff[fi][0]), cy + fLegY + r * ftOff[fi][1], r * 0.048, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.beginPath();
+        ctx.arc(cx + fLegX + r * (0.18 + ftOff[fi][0]), cy + fLegY + r * ftOff[fi][1], r * 0.048, 0, Math.PI * 2);
+        ctx.fill();
+    }
 
-    // Eyes (protuberant)
-    var eyeY = cy - r * 0.35;
-    var eyeOffX = r * 0.32;
-    // Eye socket
+    // ======= EYES =======
+    var eyeY = cy - r * 0.33;
+    var eyeOffX = r * 0.31;
+    var blinking = moving && (frame % 110 < 5);
+
+    // Eye bulge/socket
     ctx.fillStyle = bodyColor;
     ctx.beginPath();
     ctx.arc(cx - eyeOffX, eyeY, r * 0.22, 0, Math.PI * 2);
@@ -411,51 +599,136 @@ function drawFrogShape(cx, cy, r, moving) {
     ctx.beginPath();
     ctx.arc(cx + eyeOffX, eyeY, r * 0.22, 0, Math.PI * 2);
     ctx.fill();
-    // White sclera
-    ctx.fillStyle = '#fff';
+
+    if (blinking) {
+        // Blink: horizontal squint
+        ctx.strokeStyle = darkGreen;
+        ctx.lineWidth = r * 0.07;
+        ctx.lineCap = 'round';
+        ctx.beginPath();
+        ctx.moveTo(cx - eyeOffX - r * 0.1, eyeY);
+        ctx.lineTo(cx - eyeOffX + r * 0.1, eyeY);
+        ctx.stroke();
+        ctx.beginPath();
+        ctx.moveTo(cx + eyeOffX - r * 0.1, eyeY);
+        ctx.lineTo(cx + eyeOffX + r * 0.1, eyeY);
+        ctx.stroke();
+    } else {
+        // Sclera
+        ctx.fillStyle = '#fffde7';
+        ctx.beginPath();
+        ctx.arc(cx - eyeOffX, eyeY, r * 0.15, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.beginPath();
+        ctx.arc(cx + eyeOffX, eyeY, r * 0.15, 0, Math.PI * 2);
+        ctx.fill();
+        // Gold iris
+        ctx.fillStyle = '#f9a825';
+        ctx.beginPath();
+        ctx.arc(cx - eyeOffX + r * 0.02, eyeY + r * 0.02, r * 0.09, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.beginPath();
+        ctx.arc(cx + eyeOffX + r * 0.02, eyeY + r * 0.02, r * 0.09, 0, Math.PI * 2);
+        ctx.fill();
+        // Vertical slit pupil
+        ctx.fillStyle = '#111';
+        ctx.beginPath();
+        ctx.ellipse(cx - eyeOffX + r * 0.02, eyeY + r * 0.02, r * 0.033, r * 0.072, 0, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.beginPath();
+        ctx.ellipse(cx + eyeOffX + r * 0.02, eyeY + r * 0.02, r * 0.033, r * 0.072, 0, 0, Math.PI * 2);
+        ctx.fill();
+        // Highlight
+        ctx.fillStyle = 'rgba(255,255,255,0.75)';
+        ctx.beginPath();
+        ctx.arc(cx - eyeOffX - r * 0.04, eyeY - r * 0.04, r * 0.034, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.beginPath();
+        ctx.arc(cx + eyeOffX - r * 0.04, eyeY - r * 0.04, r * 0.034, 0, Math.PI * 2);
+        ctx.fill();
+    }
+
+    // Nostrils
+    ctx.fillStyle = 'rgba(30,70,20,0.6)';
     ctx.beginPath();
-    ctx.arc(cx - eyeOffX, eyeY, r * 0.16, 0, Math.PI * 2);
+    ctx.arc(cx - r * 0.08, cy - r * 0.17, r * 0.03, 0, Math.PI * 2);
     ctx.fill();
     ctx.beginPath();
-    ctx.arc(cx + eyeOffX, eyeY, r * 0.16, 0, Math.PI * 2);
-    ctx.fill();
-    // Pupil
-    ctx.fillStyle = '#111';
-    ctx.beginPath();
-    ctx.arc(cx - eyeOffX + r*0.03, eyeY + r*0.03, r * 0.08, 0, Math.PI * 2);
-    ctx.fill();
-    ctx.beginPath();
-    ctx.arc(cx + eyeOffX + r*0.03, eyeY + r*0.03, r * 0.08, 0, Math.PI * 2);
+    ctx.arc(cx + r * 0.08, cy - r * 0.17, r * 0.03, 0, Math.PI * 2);
     ctx.fill();
 
     // Mouth (curved line)
     ctx.strokeStyle = darkGreen;
     ctx.lineWidth = 1.2;
+    ctx.lineCap = 'round';
     ctx.beginPath();
-    ctx.arc(cx, cy - r * 0.05, r * 0.22, 0.3, Math.PI - 0.3, false);
+    ctx.arc(cx, cy - r * 0.04, r * 0.22, 0.3, Math.PI - 0.3, false);
     ctx.stroke();
 }
 
-// Flash on movement
+// Flash on movement + hop tween state
 var frogMoveFlash = 0;
+var frogHop = null; // { fromX, fromY, t, duration }
 
 function drawFrog() {
     if (deathAnim && !deathAnim.done) return; // hide frog during death
 
-    var fy = frog.row * CELL;
-    var fx;
-    if (frog.row >= 1 && frog.row <= 4 && frogRidingX !== null) {
-        fx = frogRidingX - CELL / 2;
-    } else {
-        fx = (frog.col - 1) * CELL;
-    }
+    // Logical pixel position (tracks log movement each frame)
+    var logX = (frog.row >= 1 && frog.row <= 4 && frogRidingX !== null)
+        ? frogRidingX
+        : (frog.col - 0.5) * CELL;
+    var logY = frog.row * CELL + CELL / 2;
 
-    var frogCx = fx + CELL / 2;
-    var frogCy = fy + CELL / 2;
+    var frogCx, frogCy;
     var frogR = CELL * 0.48;
 
-    if (frogMoveFlash > 0) frogMoveFlash--;
+    if (frogHop && frogHop.t < frogHop.duration) {
+        frogHop.t++;
+        var p = frogHop.t / frogHop.duration;
+        var eased = p * p * (3 - 2 * p); // smoothstep
 
+        // Interpolate from saved start toward current logical position
+        // (the "to" drifts naturally with log movement)
+        frogCx = frogHop.fromX + (logX - frogHop.fromX) * eased;
+        frogCy = frogHop.fromY + (logY - frogHop.fromY) * eased;
+
+        // Parabolic arc — taller for vertical hops, shallower for sideways
+        var dxHop = Math.abs(logX - frogHop.fromX);
+        var dyHop = Math.abs(logY - frogHop.fromY);
+        var arcH = dyHop > dxHop ? CELL * 0.55 : CELL * 0.38;
+        frogCy -= Math.sin(p * Math.PI) * arcH;
+
+        // Slight scale-down at arc peak (height illusion)
+        frogR *= 1 - Math.sin(p * Math.PI) * 0.13;
+
+        // Landing shadow at destination (shows where frog will land)
+        ctx.save();
+        ctx.globalAlpha = 0.28 * (1 - p * 0.5);
+        ctx.fillStyle = '#000';
+        ctx.beginPath();
+        ctx.ellipse(logX, logY + 3, CELL * 0.32 * (0.4 + eased * 0.6), CELL * 0.10, 0, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.restore();
+
+        // Take-off ripple (expanding ring at origin)
+        if (frogHop.t <= 5) {
+            var rP = frogHop.t / 5;
+            ctx.save();
+            ctx.globalAlpha = (1 - rP) * 0.5;
+            ctx.strokeStyle = '#a8e063';
+            ctx.lineWidth = 1.5;
+            ctx.beginPath();
+            ctx.arc(frogHop.fromX, frogHop.fromY, CELL * 0.1 + CELL * 0.28 * rP, 0, Math.PI * 2);
+            ctx.stroke();
+            ctx.restore();
+        }
+    } else {
+        frogCx = logX;
+        frogCy = logY;
+        frogHop = null;
+    }
+
+    if (frogMoveFlash > 0) frogMoveFlash--;
     drawFrogShape(frogCx, frogCy, frogR, true);
 }
 
@@ -648,17 +921,31 @@ function gameLoop() {
 function moveFrog(dr, dc) {
     if (!isPlaying) return;
     if (deathAnim) return; // can't move during death
+    if (frogHop && frogHop.t < frogHop.duration) return; // wait for hop to finish
+
     var nr = frog.row + dr;
     var nc = frog.col + dc;
     if (nr < 0 || nr > 11 || nc < 1 || nc > COLS) return;
+
+    // Save current visual position as hop start
+    var fromX = (frog.row >= 1 && frog.row <= 4 && frogRidingX !== null)
+        ? frogRidingX
+        : (frog.col - 0.5) * CELL;
+    var fromY = frog.row * CELL + CELL / 2;
+
+    // Update logical position immediately (collision detection uses this)
     frog.row = nr;
     frog.col = nc;
-    frogMoveFlash = 8;
+    frogMoveFlash = 12;
     if (nr >= 1 && nr <= 4) {
         frogRidingX = (nc - 0.5) * CELL;
     } else {
         frogRidingX = null;
     }
+
+    // Kick off hop tween
+    frogHop = { fromX: fromX, fromY: fromY, t: 0, duration: 10 };
+
     if (nr > 0) score += 1;
     updateHUD();
 }
@@ -677,6 +964,7 @@ function startGame() {
     filledGoals = [];
     deathAnim = null;
     frogMoveFlash = 0;
+    frogHop = null;
     isPlaying = true;
     initLanes();
     updateHUD();

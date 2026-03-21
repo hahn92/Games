@@ -87,18 +87,37 @@ function injectTimeSelector() {
 }
 
 // ===================== WORD DISPLAY =====================
+function scaleWordDisplay(word, el) {
+    var len = word.length;
+    var size, spacing;
+    if (len <= 7) {
+        size = '3.5rem'; spacing = '4px';
+    } else if (len <= 9) {
+        size = '2.8rem'; spacing = '2px';
+    } else if (len <= 12) {
+        size = '2.2rem'; spacing = '1px';
+    } else {
+        size = '1.7rem'; spacing = '0px';
+    }
+    el.style.fontSize = size;
+    el.style.letterSpacing = spacing;
+}
+
 function showCurrentWord(animate) {
     var el = document.getElementById('targetWord');
+    var word = wordQueue[currentWordIndex];
     if (animate) {
         el.classList.add('fade-out');
         setTimeout(function() {
-            el.textContent = wordQueue[currentWordIndex].toUpperCase();
+            el.textContent = word.toUpperCase();
+            scaleWordDisplay(word, el);
             el.classList.remove('fade-out');
             el.classList.add('fade-in');
             setTimeout(function() { el.classList.remove('fade-in'); }, 200);
         }, 100);
     } else {
-        el.textContent = wordQueue[currentWordIndex].toUpperCase();
+        el.textContent = word.toUpperCase();
+        scaleWordDisplay(word, el);
     }
     updateUpcoming();
 }
