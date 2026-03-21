@@ -46,7 +46,7 @@ function buildDifficultySelector() {
         btn.dataset.diff = key;
         btn.textContent = DIFFICULTIES[key].label;
         btn.addEventListener('click', function() {
-            if (isPlaying) return;
+            if (key === currentDifficulty) return;
             currentDifficulty = key;
             COLS = DIFFICULTIES[key].cols;
             ROWS = DIFFICULTIES[key].rows;
@@ -54,14 +54,9 @@ function buildDifficultySelector() {
             document.querySelectorAll('.diff-btn').forEach(function(b) {
                 b.classList.toggle('active', b.dataset.diff === key);
             });
-            // Update board grid columns
-            var container = document.getElementById('mineBoard');
-            container.style.gridTemplateColumns = 'repeat(' + COLS + ', 1fr)';
-            buildBoard();
-            renderBoard();
-            flaggedCount = 0;
-            revealedCount = 0;
-            updateHUD();
+            clearInterval(timerInterval);
+            elapsedTime = 0;
+            startGame();
         });
         sel.appendChild(btn);
     });

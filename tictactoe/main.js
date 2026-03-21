@@ -27,11 +27,12 @@ function buildAIDiffSelector() {
         btn.dataset.diff = d;
         btn.textContent = d === 'easy' ? 'Fácil' : 'Difícil';
         btn.addEventListener('click', function() {
-            if (isPlaying) return;
+            if (d === aiDifficulty) return;
             aiDifficulty = d;
             document.querySelectorAll('.ai-diff-btn').forEach(function(b) {
                 b.classList.toggle('active', b.dataset.diff === d);
             });
+            if (isPlaying) startGame();
         });
         wrap.appendChild(btn);
     });
