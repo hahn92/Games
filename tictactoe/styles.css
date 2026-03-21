@@ -340,9 +340,7 @@ body {
     box-shadow: 0 0 12px rgba(255,213,79,0.6);
     transform-origin: left center;
     top: 0; left: 0;
-    /* animation done inline via class */
     animation: winLineGrow 400ms cubic-bezier(0.22,1,0.36,1) forwards;
-    margin-top: -3px;
     z-index: 10;
     pointer-events: none;
 }

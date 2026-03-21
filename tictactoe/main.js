@@ -187,8 +187,8 @@ function drawWinLine(line) {
     line_el.className = 'win-line';
     line_el.style.width  = length + 'px';
     line_el.style.left   = x1 + 'px';
-    line_el.style.top    = y1 + 'px';
-    line_el.style.transform = 'rotate(' + angle + 'deg)';
+    line_el.style.top    = (y1 - 3) + 'px';   // -3 = mitad del alto (6px) para centrar
+    line_el.style.setProperty('--win-angle', angle + 'deg');
     boardEl.appendChild(line_el);
 }
 
