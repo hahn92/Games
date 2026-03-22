@@ -332,10 +332,12 @@ function update() {
     if (ballY <= 0) {
         ballSpeedY = Math.abs(ballSpeedY);
         spawnWallImpact(ballX + BALL_SIZE / 2, 0);
+        GameAudio.hit();
     }
     if (ballY + BALL_SIZE >= HEIGHT) {
         ballSpeedY = -Math.abs(ballSpeedY);
         spawnWallImpact(ballX + BALL_SIZE / 2, HEIGHT);
+        GameAudio.hit();
     }
 
     // Rebote con paleta jugador
@@ -351,6 +353,7 @@ function update() {
         rallyBounces++;
         spawnPaddleParticles(PADDLE_WIDTH, ballY + BALL_SIZE / 2);
         checkRallyMilestone();
+        GameAudio.paddle();
     }
     // Rebote con paleta AI
     if (ballX + BALL_SIZE >= WIDTH - PADDLE_WIDTH && ballX + BALL_SIZE < WIDTH && ballY + BALL_SIZE > aiY && ballY < aiY + PADDLE_HEIGHT) {
@@ -364,6 +367,7 @@ function update() {
         rallyBounces++;
         spawnPaddleParticles(WIDTH - PADDLE_WIDTH, ballY + BALL_SIZE / 2);
         checkRallyMilestone();
+        GameAudio.paddle();
     }
 
     // Punto jugador
@@ -374,6 +378,7 @@ function update() {
         ballTrail.length = 0;
         rallyCount = 0;
         updateScore();
+        GameAudio.score();
         if (playerScore >= WIN_SCORE) { gameOver('player'); return; }
         resetBall();
     }
@@ -385,6 +390,7 @@ function update() {
         ballTrail.length = 0;
         rallyCount = 0;
         updateScore();
+        GameAudio.score();
         if (aiScore >= WIN_SCORE) { gameOver('ai'); return; }
         resetBall();
     }
@@ -428,6 +434,7 @@ function updateScore() {
 }
 
 function startGame() {
+    GameAudio.start();
     playerY = HEIGHT/2 - PADDLE_HEIGHT/2;
     aiY = HEIGHT/2 - PADDLE_HEIGHT/2;
     playerScore = 0;
@@ -455,6 +462,7 @@ function restartGame() {
 
 function gameOver(winner) {
     clearInterval(gameInterval);
+    GameAudio.gameOver();
     const popup = document.getElementById('gameOverPopup');
     const finalEl = document.getElementById('finalScore');
     if (winner === 'player') {
@@ -468,9 +476,10 @@ function gameOver(winner) {
     document.getElementById('restartBtn').disabled = true;
 }
 
-document.getElementById('startBtn').addEventListener('click', startGame);
-document.getElementById('restartBtn').addEventListener('click', restartGame);
+document.getElementById('startBtn').addEventListener('click', () => { GameAudio.click(); startGame(); });
+document.getElementById('restartBtn').addEventListener('click', () => { GameAudio.click(); restartGame(); });
 document.getElementById('playAgainBtn').addEventListener('click', () => {
+    GameAudio.click();
     document.getElementById('gameOverPopup').style.display = 'none';
     startGame();
 });

@@ -491,6 +491,7 @@ function moveSnake() {
         updateLevel();
         fruit = randomPositionFree();
         eatSound.currentTime = 0; eatSound.play();
+        GameAudio.score();
 
         // Cada 10 frutas, spawn de fruta especial
         if (fruitsEaten % 10 === 0 && !specialFruit) {
@@ -511,6 +512,7 @@ function moveSnake() {
         specialFruit = null;
         specialFruitTimer = 0;
         eatSound.currentTime = 0; eatSound.play();
+        GameAudio.score();
     }
 
     if (!ate) {
@@ -607,6 +609,7 @@ let isPlaying = false;
 function startGame() {
     if (isPlaying) return;
     isPlaying = true;
+    GameAudio.start();
     restartBtn.disabled = false;
     startBtn.disabled = true;
     syncCanvasLogicSize();
@@ -656,8 +659,10 @@ function gameOver() {
     if (score > highScore) {
         highScore = score;
         localStorage.setItem('snakeHighScore', highScore);
+        GameAudio.scoreHigh();
     }
     gameOverSound.currentTime = 0; gameOverSound.play();
+    GameAudio.gameOver();
     const popup = document.getElementById('gameOverPopup');
     const finalScore = document.getElementById('finalScore');
     popup.style.display = 'flex';
@@ -669,13 +674,14 @@ function gameOver() {
 }
 
 document.getElementById('playAgainBtn').addEventListener('click', () => {
+    GameAudio.click();
     document.getElementById('gameOverPopup').style.display = 'none';
     isPlaying = false;
     startGame();
 });
 
-startBtn.addEventListener('click', startGame);
-restartBtn.addEventListener('click', restartGame);
+startBtn.addEventListener('click', () => { GameAudio.click(); startGame(); });
+restartBtn.addEventListener('click', () => { GameAudio.click(); restartGame(); });
 
 // Inicializa
 syncCanvasLogicSize();

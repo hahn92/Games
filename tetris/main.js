@@ -424,6 +424,8 @@ function clearLines() {
 
 function executeClearLines() {
     const lines = pendingClearLines.length;
+    GameAudio.lineClear();
+    if (lines === 4) GameAudio.scoreHigh();
 
     pendingClearLines.sort((a, b) => b - a);
     pendingClearLines.forEach(row => {
@@ -528,6 +530,7 @@ function tick() {
         current.y++;
     } else {
         merge();
+        GameAudio.place();
         clearLines();
         if (flashTimer === 0 && pendingClearLines.length === 0) {
             if (!spawnNext()) return;
@@ -557,6 +560,7 @@ function drop() {
 }
 
 function startGame() {
+    GameAudio.start();
     board = Array.from({ length: ROWS }, () => Array(COLS).fill(0));
     score = 0;
     totalLines = 0;
@@ -587,6 +591,7 @@ function restartGame() {
 
 function gameOver() {
     clearInterval(gameInterval);
+    GameAudio.gameOver();
     document.getElementById('gameOverPopup').style.display = 'flex';
     document.getElementById('finalScore').textContent = `Puntaje: ${score}  |  Nivel: ${level}  |  Líneas: ${totalLines}`;
     isPlaying = false;
@@ -594,9 +599,10 @@ function gameOver() {
     document.getElementById('restartBtn').disabled = true;
 }
 
-document.getElementById('startBtn').addEventListener('click', startGame);
-document.getElementById('restartBtn').addEventListener('click', restartGame);
+document.getElementById('startBtn').addEventListener('click', () => { GameAudio.click(); startGame(); });
+document.getElementById('restartBtn').addEventListener('click', () => { GameAudio.click(); restartGame(); });
 document.getElementById('playAgainBtn').addEventListener('click', () => {
+    GameAudio.click();
     document.getElementById('gameOverPopup').style.display = 'none';
     startGame();
 });

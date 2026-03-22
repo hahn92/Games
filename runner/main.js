@@ -92,6 +92,7 @@ function jump() {
         squishX = 0.75;
         squishY = 1.35;
         spawnDustBurst();
+        GameAudio.jump();
     }
 }
 
@@ -337,6 +338,7 @@ function checkMilestone() {
     if (m > 0 && m !== lastMilestone) {
         lastMilestone = m;
         milestoneMsg = { text: '+VELOCIDAD! x' + m, alpha: 1.0, y: HEIGHT / 2 - 20 };
+        GameAudio.scoreHigh();
     }
     if (milestoneMsg) {
         milestoneMsg.alpha -= 0.018;
@@ -751,6 +753,7 @@ function gameLoop() {
 }
 
 function startGame() {
+    GameAudio.start();
     player = { x: 80, y: GROUND_Y, vy: 0, onGround: true };
     obstacles = [];
     dustParticles = [];
@@ -782,6 +785,7 @@ function startGame() {
 function gameOver() {
     isPlaying = false;
     isDying = true;
+    GameAudio.gameOver();
     cancelAnimationFrame(animFrameId);
 
     deathAngle = 0;
@@ -888,9 +892,10 @@ if (btnJump) {
     btnJump.addEventListener('touchstart', function(e) { e.preventDefault(); jump(); }, { passive: false });
 }
 
-document.getElementById('startBtn').addEventListener('click', startGame);
-document.getElementById('restartBtn').addEventListener('click', startGame);
+document.getElementById('startBtn').addEventListener('click', function() { GameAudio.click(); startGame(); });
+document.getElementById('restartBtn').addEventListener('click', function() { GameAudio.click(); startGame(); });
 document.getElementById('playAgainBtn').addEventListener('click', function() {
+    GameAudio.click();
     document.getElementById('gameOverPopup').style.display = 'none';
     startGame();
 });

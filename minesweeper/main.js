@@ -240,6 +240,7 @@ function toggleFlag(r, c) {
     if (cell.revealed) return;
     cell.flagged = !cell.flagged;
     flaggedCount += cell.flagged ? 1 : -1;
+    GameAudio.click();
 
     var container = document.getElementById('mineBoard');
     var idx = r * COLS + c;
@@ -283,10 +284,12 @@ function revealCell(r, c) {
     if (board[r][c].mine) {
         board[r][c].exploded = true;
         revealAllMines();
+        GameAudio.mine();
         gameOver(false);
         return;
     }
 
+    GameAudio.reveal();
     updateHUD();
     checkWin();
 }
@@ -405,6 +408,7 @@ function gameOver(won) {
     clearInterval(timerInterval);
 
     if (won) {
+        GameAudio.win();
         var bestTime = getBestTime();
         document.getElementById('popupTitle').textContent = '¡Ganaste! 🎉';
         document.getElementById('finalScore').textContent = 'Tiempo: ' + elapsedTime + 's';
@@ -414,6 +418,7 @@ function gameOver(won) {
         applyWinAnimation();
         updateHUD();
     } else {
+        GameAudio.gameOver();
         document.getElementById('popupTitle').textContent = '¡Boom! 💥';
         document.getElementById('finalScore').textContent = 'Pisaste una mina';
     }
@@ -427,6 +432,7 @@ function gameOver(won) {
 }
 
 function startGame() {
+    GameAudio.start();
     buildBoard();
     renderBoard();
     isPlaying = true;
@@ -455,9 +461,10 @@ document.getElementById('flagToggle').addEventListener('click', function() {
     this.style.color = flagMode ? '#fff' : '#222';
 });
 
-document.getElementById('startBtn').addEventListener('click', startGame);
-document.getElementById('restartBtn').addEventListener('click', restartGame);
+document.getElementById('startBtn').addEventListener('click', function() { GameAudio.click(); startGame(); });
+document.getElementById('restartBtn').addEventListener('click', function() { GameAudio.click(); restartGame(); });
 document.getElementById('playAgainBtn').addEventListener('click', function() {
+    GameAudio.click();
     document.getElementById('gameOverPopup').style.display = 'none';
     startGame();
 });

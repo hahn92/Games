@@ -107,6 +107,7 @@ function resetGame() {
 
 function startGame() {
     resetGame();
+    GameAudio.start();
     isPlaying = true;
     document.getElementById('restartBtn').disabled = false;
     document.getElementById('startBtn').disabled = true;
@@ -232,6 +233,8 @@ function update() {
                 bullets.splice(i, 1);
                 score += 10;
                 updateScore();
+                GameAudio.explode();
+                GameAudio.score();
                 continue outer;
             }
         }
@@ -309,6 +312,7 @@ function endGame(won = false) {
     cancelAnimationFrame(animFrameId);
     animFrameId = null;
     isPlaying = false;
+    GameAudio.gameOver();
     if (score > highScore) {
         highScore = score;
         localStorage.setItem('invadersHighScore', highScore);
@@ -741,13 +745,15 @@ document.addEventListener('keydown', e => {
             x: playerX + PLAYER_WIDTH / 2 - BULLET_WIDTH / 2,
             y: canvas.height - PLAYER_HEIGHT - 10
         });
+        GameAudio.shoot();
     }
 });
 document.addEventListener('keyup', e => { keys[e.code] = false; });
 
-document.getElementById('startBtn').addEventListener('click', startGame);
-document.getElementById('restartBtn').addEventListener('click', restartGame);
+document.getElementById('startBtn').addEventListener('click', () => { GameAudio.click(); startGame(); });
+document.getElementById('restartBtn').addEventListener('click', () => { GameAudio.click(); restartGame(); });
 document.getElementById('playAgainBtn').addEventListener('click', () => {
+    GameAudio.click();
     document.getElementById('gameOverPopup').style.display = 'none';
     startGame();
 });
@@ -758,6 +764,7 @@ document.getElementById('btnShoot').addEventListener('click', () => {
         x: playerX + PLAYER_WIDTH / 2 - BULLET_WIDTH / 2,
         y: canvas.height - PLAYER_HEIGHT - 10
     });
+    GameAudio.shoot();
 });
 
 ['btnLeft', 'btnRight'].forEach(id => {

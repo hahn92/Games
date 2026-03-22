@@ -145,6 +145,7 @@ Ship.prototype.shoot = function() {
         trail: []
     });
     this.shootCooldown = 12;
+    GameAudio.shoot();
 };
 
 function createAsteroid(x, y, size) {
@@ -296,6 +297,8 @@ function update() {
                 }
                 asteroids.splice(j, 1);
                 updateHUD();
+                GameAudio.explode();
+                GameAudio.score();
                 break;
             }
         }
@@ -473,6 +476,7 @@ function gameLoop() {
 }
 
 function startGame() {
+    GameAudio.start();
     ship = new Ship(W/2, H/2);
     bullets = []; asteroids = []; particles = []; thrustParticles = [];
     score = 0; lives = 3; level = 1; invincible = 0; shipGlowPhase = 0;
@@ -488,6 +492,7 @@ function startGame() {
 
 function gameOver() {
     isPlaying = false;
+    GameAudio.gameOver();
     cancelAnimationFrame(animFrameId);
     draw();
     document.getElementById('finalScore').textContent = 'Puntaje: ' + score;
@@ -522,9 +527,10 @@ addHold(btnRotRight, 'ArrowRight');
 addHold(btnThrust, 'thrust');
 addHold(btnFire, 'fire');
 
-document.getElementById('startBtn').addEventListener('click', startGame);
-document.getElementById('restartBtn').addEventListener('click', startGame);
+document.getElementById('startBtn').addEventListener('click', function() { GameAudio.click(); startGame(); });
+document.getElementById('restartBtn').addEventListener('click', function() { GameAudio.click(); startGame(); });
 document.getElementById('playAgainBtn').addEventListener('click', function() {
+    GameAudio.click();
     document.getElementById('gameOverPopup').style.display = 'none';
     startGame();
 });

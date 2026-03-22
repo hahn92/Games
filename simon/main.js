@@ -153,6 +153,7 @@ async function flashSequence() {
     const flashGap = getFlashGap();
 
     for (var i = 0; i < sequence.length; i++) {
+        GameAudio.simon(COLORS.indexOf(sequence[i]));
         await flash(sequence[i], flashDur);
         await delay(flashGap);
     }
@@ -216,6 +217,7 @@ async function handleInput(color) {
 
     playerSeq.push(color);
     var idx = playerSeq.length - 1;
+    GameAudio.simon(COLORS.indexOf(color));
 
     // Press visual feedback
     await pressBtn(color);
@@ -224,6 +226,7 @@ async function handleInput(color) {
     if (playerSeq[idx] !== sequence[idx]) {
         playerTurn = false;
         setBtnsEnabled(false);
+        GameAudio.noMatch();
         await playFailAnimation();
         setStatus('Error! Llegaste al nivel ' + round, true);
         await delay(700);
@@ -235,6 +238,7 @@ async function handleInput(color) {
     if (playerSeq.length === sequence.length) {
         score += round;
         updateScore();
+        GameAudio.score();
         playerSeq = [];
         playerTurn = false;
         setBtnsEnabled(false);
@@ -246,6 +250,7 @@ async function handleInput(color) {
 
 /* ---- Game flow ---- */
 function startGame() {
+    GameAudio.start();
     sequence = [];
     playerSeq = [];
     round = 0;
@@ -278,6 +283,7 @@ function restartGame() {
 function gameOver() {
     isPlaying = false;
     playerTurn = false;
+    GameAudio.gameOver();
     setBtnsEnabled(false);
     setStatus('', false);
 
@@ -307,9 +313,10 @@ COLORS.forEach(function(color) {
     }, { passive: false });
 });
 
-document.getElementById('startBtn').addEventListener('click', startGame);
-document.getElementById('restartBtn').addEventListener('click', restartGame);
+document.getElementById('startBtn').addEventListener('click', function() { GameAudio.click(); startGame(); });
+document.getElementById('restartBtn').addEventListener('click', function() { GameAudio.click(); restartGame(); });
 document.getElementById('playAgainBtn').addEventListener('click', function() {
+    GameAudio.click();
     document.getElementById('gameOverPopup').style.display = 'none';
     startGame();
 });

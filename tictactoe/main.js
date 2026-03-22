@@ -236,6 +236,7 @@ function endGame(result) {
         changedId = 'wins';
         if (result.line) highlightWinner(result.line);
         setStatus('¡Ganaste!');
+        GameAudio.win();
     } else if (result.winner === 'O') {
         losses++;
         localStorage.setItem('tttLosses', losses);
@@ -244,6 +245,7 @@ function endGame(result) {
         changedId = 'losses';
         if (result.line) highlightWinner(result.line);
         setStatus('La IA ganó');
+        GameAudio.gameOver();
     } else {
         draws++;
         localStorage.setItem('tttDraws', draws);
@@ -252,6 +254,7 @@ function endGame(result) {
         changedId = 'draws';
         triggerDrawFlash();
         setStatus('Empate');
+        GameAudio.noMatch();
     }
 
     updateScores(changedId);
@@ -273,6 +276,7 @@ function playerMove(idx) {
     if (!isPlaying || aiThinking || board[idx] !== '') return;
     board[idx] = 'X';
     currentPlayer = 'O';
+    GameAudio.click();
     renderBoard();
     var result = checkWinner(board);
     if (result) { endGame(result); return; }
@@ -317,6 +321,7 @@ function resetCellsAnimated(callback) {
 }
 
 function startGame() {
+    GameAudio.start();
     currentPlayer = 'X';
     aiThinking = false;
 
@@ -349,13 +354,16 @@ document.querySelectorAll('.ttt-cell').forEach(function(cell) {
 });
 
 document.getElementById('startBtn').addEventListener('click', function() {
+    GameAudio.click();
     document.getElementById('gameOverPopup').style.display = 'none';
     startGame();
 });
 document.getElementById('restartBtn').addEventListener('click', function() {
+    GameAudio.click();
     startGame();
 });
 document.getElementById('playAgainBtn').addEventListener('click', function() {
+    GameAudio.click();
     document.getElementById('gameOverPopup').style.display = 'none';
     startGame();
 });

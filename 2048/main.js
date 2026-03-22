@@ -160,11 +160,20 @@ function move(dir) {
     if (moved) {
         addTile();
         render();
-        if (pointsGained > 0) showScoreFloat(pointsGained);
+        if (pointsGained > 0) {
+            showScoreFloat(pointsGained);
+            GameAudio.merge();
+        } else {
+            GameAudio.slide();
+        }
         if (score > highScore) {
             highScore = score;
             localStorage.setItem('2048HighScore', highScore);
         }
+        // Check for 2048 tile win
+        let has2048 = false;
+        for (let r = 0; r < SIZE; r++) for (let c = 0; c < SIZE; c++) if (board[r][c] >= 2048) has2048 = true;
+        if (has2048 && !window._2048WinPlayed) { window._2048WinPlayed = true; GameAudio.win(); }
         if (isGameOver()) gameOver();
     }
 }
@@ -182,7 +191,9 @@ function isGameOver() {
 
 function startGame() {
     score = 0;
+    window._2048WinPlayed = false;
     createBoard();
+    GameAudio.start();
     isPlaying = true;
     document.getElementById('restartBtn').disabled = false;
     document.getElementById('startBtn').disabled = true;
@@ -194,6 +205,7 @@ function restartGame() {
 
 function gameOver() {
     isPlaying = false;
+    GameAudio.gameOver();
     const popup = document.getElementById('gameOverPopup');
     // Reset animation by removing and re-adding
     popup.style.display = 'none';
@@ -205,9 +217,10 @@ function gameOver() {
     document.getElementById('restartBtn').disabled = true;
 }
 
-document.getElementById('startBtn').addEventListener('click', startGame);
-document.getElementById('restartBtn').addEventListener('click', restartGame);
+document.getElementById('startBtn').addEventListener('click', () => { GameAudio.click(); startGame(); });
+document.getElementById('restartBtn').addEventListener('click', () => { GameAudio.click(); restartGame(); });
 document.getElementById('playAgainBtn').addEventListener('click', () => {
+    GameAudio.click();
     document.getElementById('gameOverPopup').style.display = 'none';
     startGame();
 });

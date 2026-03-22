@@ -499,6 +499,7 @@ function update() {
                 shakeFrames = 18;
                 flashColor  = '#ff1744';
                 flashAlpha  = 0.6;
+                GameAudio.bomb();
                 updateHUD();
                 if (lives <= 0) { gameOver(); return; }
             } else {
@@ -509,6 +510,7 @@ function update() {
                 var basePoints = item.type === 'star' ? 50 : 10;
                 var pts = basePoints * comboMultiplier;
                 score += pts;
+                GameAudio.powerUp();
 
                 // Squish basket
                 basketScaleY = 0.75;
@@ -706,6 +708,7 @@ function gameLoop() {
 
 function gameOver() {
     isPlaying = false;
+    GameAudio.gameOver();
     cancelAnimationFrame(animFrameId);
     draw();
     document.getElementById('finalScore').textContent = 'Puntaje: ' + score + ' | Oleada: ' + wave;
@@ -715,6 +718,7 @@ function gameOver() {
 }
 
 function startGame() {
+    GameAudio.start();
     initGame();
     updateHUD();
     document.getElementById('gameOverPopup').style.display = 'none';
@@ -760,9 +764,10 @@ function addHold(btn, key) {
 addHold(btnLeft,  'left');
 addHold(btnRight, 'right');
 
-document.getElementById('startBtn').addEventListener('click', startGame);
-document.getElementById('restartBtn').addEventListener('click', startGame);
+document.getElementById('startBtn').addEventListener('click', function() { GameAudio.click(); startGame(); });
+document.getElementById('restartBtn').addEventListener('click', function() { GameAudio.click(); startGame(); });
 document.getElementById('playAgainBtn').addEventListener('click', function() {
+    GameAudio.click();
     document.getElementById('gameOverPopup').style.display = 'none';
     startGame();
 });

@@ -167,6 +167,9 @@ function popMole() {
 
     const duration = getShowDuration();
     const t = setTimeout(function() {
+        if (hole.classList.contains('active')) {
+            GameAudio.miss();
+        }
         hole.classList.remove('active');
         holeTypes[idx] = MOLE_NORMAL;
     }, duration);
@@ -213,6 +216,7 @@ function whack(i) {
         hole.classList.add('whacked');
         showHitEffect(hole, '+1', '#8fd3f4');
     }
+    GameAudio.whack();
 
     setTimeout(function() { hole.classList.remove('whacked'); }, 300);
     updateScore();
@@ -250,6 +254,7 @@ function startGame() {
     score = 0;
     timeLeft = GAME_DURATION;
     isPlaying = true;
+    GameAudio.start();
 
     holeTimeouts.forEach(t => clearTimeout(t));
     holeTimeouts = [];
@@ -288,6 +293,7 @@ function restartGame() {
 
 function gameOver() {
     isPlaying = false;
+    GameAudio.gameOver();
     clearInterval(moleInterval);
     clearInterval(timerInterval);
     holeTimeouts.forEach(t => clearTimeout(t));
@@ -312,9 +318,10 @@ function gameOver() {
 }
 
 /* ---- Wire buttons ---- */
-document.getElementById('startBtn').addEventListener('click', startGame);
-document.getElementById('restartBtn').addEventListener('click', restartGame);
+document.getElementById('startBtn').addEventListener('click', function() { GameAudio.click(); startGame(); });
+document.getElementById('restartBtn').addEventListener('click', function() { GameAudio.click(); restartGame(); });
 document.getElementById('playAgainBtn').addEventListener('click', function() {
+    GameAudio.click();
     document.getElementById('gameOverPopup').style.display = 'none';
     startGame();
 });

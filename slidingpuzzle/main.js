@@ -108,6 +108,7 @@ function onTileClick() {
     tiles[emptyIdx] = tiles[idx];
     tiles[idx] = 0;
     moves++;
+    GameAudio.slide();
     renderBoard();
     animateMovesCounter();
     updateHUD();
@@ -129,6 +130,7 @@ document.addEventListener('keydown', function(e) {
         tiles[emptyIdx] = tiles[swap];
         tiles[swap] = 0;
         moves++;
+        GameAudio.slide();
         renderBoard();
         animateMovesCounter();
         updateHUD();
@@ -170,6 +172,7 @@ function updateHUD() {
 // ===================== WIN =====================
 function win() {
     isPlaying = false;
+    GameAudio.win();
     clearInterval(timerInterval);
 
     var rec = getRecord(SIZE);
@@ -327,6 +330,7 @@ function updateRecordsPanel() {
 
 // ===================== START =====================
 function startGame() {
+    GameAudio.start();
     tiles = shuffleTiles(goalState());
     moves = 0; elapsed = 0; isPlaying = true;
     hintsLeft = 3;
@@ -342,9 +346,10 @@ function startGame() {
 }
 
 // ===================== INIT =====================
-document.getElementById('startBtn').addEventListener('click', startGame);
-document.getElementById('restartBtn').addEventListener('click', startGame);
+document.getElementById('startBtn').addEventListener('click', function() { GameAudio.click(); startGame(); });
+document.getElementById('restartBtn').addEventListener('click', function() { GameAudio.click(); startGame(); });
 document.getElementById('playAgainBtn').addEventListener('click', function() {
+    GameAudio.click();
     document.getElementById('gameOverPopup').style.display = 'none';
     startGame();
 });

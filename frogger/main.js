@@ -861,12 +861,14 @@ function checkGoal() {
             filledGoals.push(gs);
             score += 50;
             updateHUD();
+            GameAudio.goal();
             frog.col = 5; frog.row = 11; frogRidingX = null;
             if (filledGoals.length >= GOAL_SLOTS.length) {
                 score += 200;
                 updateHUD();
                 filledGoals = [];
                 speedUpLanes();
+                GameAudio.win();
             }
             return true;
         }
@@ -901,7 +903,11 @@ function gameLoop() {
     // Check death (only if not already in death anim)
     if (!deathAnim) {
         var cause = checkDeath();
-        if (cause) { die(); }
+        if (cause) {
+            if (cause === 'river') GameAudio.splash();
+            else GameAudio.hit();
+            die();
+        }
     }
 
     // Check goal
@@ -945,6 +951,7 @@ function moveFrog(dr, dc) {
 
     // Kick off hop tween
     frogHop = { fromX: fromX, fromY: fromY, t: 0, duration: 10 };
+    GameAudio.hop();
 
     if (nr > 0) score += 1;
     updateHUD();
@@ -959,6 +966,7 @@ function updateHUD() {
 }
 
 function startGame() {
+    GameAudio.start();
     frog.col = 5; frog.row = 11; frogRidingX = null;
     score = 0; lives = 3; frame = 0;
     filledGoals = [];
@@ -977,6 +985,7 @@ function startGame() {
 
 function gameOver() {
     isPlaying = false;
+    GameAudio.gameOver();
     cancelAnimationFrame(animFrameId);
     document.getElementById('finalScore').textContent = 'Puntaje: ' + score;
     document.getElementById('gameOverPopup').style.display = 'flex';
@@ -1035,9 +1044,10 @@ addTap('btnRight', 0, 1);
     }, { passive: false });
 })();
 
-document.getElementById('startBtn').addEventListener('click', startGame);
-document.getElementById('restartBtn').addEventListener('click', startGame);
+document.getElementById('startBtn').addEventListener('click', function() { GameAudio.click(); startGame(); });
+document.getElementById('restartBtn').addEventListener('click', function() { GameAudio.click(); startGame(); });
 document.getElementById('playAgainBtn').addEventListener('click', function() {
+    GameAudio.click();
     document.getElementById('gameOverPopup').style.display = 'none';
     startGame();
 });

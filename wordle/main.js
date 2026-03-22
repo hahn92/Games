@@ -124,6 +124,7 @@ function handleKey(key) {
     } else if (/^[A-ZÑ]$/.test(key) && currentCol < 5) {
         grid[currentRow][currentCol].letter = key;
         grid[currentRow][currentCol].el.textContent = key;
+        GameAudio.type();
         // Remove filled (pulsing) from this tile, add pop
         grid[currentRow][currentCol].el.classList.remove('filled', 'pop');
         // Force reflow to restart animation
@@ -201,6 +202,14 @@ function submitGuess() {
 
     var totalDelay = 4 * 200 + 500; // last tile starts at 800ms, finishes 250ms in
     setTimeout(function() {
+        // Sound based on result composition
+        var hasCorrect = result.indexOf('correct') >= 0;
+        var hasPresent = result.indexOf('present') >= 0;
+        var allAbsent = result.every(function(r) { return r === 'absent'; });
+        if (hasCorrect) GameAudio.correct();
+        else if (hasPresent) GameAudio.present();
+        else if (allAbsent) GameAudio.absent();
+
         if (guess === target) {
             wins++; streak++;
             if (streak > bestStreak) bestStreak = streak;
@@ -221,6 +230,7 @@ function submitGuess() {
                 })(b);
             }
             var attemptsText = (currentRow + 1) === 1 ? '1 intento' : (currentRow + 1) + ' intentos';
+            GameAudio.win();
             showToast('¡Correcto en ' + attemptsText + '!');
             setTimeout(function() {
                 document.getElementById('popupTitle').textContent = '¡Ganaste!';
@@ -236,6 +246,7 @@ function submitGuess() {
                 streak = 0;
                 localStorage.setItem('wordleStreak', 0);
                 updateScores();
+                GameAudio.gameOver();
                 showToast('La palabra era: ' + target);
                 setTimeout(function() {
                     document.getElementById('popupTitle').textContent = '¡Sin suerte!';
@@ -294,6 +305,7 @@ function updateDistribution() {
 
 // ===================== START =====================
 function startGame() {
+    GameAudio.start();
     target = WORDS[Math.floor(Math.random() * WORDS.length)];
     currentRow = 0; currentCol = 0;
     isPlaying = true; gameEnded = false;
@@ -339,9 +351,10 @@ document.addEventListener('keydown', function(e) {
     infoSide.appendChild(statsSection);
 })();
 
-document.getElementById('startBtn').addEventListener('click', startGame);
-document.getElementById('restartBtn').addEventListener('click', startGame);
+document.getElementById('startBtn').addEventListener('click', function() { GameAudio.click(); startGame(); });
+document.getElementById('restartBtn').addEventListener('click', function() { GameAudio.click(); startGame(); });
 document.getElementById('playAgainBtn').addEventListener('click', function() {
+    GameAudio.click();
     document.getElementById('gameOverPopup').style.display = 'none';
     startGame();
 });

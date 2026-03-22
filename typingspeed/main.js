@@ -200,6 +200,7 @@ function updateStreakBadge() {
 
 // ===================== NEXT WORD =====================
 function nextWord() {
+    GameAudio.score();
     showCheckFlash();
     currentWordIndex++;
     wordCount++;
@@ -216,6 +217,7 @@ function nextWord() {
 
 // ===================== START =====================
 function startGame() {
+    GameAudio.start();
     buildWordQueue();
     wordCount = 0;
     timeLeft = TIME_LIMIT;
@@ -272,6 +274,7 @@ function startGame() {
 // ===================== END =====================
 function endGame() {
     isPlaying = false;
+    GameAudio.gameOver();
     clearInterval(timerInterval);
     var input = document.getElementById('wordInput');
     input.disabled = true;
@@ -302,6 +305,7 @@ function endGame() {
 
     // Re-attach event
     content.querySelector('#playAgainBtn').addEventListener('click', function() {
+        GameAudio.click();
         popup.style.display = 'none';
         startGame();
     });
@@ -331,6 +335,7 @@ document.getElementById('wordInput').addEventListener('input', function() {
         this.classList.remove('correct');
         currentStreak = 0;
         updateStreakBadge();
+        GameAudio.hit();
     }
 });
 
@@ -352,9 +357,10 @@ document.getElementById('wordInput').addEventListener('keydown', function(e) {
     }
 });
 
-document.getElementById('startBtn').addEventListener('click', startGame);
-document.getElementById('restartBtn').addEventListener('click', startGame);
+document.getElementById('startBtn').addEventListener('click', function() { GameAudio.click(); startGame(); });
+document.getElementById('restartBtn').addEventListener('click', function() { GameAudio.click(); startGame(); });
 document.getElementById('playAgainBtn').addEventListener('click', function() {
+    GameAudio.click();
     document.getElementById('gameOverPopup').style.display = 'none';
     startGame();
 });

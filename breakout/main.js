@@ -480,11 +480,11 @@ function update() {
         ball.y += ball.speedY;
 
         // Rebote lateral
-        if (ball.x <= 0) { ball.speedX = Math.abs(ball.speedX); ball.x = 0; }
-        if (ball.x + BALL_SIZE >= WIDTH) { ball.speedX = -Math.abs(ball.speedX); ball.x = WIDTH - BALL_SIZE; }
+        if (ball.x <= 0) { ball.speedX = Math.abs(ball.speedX); ball.x = 0; GameAudio.hit(); }
+        if (ball.x + BALL_SIZE >= WIDTH) { ball.speedX = -Math.abs(ball.speedX); ball.x = WIDTH - BALL_SIZE; GameAudio.hit(); }
 
         // Rebote arriba
-        if (ball.y <= 0) { ball.speedY = Math.abs(ball.speedY); ball.y = 0; }
+        if (ball.y <= 0) { ball.speedY = Math.abs(ball.speedY); ball.y = 0; GameAudio.hit(); }
 
         // Rebote con paleta
         if (ball.y + BALL_SIZE >= HEIGHT - PADDLE_HEIGHT - 10 &&
@@ -500,6 +500,7 @@ function update() {
             const maxSpd = activePowerUps.slowBall > 0 ? 4 : 7;
             if (spd > maxSpd) { ball.speedX *= maxSpd / spd; ball.speedY *= maxSpd / spd; }
             spawnRipple(ball.x + BALL_SIZE / 2, HEIGHT - PADDLE_HEIGHT - 10);
+            GameAudio.paddle();
         }
 
         // Rebote con ladrillos
@@ -515,9 +516,11 @@ function update() {
                     trySpawnPowerUp(brick);
                     score += 10 * currentLevel;
                     updateScore();
+                    GameAudio.brick();
                 } else {
                     // Golpe en bloque invencible: partículas pequeñas
                     spawnBrickParticles({ ...brick, color: '#aaaaaa' });
+                    GameAudio.brick();
                 }
             }
         });
@@ -548,6 +551,7 @@ function update() {
 
     // Siguiente nivel: todos los ladrillos destruidos
     if (bricks.every(b => b.status === 0)) {
+        GameAudio.win();
         currentLevel++;
         createBricks();
         resetBall();
@@ -590,6 +594,7 @@ function updateScore() {
 }
 
 function startGame() {
+    GameAudio.start();
     paddleX = WIDTH/2 - BASE_PADDLE_WIDTH/2;
     paddleWidth = BASE_PADDLE_WIDTH;
     score = 0;
@@ -618,6 +623,7 @@ function restartGame() {
 
 function gameOver() {
     clearInterval(gameInterval);
+    GameAudio.gameOver();
     document.getElementById('gameOverPopup').style.display = 'flex';
     document.getElementById('finalScore').textContent = `Puntaje: ${score}  |  Nivel: ${currentLevel}`;
     isPlaying = false;
@@ -625,9 +631,10 @@ function gameOver() {
     document.getElementById('restartBtn').disabled = true;
 }
 
-document.getElementById('startBtn').addEventListener('click', startGame);
-document.getElementById('restartBtn').addEventListener('click', restartGame);
+document.getElementById('startBtn').addEventListener('click', () => { GameAudio.click(); startGame(); });
+document.getElementById('restartBtn').addEventListener('click', () => { GameAudio.click(); restartGame(); });
 document.getElementById('playAgainBtn').addEventListener('click', () => {
+    GameAudio.click();
     document.getElementById('gameOverPopup').style.display = 'none';
     startGame();
 });

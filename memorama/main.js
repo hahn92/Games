@@ -123,6 +123,7 @@ function flipCard(r, c) {
 
     card.flipped = true;
     flipped.push({ r, c });
+    GameAudio.flip();
     // Count an attempt every time the second card is flipped
     if (flipped.length === 2) attempts++;
     render();
@@ -151,6 +152,7 @@ function checkMatch() {
         cardB.matched = true;
         matchedCount += 2;
         flipped = [];
+        GameAudio.match();
         render();
         updateStats();
         const cfg = DIFFICULTY_CONFIG[currentDifficulty];
@@ -159,6 +161,7 @@ function checkMatch() {
         }
     } else {
         // Mismatch: show shake, then flip back
+        GameAudio.noMatch();
         const elA = getCardElement(a.r, a.c);
         const elB = getCardElement(b.r, b.c);
         if (elA) elA.classList.add('mismatch');
@@ -252,6 +255,7 @@ function formatTime(seconds) {
 
 // ---- Game start / restart ----
 function startGame() {
+    GameAudio.start();
     stopTimer();
     attempts = 0;
     createBoard();
@@ -271,6 +275,7 @@ function restartGame() {
 // ---- Victory screen ----
 function showVictory() {
     isPlaying = false;
+    GameAudio.win();
     stopTimer();
 
     // Update high score (score-based)
@@ -391,9 +396,10 @@ function injectInfoUI() {
 }
 
 // ---- Wire up buttons ----
-document.getElementById('startBtn').addEventListener('click', startGame);
-document.getElementById('restartBtn').addEventListener('click', restartGame);
+document.getElementById('startBtn').addEventListener('click', () => { GameAudio.click(); startGame(); });
+document.getElementById('restartBtn').addEventListener('click', () => { GameAudio.click(); restartGame(); });
 document.getElementById('playAgainBtn').addEventListener('click', () => {
+    GameAudio.click();
     document.getElementById('gameOverPopup').style.display = 'none';
     startGame();
 });

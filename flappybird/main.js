@@ -147,6 +147,7 @@ function resetGame() {
 
 function startGame() {
     resetGame();
+    GameAudio.start();
     isPlaying = true;
     document.getElementById('restartBtn').disabled = false;
     document.getElementById('startBtn').disabled = true;
@@ -200,6 +201,7 @@ function update() {
             score++;
             scorePopScale = 1.3;
             scorePopFrame = 10;
+            GameAudio.score();
         }
     }
 
@@ -253,6 +255,7 @@ function checkCollision() {
 
 function endGame() {
     clearInterval(gameLoop);
+    GameAudio.gameOver();
     isPlaying = false;
     const prevHigh = parseInt(localStorage.getItem('flappyHighScore') || '0', 10);
     isNewRecord = score > prevHigh;
@@ -625,6 +628,7 @@ function draw() {
 function flap() {
     birdV = FLAP;
     wingFlapTimer = 15;
+    GameAudio.jump();
 }
 
 canvas.addEventListener('mousedown', () => {
@@ -661,9 +665,10 @@ document.addEventListener('keydown', e => {
     if (!isPlaying) return;
     if (e.code === 'Space' || e.code === 'ArrowUp') flap();
 });
-document.getElementById('startBtn').addEventListener('click', startGame);
-document.getElementById('restartBtn').addEventListener('click', restartGame);
+document.getElementById('startBtn').addEventListener('click', () => { GameAudio.click(); startGame(); });
+document.getElementById('restartBtn').addEventListener('click', () => { GameAudio.click(); restartGame(); });
 document.getElementById('playAgainBtn').addEventListener('click', () => {
+    GameAudio.click();
     document.getElementById('gameOverPopup').style.display = 'none';
     startGame();
 });

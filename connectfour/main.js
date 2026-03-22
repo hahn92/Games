@@ -463,6 +463,7 @@ function playerDrop(col) {
     if (toRow < 0) return;
 
     board[toRow][col] = PLAYER;
+    GameAudio.place();
     animateFall(col, toRow, PLAYER, function() {
         var win = checkWin(PLAYER);
         if (win) { flashWin(win, PLAYER); return; }
@@ -476,6 +477,7 @@ function playerDrop(col) {
                 if (board[r][ac] === 0) { aiToRow = r; break; }
             }
             board[aiToRow][ac] = AI;
+            GameAudio.place();
             animateFall(ac, aiToRow, AI, function() {
                 var aiWin = checkWin(AI);
                 if (aiWin) { flashWin(aiWin, AI); return; }
@@ -507,12 +509,15 @@ function endGame(result, winCells) {
     if (result === 'win') {
         wins++; localStorage.setItem('c4wins', wins);
         title = '¡Ganaste! 🎉'; detail = '¡Bien jugado!';
+        GameAudio.win();
     } else if (result === 'loss') {
         losses++; localStorage.setItem('c4losses', losses);
         title = 'Perdiste 😔'; detail = 'La IA ganó esta vez';
+        GameAudio.gameOver();
     } else {
         draws++; localStorage.setItem('c4draws', draws);
         title = '¡Empate!'; detail = 'Tablero lleno';
+        GameAudio.noMatch();
     }
     updateScores();
     document.getElementById('popupTitle').textContent = title;
@@ -532,6 +537,7 @@ function updateScores() {
 }
 
 function startGame() {
+    GameAudio.start();
     newBoard();
     isPlaying = true;
     aiThinking = false;
@@ -612,9 +618,10 @@ document.addEventListener('keydown', function(e) {
     if (e.key === 'ArrowDown' || e.key === 'Enter') { if (hoverCol >= 0) playerDrop(hoverCol); }
 });
 
-document.getElementById('startBtn').addEventListener('click', startGame);
-document.getElementById('restartBtn').addEventListener('click', startGame);
+document.getElementById('startBtn').addEventListener('click', function() { GameAudio.click(); startGame(); });
+document.getElementById('restartBtn').addEventListener('click', function() { GameAudio.click(); startGame(); });
 document.getElementById('playAgainBtn').addEventListener('click', function() {
+    GameAudio.click();
     document.getElementById('gameOverPopup').style.display = 'none';
     startGame();
 });
