@@ -84,3 +84,9 @@ h1 {
         grid-template-columns: 1fr;
     }
 }
+
+/* Touch button panels hidden globally — all games use canvas swipe/tap gestures */
+.touch-controls,
+.touch-cols {
+    display: none !important;
+}

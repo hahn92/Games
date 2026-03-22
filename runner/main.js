@@ -802,16 +802,27 @@ document.addEventListener('keyup', function(e) { keys[e.key] = false; });
 canvas.addEventListener('click', function() { jump(); });
 
 // ─── CANVAS TOUCH CONTROLS ──────────────────────────────────
+// Tap = jump | Swipe/hold down = crouch | Hold left zone = move left
 (function() {
     var swipeStartX, swipeStartY, swipeStartTime;
     var MIN_SWIPE = 40;
     var isCrouchTouch = false;
+    var leftZoneTimer = null;
 
     canvas.addEventListener('touchstart', function(e) {
         e.preventDefault();
         swipeStartX = e.touches[0].clientX;
         swipeStartY = e.touches[0].clientY;
         swipeStartTime = Date.now();
+
+        // Left 38% of canvas = move left after brief hold (distinguishes from tap)
+        var rect = canvas.getBoundingClientRect();
+        var relX = e.touches[0].clientX - rect.left;
+        if (relX < rect.width * 0.38) {
+            leftZoneTimer = setTimeout(function() {
+                keys['ArrowLeft'] = true;
+            }, 130);
+        }
     }, { passive: false });
 
     canvas.addEventListener('touchmove', function(e) {
@@ -826,6 +837,9 @@ canvas.addEventListener('click', function() { jump(); });
 
     canvas.addEventListener('touchend', function(e) {
         e.preventDefault();
+        clearTimeout(leftZoneTimer);
+        keys['ArrowLeft'] = false;
+
         var dx = e.changedTouches[0].clientX - swipeStartX;
         var dy = e.changedTouches[0].clientY - swipeStartY;
         var dt = Date.now() - swipeStartTime;
@@ -836,7 +850,8 @@ canvas.addEventListener('click', function() { jump(); });
             keys['ArrowDown'] = false;
         }
 
-        if (absDx < MIN_SWIPE && absDy < MIN_SWIPE && dt < 300) {
+        // Quick tap (no significant movement) = jump or start
+        if (absDx < MIN_SWIPE && absDy < MIN_SWIPE && dt < 280) {
             if (!isPlaying) {
                 document.getElementById('startBtn').click();
             } else {
@@ -846,12 +861,11 @@ canvas.addEventListener('click', function() { jump(); });
     }, { passive: false });
 
     canvas.addEventListener('touchcancel', function() {
+        clearTimeout(leftZoneTimer);
+        keys['ArrowLeft'] = false;
         isCrouchTouch = false;
         keys['ArrowDown'] = false;
     }, { passive: false });
-
-    var tc = document.getElementById('touchControls');
-    if (tc) tc.style.display = 'none';
 })();
 
 function addHold(id, key) {

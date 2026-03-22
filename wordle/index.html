@@ -56,17 +56,22 @@
 
         if (isMobile() || window.innerWidth < 900) {
             if (isMobile()) {
+                var vWidth = window.innerWidth;
                 gameSide.style.position = 'fixed';
                 gameSide.style.top = '0';
                 gameSide.style.left = '0';
-                gameSide.style.width = '100vw';
+                gameSide.style.width = vWidth + 'px';
                 gameSide.style.height = vHeight + 'px';
                 gameSide.style.zIndex = '999';
                 gameSide.style.background = 'var(--grad-bg)';
+                gameSide.style.overflowX = 'hidden';
                 gameSide.style.overflowY = 'auto';
                 infoSide.style.display = 'none';
                 mobileStartBtn.style.display = 'block';
                 mobileScore.style.display = 'block';
+                // Keyboard width: fit within actual viewport with margin
+                var kbd = document.getElementById('wordleKeyboard');
+                if (kbd) kbd.style.width = Math.min(vWidth - 16, 390) + 'px';
             }
         } else {
             gameSide.style.position = '';
@@ -76,10 +81,13 @@
             gameSide.style.height = '';
             gameSide.style.zIndex = '';
             gameSide.style.background = '';
+            gameSide.style.overflowX = '';
             gameSide.style.overflowY = '';
             infoSide.style.display = '';
             mobileStartBtn.style.display = 'none';
             mobileScore.style.display = 'none';
+            var kbd = document.getElementById('wordleKeyboard');
+            if (kbd) kbd.style.width = '';
         }
     }
     window.addEventListener('resize', adjustMobileLayout);
