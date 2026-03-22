@@ -63,7 +63,7 @@
                 gameSide.style.position = 'fixed';
                 gameSide.style.top = '0';
                 gameSide.style.left = '0';
-                gameSide.style.width = '100vw';
+                gameSide.style.width = window.innerWidth + 'px';
                 gameSide.style.height = vHeight + 'px';
                 gameSide.style.zIndex = '999';
                 gameSide.style.background = 'var(--grad-bg)';
@@ -72,8 +72,8 @@
                 mobileScore.style.display = 'block';
                 touchCols.style.display = 'flex';
             }
-            var availableHeight = vHeight - (isMobile() ? 130 : 0);
-            var availableWidth = window.innerWidth - 32;
+            var availableHeight = vHeight - (isMobile() ? 50 : 0);
+            var availableWidth = window.innerWidth - 16;
             var ratio = 420 / 360;
             var newHeight = Math.min(availableHeight, availableWidth / ratio);
             var newWidth = newHeight * ratio;
@@ -111,5 +111,6 @@
     });
     </script>
     <script src="./main.js"></script>
+    <script src="../fullscreen-btn.js"></script>
 </body>
 </html>

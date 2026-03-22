@@ -57,7 +57,7 @@
                 gameSide.style.position = 'fixed';
                 gameSide.style.top = '0';
                 gameSide.style.left = '0';
-                gameSide.style.width = '100vw';
+                gameSide.style.width = window.innerWidth + 'px';
                 gameSide.style.height = vHeight + 'px';
                 gameSide.style.zIndex = '999';
                 gameSide.style.background = 'var(--grad-bg)';
@@ -67,8 +67,8 @@
                 touchControls.style.display = 'flex';
             }
             var ratio = 600 / 200;
-            var availableWidth = window.innerWidth - 32;
-            var availableHeight = vHeight - (isMobile() ? 140 : 0);
+            var availableWidth = window.innerWidth - 16;
+            var availableHeight = vHeight - (isMobile() ? 50 : 0);
             var newWidth = Math.min(availableWidth, availableHeight * ratio);
             var newHeight = newWidth / ratio;
             canvas.style.width = newWidth + 'px';
@@ -102,5 +102,6 @@
     });
     </script>
     <script src="./main.js"></script>
+    <script src="../fullscreen-btn.js"></script>
 </body>
 </html>

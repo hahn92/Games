@@ -50,19 +50,19 @@
                 gameSide.style.position = 'fixed';
                 gameSide.style.top = '0';
                 gameSide.style.left = '0';
-                gameSide.style.width = '100vw';
+                gameSide.style.width = window.innerWidth + 'px';
                 gameSide.style.height = vHeight + 'px';
                 gameSide.style.zIndex = '999';
                 gameSide.style.background = 'linear-gradient(135deg, #1a2980 0%, #26d0ce 100%)';
                 infoSide.style.display = 'none';
                 mobileStartBtn.style.display = 'block';
                 // Ajustar canvas al tamaño de pantalla
-                var minDim = Math.min(window.innerWidth, vHeight);
-                var size = Math.max(240, minDim - 32);
+                var minDim = Math.min(window.innerWidth, vHeight - 50);
+                var size = Math.max(240, minDim - 8);
                 canvas.width = size;
                 canvas.height = size;
-                canvas.style.maxWidth = '98vw';
-                canvas.style.maxHeight = '98vh';
+                canvas.style.maxWidth = '100%';
+                canvas.style.maxHeight = (vHeight - 50) + 'px';
             } else {
                 gameSide.style.position = '';
                 gameSide.style.top = '';
@@ -103,5 +103,6 @@
         </div>
     </main>
     <script src="./main.js"></script>
+    <script src="../fullscreen-btn.js"></script>
 </body>
 </html>

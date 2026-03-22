@@ -54,7 +54,7 @@
                 gameSide.style.position = 'fixed';
                 gameSide.style.top = '0';
                 gameSide.style.left = '0';
-                gameSide.style.width = '100vw';
+                gameSide.style.width = window.innerWidth + 'px';
                 gameSide.style.height = vHeight + 'px';
                 gameSide.style.zIndex = '999';
                 gameSide.style.background = 'var(--grad-bg)';
@@ -99,5 +99,6 @@
     });
     </script>
     <script src="./main.js"></script>
+    <script src="../fullscreen-btn.js"></script>
 </body>
 </html>
