@@ -6,7 +6,7 @@ var WIDTH  = canvas.width;   // 600
 var HEIGHT = canvas.height;  // 200
 
 var GRAVITY     = 0.72;
-var JUMP_FORCE  = -9.2;
+var JUMP_FORCE  = -9.9;
 var GROUND_Y    = 155;
 var PLAYER_SIZE = 36;
 var CROUCH_H    = 20;   // altura dino agachado
@@ -43,11 +43,43 @@ var screenShake = 0;
 // Milestone
 var lastMilestone = 0;
 
+// Background system
+var bgX     = 0;
+var bgStars = [];
+
+var BG_THEMES = [
+    // 0: Día
+    { s0:'#1a5fa5', s1:'#5ab0e8', s2:'#9dd4f5',
+      mF:'#7ab0a0', mM:'#4a8a60', mN:'#2a6040',
+      g0:'#68c46a', g1:'#52a854', g2:'#7a5218', g3:'#5c3d10',
+      cRGB:'255,255,255', cA:0.92, sun:true,  sunCol:'#ffe066', stars:false },
+    // 1: Tarde
+    { s0:'#28569a', s1:'#6aaad8', s2:'#b0d8f0',
+      mF:'#90b0a8', mM:'#6a9878', mN:'#486858',
+      g0:'#70cc72', g1:'#5ab85c', g2:'#8a5c20', g3:'#6a4010',
+      cRGB:'255,255,255', cA:0.88, sun:true,  sunCol:'#ffd044', stars:false },
+    // 2: Atardecer
+    { s0:'#b03828', s1:'#e07038', s2:'#f5c060',
+      mF:'#705888', mM:'#502868', mN:'#301848',
+      g0:'#8a7030', g1:'#705820', g2:'#583010', g3:'#3a1808',
+      cRGB:'255,210,160', cA:0.75, sun:true,  sunCol:'#ff7722', stars:false },
+    // 3: Crepúsculo
+    { s0:'#100830', s1:'#281850', s2:'#502870',
+      mF:'#302050', mM:'#1a1038', mN:'#0e0820',
+      g0:'#201018', g1:'#180c10', g2:'#100810', g3:'#08060a',
+      cRGB:'180,150,220', cA:0.45, sun:false, sunCol:'', stars:true  },
+    // 4: Noche
+    { s0:'#040620', s1:'#080e38', s2:'#101850',
+      mF:'#121830', mM:'#080e1e', mN:'#040810',
+      g0:'#0c100a', g1:'#080c08', g2:'#060806', g3:'#040604',
+      cRGB:'140,160,210', cA:0.28, sun:false, sunCol:'', stars:true  },
+];
+
 // Clouds (parallax)
 var clouds = [
-    { x: 100, y: 28, w: 64, h: 22, speed: 0.22 },
-    { x: 310, y: 46, w: 80, h: 26, speed: 0.18 },
-    { x: 520, y: 22, w: 52, h: 18, speed: 0.28 },
+    { x: 100, y: 28, w: 64, h: 22, speed: 0.22, type: 0 },
+    { x: 310, y: 46, w: 80, h: 26, speed: 0.18, type: 1 },
+    { x: 520, y: 22, w: 52, h: 18, speed: 0.28, type: 2 },
 ];
 
 // ─── OBSTACLE TYPES ─────────────────────────────────────────
@@ -118,12 +150,17 @@ function checkCrouchKeys() {
 
 // ─── PLAYER UPDATE ─────────────────────────────────────────
 function updatePlayer() {
-    // Movimiento lateral solo en el suelo — sin cambio de dirección en el aire
+    // Movimiento lateral: control total en el suelo, inercia en el aire
     if (player.onGround) {
-        if (keys['ArrowLeft']  || keys['a'] || keys['A'])
-            player.x = Math.max(PLAYER_MIN_X, player.x - PLAYER_SPEED);
-        if (keys['ArrowRight'] || keys['d'] || keys['D'])
-            player.x = Math.min(PLAYER_MAX_X, player.x + PLAYER_SPEED);
+        player.vx = 0;
+        if (keys['ArrowLeft']  || keys['a'] || keys['A']) player.vx = -PLAYER_SPEED;
+        if (keys['ArrowRight'] || keys['d'] || keys['D']) player.vx =  PLAYER_SPEED;
+        player.x = Math.max(PLAYER_MIN_X, Math.min(PLAYER_MAX_X, player.x + player.vx));
+    } else {
+        // En el aire: mantiene inercia, pequeña corrección permitida
+        if (keys['ArrowLeft']  || keys['a'] || keys['A']) player.vx = Math.max(-PLAYER_SPEED, player.vx - 0.4);
+        if (keys['ArrowRight'] || keys['d'] || keys['D']) player.vx = Math.min( PLAYER_SPEED, player.vx + 0.4);
+        player.x = Math.max(PLAYER_MIN_X, Math.min(PLAYER_MAX_X, player.x + player.vx));
     }
 
     checkCrouchKeys();
@@ -350,8 +387,11 @@ function updateClouds() {
     for (var i = 0; i < clouds.length; i++) {
         clouds[i].x -= SPEED * clouds[i].speed;
         if (clouds[i].x + clouds[i].w < 0) {
-            clouds[i].x = WIDTH + 20;
-            clouds[i].y = 12 + Math.random() * 50;
+            clouds[i].x = WIDTH + 20 + Math.random() * 80;
+            clouds[i].y = 10 + Math.random() * 55;
+            clouds[i].w = 40 + Math.random() * 64;
+            clouds[i].h = 16 + Math.random() * 24;
+            clouds[i].type = Math.floor(Math.random() * 3);
         }
     }
 }
@@ -396,68 +436,155 @@ function checkMilestone() {
     }
 }
 
+// ─── BACKGROUND HELPERS ────────────────────────────────────
+function getBgTheme() {
+    if (score >= 1200) return 4;
+    if (score >= 900)  return 3;
+    if (score >= 600)  return 2;
+    if (score >= 300)  return 1;
+    return 0;
+}
+
+function initBgStars() {
+    bgStars = [];
+    for (var i = 0; i < 70; i++) {
+        bgStars.push({
+            x:  Math.random() * WIDTH,
+            y:  Math.random() * (GROUND_Y * 0.75),
+            r:  Math.random() * 1.4 + 0.3,
+            tw: Math.random() * Math.PI * 2
+        });
+    }
+}
+
+function drawMtnLayer(scrollMul, p0, p1, p2, a0, a1, a2, baseRatio, col) {
+    var gYf = GROUND_Y + PLAYER_SIZE;
+    var wx  = bgX * scrollMul;
+    ctx.fillStyle = col;
+    ctx.beginPath();
+    ctx.moveTo(0, HEIGHT);
+    for (var px = 0; px <= WIDTH + 4; px += 4) {
+        var wX = px + wx;
+        var h  = Math.sin(wX / p0 * Math.PI * 2) * a0
+               + Math.sin(wX / p1 * Math.PI * 2 + 1.7) * a1
+               + Math.sin(wX / p2 * Math.PI * 2 + 3.4) * a2;
+        ctx.lineTo(px, gYf * baseRatio + h);
+    }
+    ctx.lineTo(WIDTH, HEIGHT);
+    ctx.closePath();
+    ctx.fill();
+}
+
+function drawCloudShape(c, th) {
+    var hw = c.w / 2, hh = c.h / 2;
+    var ca = 'rgba(' + th.cRGB + ',' + th.cA + ')';
+    var cb = 'rgba(' + th.cRGB + ',' + (th.cA * 0.65) + ')';
+    ctx.fillStyle = ca;
+    if (c.type === 1) {
+        // Wispy — finas franjas horizontales
+        ctx.beginPath(); ctx.ellipse(c.x + hw,        c.y + hh,        hw * 1.1,  hh * 0.38, 0,     0, Math.PI*2); ctx.fill();
+        ctx.fillStyle = cb;
+        ctx.beginPath(); ctx.ellipse(c.x + hw * 0.55, c.y + hh * 0.65, hw * 0.5,  hh * 0.27, -0.25, 0, Math.PI*2); ctx.fill();
+        ctx.beginPath(); ctx.ellipse(c.x + hw * 1.5,  c.y + hh * 1.1,  hw * 0.44, hh * 0.24, 0.2,   0, Math.PI*2); ctx.fill();
+    } else if (c.type === 2) {
+        // Cumulus alto — apilado vertical
+        ctx.beginPath(); ctx.ellipse(c.x + hw,        c.y + hh * 1.1,  hw * 0.68, hh * 0.65, 0, 0, Math.PI*2); ctx.fill();
+        ctx.beginPath(); ctx.ellipse(c.x + hw * 0.75, c.y + hh * 0.72, hw * 0.54, hh * 0.58, 0, 0, Math.PI*2); ctx.fill();
+        ctx.beginPath(); ctx.ellipse(c.x + hw * 1.25, c.y + hh * 0.7,  hw * 0.5,  hh * 0.55, 0, 0, Math.PI*2); ctx.fill();
+        ctx.fillStyle = cb;
+        ctx.beginPath(); ctx.ellipse(c.x + hw,        c.y + hh * 0.28, hw * 0.38, hh * 0.5,  0, 0, Math.PI*2); ctx.fill();
+    } else {
+        // Esponjoso estándar
+        ctx.beginPath(); ctx.ellipse(c.x + hw,        c.y + hh * 0.8,  hw,        hh * 0.75, 0, 0, Math.PI*2); ctx.fill();
+        ctx.beginPath(); ctx.ellipse(c.x + hw * 0.35, c.y + hh * 0.85, hw * 0.5,  hh * 0.65, 0, 0, Math.PI*2); ctx.fill();
+        ctx.beginPath(); ctx.ellipse(c.x + hw * 1.65, c.y + hh * 0.85, hw * 0.44, hh * 0.6,  0, 0, Math.PI*2); ctx.fill();
+        ctx.fillStyle = cb;
+        ctx.beginPath(); ctx.ellipse(c.x + hw,        c.y + hh * 0.3,  hw * 0.35, hh * 0.5,  0, 0, Math.PI*2); ctx.fill();
+    }
+}
+
 // ─── DRAW BACKGROUND ───────────────────────────────────────
 function drawBackground() {
-    var gY = GROUND_Y + PLAYER_SIZE;
+    var gYf = GROUND_Y + PLAYER_SIZE;
+    var ti  = getBgTheme();
+    var th  = BG_THEMES[ti];
 
     // Sky gradient
-    var sky = ctx.createLinearGradient(0, 0, 0, gY);
-    sky.addColorStop(0,    '#4a8fc8');
-    sky.addColorStop(0.55, '#87CEEB');
-    sky.addColorStop(1,    '#b5ddf5');
+    var sky = ctx.createLinearGradient(0, 0, 0, gYf);
+    sky.addColorStop(0,    th.s0);
+    sky.addColorStop(0.55, th.s1);
+    sky.addColorStop(1,    th.s2);
     ctx.fillStyle = sky;
     ctx.fillRect(0, 0, WIDTH, HEIGHT);
 
-    // Distant rolling hills (slow parallax)
-    var hillOff = (frame * SPEED * 0.07) % 120;
-    ctx.fillStyle = 'rgba(115,180,128,0.28)';
-    for (var hi = 0; hi < 6; hi++) {
-        ctx.beginPath();
-        ctx.ellipse(-hillOff + hi * 120 + 60, gY + 2, 68, 30, 0, Math.PI, Math.PI * 2);
-        ctx.fill();
+    // Stars (temas oscuros)
+    if (th.stars) {
+        var sA = ti === 3 ? 0.65 : 0.95;
+        for (var si = 0; si < bgStars.length; si++) {
+            var st = bgStars[si];
+            var tw = 0.55 + 0.45 * Math.sin(frame * 0.05 + st.tw);
+            ctx.fillStyle = 'rgba(255,255,255,' + (sA * tw) + ')';
+            ctx.beginPath(); ctx.arc(st.x, st.y, st.r, 0, Math.PI*2); ctx.fill();
+        }
     }
 
-    // Clouds — puffier multi-ellipse shape
-    for (var ci = 0; ci < clouds.length; ci++) {
-        var c = clouds[ci];
-        var hw = c.w / 2, hh = c.h / 2;
-        ctx.fillStyle = 'rgba(255,255,255,0.92)';
-        ctx.beginPath(); ctx.ellipse(c.x + hw,         c.y + hh * 0.8,  hw,        hh * 0.75, 0, 0, Math.PI * 2); ctx.fill();
-        ctx.beginPath(); ctx.ellipse(c.x + hw * 0.35,  c.y + hh * 0.85, hw * 0.5,  hh * 0.65, 0, 0, Math.PI * 2); ctx.fill();
-        ctx.beginPath(); ctx.ellipse(c.x + hw * 1.65,  c.y + hh * 0.85, hw * 0.44, hh * 0.6,  0, 0, Math.PI * 2); ctx.fill();
-        ctx.fillStyle = 'rgba(255,255,255,0.75)';
-        ctx.beginPath(); ctx.ellipse(c.x + hw,         c.y + hh * 0.3,  hw * 0.35, hh * 0.5,  0, 0, Math.PI * 2); ctx.fill();
+    // Sol
+    if (th.sun) {
+        var sx = 510, sy = ti === 2 ? 46 : 28, sr = ti === 2 ? 12 : 16;
+        ctx.globalAlpha = 0.22;
+        ctx.fillStyle = th.sunCol;
+        ctx.beginPath(); ctx.arc(sx, sy, sr * 2.8, 0, Math.PI*2); ctx.fill();
+        ctx.globalAlpha = 0.5;
+        ctx.beginPath(); ctx.arc(sx, sy, sr * 1.7, 0, Math.PI*2); ctx.fill();
+        ctx.globalAlpha = 1;
+        ctx.beginPath(); ctx.arc(sx, sy, sr, 0, Math.PI*2); ctx.fill();
     }
 
-    // Ground — soil + grass layers
-    ctx.fillStyle = '#5c3d10';
-    ctx.fillRect(0, gY + 18, WIDTH, HEIGHT - gY - 18);
-    ctx.fillStyle = '#7a5218';
-    ctx.fillRect(0, gY + 6,  WIDTH, 12);
-    ctx.fillStyle = '#52a854';
-    ctx.fillRect(0, gY,      WIDTH, 8);
-    ctx.fillStyle = '#68c46a';
-    ctx.fillRect(0, gY,      WIDTH, 2);
-
-    // Ground detail stripes (moving)
-    ctx.strokeStyle = 'rgba(38,100,40,0.38)';
-    ctx.lineWidth = 1;
-    var gOff = (frame * SPEED * 0.5) % 40;
-    for (var gx = -gOff; gx < WIDTH; gx += 40) {
-        ctx.beginPath();
-        ctx.moveTo(gx,      gY + 11);
-        ctx.lineTo(gx + 16, gY + 11);
-        ctx.stroke();
+    // Luna (temas oscuros)
+    if (!th.sun) {
+        var mx = 510, my = 26;
+        ctx.globalAlpha = 0.28;
+        ctx.fillStyle = '#ccdcff';
+        ctx.beginPath(); ctx.arc(mx, my, 30, 0, Math.PI*2); ctx.fill();
+        ctx.globalAlpha = 1;
+        ctx.fillStyle = '#d8e8ff';
+        ctx.beginPath(); ctx.arc(mx, my, 12, 0, Math.PI*2); ctx.fill();
+        ctx.fillStyle = ti === 4 ? '#060c24' : '#1e1040';
+        ctx.beginPath(); ctx.arc(mx + 6, my - 4, 10, 0, Math.PI*2); ctx.fill();
     }
 
-    // Player ground shadow
+    // Montañas — 3 capas de paralaje
+    drawMtnLayer(0.04, 280, 430, 640,  14,  9,  5,  0.66, th.mF);
+    drawMtnLayer(0.10, 200, 310, 460,  26, 16,  9,  0.76, th.mM);
+    drawMtnLayer(0.22, 130, 200, 310,  36, 22, 13,  0.84, th.mN);
+
+    // Nubes
+    for (var ci = 0; ci < clouds.length; ci++) drawCloudShape(clouds[ci], th);
+
+    // Suelo
+    ctx.fillStyle = th.g0; ctx.fillRect(0, gYf,      WIDTH, 2);
+    ctx.fillStyle = th.g1; ctx.fillRect(0, gYf + 2,  WIDTH, 6);
+    ctx.fillStyle = th.g2; ctx.fillRect(0, gYf + 8,  WIDTH, 10);
+    ctx.fillStyle = th.g3; ctx.fillRect(0, gYf + 18, WIDTH, HEIGHT - gYf - 18);
+
+    // Líneas de suelo (sólo temas verdes)
+    if (ti <= 1) {
+        ctx.strokeStyle = 'rgba(38,100,40,0.38)';
+        ctx.lineWidth = 1;
+        var gOff = (frame * SPEED * 0.5) % 40;
+        for (var gx = -gOff; gx < WIDTH; gx += 40) {
+            ctx.beginPath(); ctx.moveTo(gx, gYf + 11); ctx.lineTo(gx + 16, gYf + 11); ctx.stroke();
+        }
+    }
+
+    // Sombra del jugador
     if ((isPlaying || isDying) && player.x !== undefined) {
         var airRatio    = Math.max(0, (GROUND_Y - player.y) / GROUND_Y);
         var shadowAlpha = Math.max(0.04, 0.22 - airRatio * 0.18);
         var shadowRX    = player.onGround ? 16 * squishX : 11;
         ctx.fillStyle = 'rgba(0,0,0,' + shadowAlpha + ')';
         ctx.beginPath();
-        ctx.ellipse(player.x + 18, gY + 3, shadowRX, 4, 0, 0, Math.PI * 2);
+        ctx.ellipse(player.x + 18, gYf + 3, shadowRX, 4, 0, 0, Math.PI*2);
         ctx.fill();
     }
 }
@@ -759,6 +886,7 @@ function gameLoop() {
 
     frame++;
     animTick++;
+    bgX += SPEED;
     SPEED += 0.0014;
     score = Math.floor(frame / 6);
 
@@ -806,7 +934,7 @@ function gameLoop() {
 
 function startGame() {
     GameAudio.start();
-    player = { x: 80, y: GROUND_Y, vy: 0, onGround: true };
+    player = { x: 80, y: GROUND_Y, vy: 0, vx: 0, onGround: true };
     obstacles = [];
     dustParticles = [];
     milestoneMsg = null;
@@ -814,7 +942,9 @@ function startGame() {
     SPEED = 4;
     frame = 0;
     animTick = 0;
+    bgX = 0;
     score = 0;
+    initBgStars();
     nextObstacle = 90;
     isPlaying = true;
     isDying   = false;
@@ -955,4 +1085,5 @@ document.getElementById('playAgainBtn').addEventListener('click', function() {
 // Init
 document.getElementById('score').textContent = '0';
 document.getElementById('highScore').textContent = highScore;
+initBgStars();
 drawIdle();
