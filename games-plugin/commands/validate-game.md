@@ -15,6 +15,11 @@ Read `$ARGUMENTS/index.html`, `$ARGUMENTS/main.js`, and `$ARGUMENTS/styles.css` 
 - `GameAudio.click()` in `startBtn`, `restartBtn`, and `playAgainBtn` handlers
 - At least 2 game-specific sounds (jump, hit, explode, flip, etc.)
 
+## 🖼️ Thumbnail
+
+- `thumbnails.js` contains a `"$ARGUMENTS"` key inside the `thumbs` object
+- The root `index.html` has `<canvas data-game="$ARGUMENTS">` (not an `<img>`) for this game
+
 ## 🎨 Graphics
 
 - No emoji inside `ctx.fillText()` on canvas

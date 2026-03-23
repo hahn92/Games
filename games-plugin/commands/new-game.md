@@ -8,7 +8,7 @@ Scaffold a new game called **"$ARGUMENTS"** in `/Users/hahn/Documents/Desarrollo
 
 ## 1 — Create files
 
-Create these four files:
+Create these three files:
 
 ### `$ARGUMENTS/styles.css`
 Must start with:
@@ -83,17 +83,35 @@ document.getElementById('playAgainBtn').addEventListener('click', function () {
 });
 ```
 
-### `$ARGUMENTS/image.png`
-Leave a placeholder — the user will provide the thumbnail image separately. Create a note file `$ARGUMENTS/image-pending.txt` with content `thumbnail pending`.
+## 2 — Add thumbnail to `thumbnails.js`
 
-## 2 — Add to catalog
+Open `/Users/hahn/Documents/Desarrollo/Games/thumbnails.js` and add a drawing function
+for `$ARGUMENTS` inside the `thumbs` object, before the closing `};`.
 
-Add a card in the root `index.html` inside `.games-grid` (keep alphabetical or by category):
+Draw a recognisable mini-scene for the game using Canvas 2D API primitives only — no images,
+no emoji on canvas. The canvas is 220×220. Use the shared `C` palette (C.bg, C.blue,
+C.orange, C.green, C.white, etc.) and helper functions (`background`, `gradBg`, `roundRect`).
+
+Insert right before the closing `};` of the `thumbs` object:
+
+```js
+    $ARGUMENTS: function (ctx) {
+        // A recognisable mini-scene for the game.
+        background(ctx);
+        // … drawing code using ctx.arc, ctx.fillRect, ctx.beginPath, etc. …
+    },
+```
+
+Ensure the previous entry in `thumbs` has a trailing comma.
+
+## 3 — Add to catalog
+
+Add a card in the root `index.html` inside `.games-grid` (keep alphabetical or by category).
+Use `<canvas data-game="...">` — no `<img>` tags, thumbnails are rendered by `thumbnails.js`:
 
 ```html
 <div class="game-card">
-    <img src="./$ARGUMENTS/image.png" alt="Captura del juego"
-         onerror="this.style.background='#2a2a2a';this.removeAttribute('onerror')">
+    <canvas data-game="$ARGUMENTS"></canvas>
     <div class="game-info">
         <div class="game-title">TITLE_HERE</div>
         <div class="game-category">CATEGORY_HERE</div>
@@ -103,11 +121,11 @@ Add a card in the root `index.html` inside `.games-grid` (keep alphabetical or b
 </div>
 ```
 
-## 3 — Update CLAUDE.md
+## 4 — Update CLAUDE.md
 
 Add the game to the Complete game list table in `CLAUDE.md`.
 
-## 4 — Validate
+## 5 — Validate
 
 Once the game logic is implemented, run:
 ```

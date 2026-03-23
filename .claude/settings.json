@@ -9,6 +9,24 @@
             "command": "node -e \"\nvar fs = require('fs');\nvar path = require('path');\nvar file = process.env.CLAUDE_TOOL_INPUT_FILE_PATH || process.env.CLAUDE_FILE_PATH || '';\nif (!file.endsWith('main.js')) process.exit(0);\ntry {\n  var code = fs.readFileSync(file, 'utf8');\n  var warns = [];\n  if (/shadowBlur[^}]+for\\s*\\(|for\\s*\\([^)]+\\)[^{]+{[^}]*shadowBlur/s.test(code)) warns.push('⚠ shadowBlur detectado dentro de un loop — esto destruye el rendimiento. Mueve ctx.shadowBlur fuera del loop.');\n  if (/ctx\\.fillText\\([^)]*[\\uD800-\\uDFFF\\u2600-\\u27FF]/u.test(code)) warns.push('⚠ Posible emoji en ctx.fillText() — los emojis en canvas causan bugs de transparencia. Usa formas canvas en su lugar.');\n  if (/setInterval.*draw|draw.*setInterval/s.test(code) && !/requestAnimationFrame/.test(code)) warns.push('⚠ Usando setInterval para el game loop — usa requestAnimationFrame para sincronizar con el monitor.');\n  if (/Math\\.random\\(\\)/.test(code)) {\n    var lines = code.split('\\n');\n    var drawFn = false;\n    lines.forEach(function(l,i) {\n      if (/function\\s+(draw|render|paint)/.test(l)) drawFn = true;\n      if (drawFn && /Math\\.random/.test(l)) warns.push('⚠ Math.random() en función de render (línea ' + (i+1) + ') — pre-computa valores aleatorios en spawn, no en cada frame.');\n    });\n  }\n  if (!/(GameAudio|audio\\.js)/.test(code) && /main\\.js$/.test(file)) warns.push('ℹ audio.js no integrado — considera agregar sonidos con /add-sounds.');\n  if (warns.length > 0) {\n    console.log('\\n🔍 Code Quality Check — ' + path.basename(file));\n    warns.forEach(function(w) { console.log(w); });\n  }\n} catch(e) {}\n\""
           }
         ]
+      },
+      {
+        "matcher": "Edit|Write",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node -e \"\nvar fs = require('fs');\nvar path = require('path');\nvar file = process.env.CLAUDE_TOOL_INPUT_FILE_PATH || process.env.CLAUDE_FILE_PATH || '';\nif (!file.endsWith('index.html')) process.exit(0);\ntry {\n  var code = fs.readFileSync(file, 'utf8');\n  var warns = [];\n  var isCatalog = /games-grid/.test(code);\n  if (isCatalog) {\n    if (/img[^>]+\\/image\\.png/.test(code)) warns.push('⚠ El catálogo usa <img> para miniaturas — reemplaza con <canvas data-game=nombre> y thumbnails.js');\n    if (/data-game=/.test(code) && !/thumbnails\\.js/.test(code)) warns.push('⚠ canvas data-game= sin thumbnails.js — agrega <script src=./thumbnails.js> al final del body');\n  }\n  if (warns.length > 0) {\n    console.log('\\n🔍 Catalog Check — index.html');\n    warns.forEach(function(w) { console.log(w); });\n  }\n} catch(e) {}\n\""
+          }
+        ]
+      },
+      {
+        "matcher": "Edit|Write",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node -e \"\nvar fs = require('fs');\nvar path = require('path');\nvar file = process.env.CLAUDE_TOOL_INPUT_FILE_PATH || process.env.CLAUDE_FILE_PATH || '';\nif (!file.endsWith('thumbnails.js')) process.exit(0);\ntry {\n  var code = fs.readFileSync(file, 'utf8');\n  var m = code.match(/[a-z0-9]+:\\s*function\\s*\\(ctx\\)/gi) || [];\n  console.log('\\nℹ thumbnails.js — ' + m.length + ' miniaturas definidas.');\n} catch(e) {}\n\""
+          }
+        ]
       }
     ]
   }

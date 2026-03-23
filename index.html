@@ -5,8 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Catálogo de Videojuegos JS/CSS</title>
     <link rel="stylesheet" href="styles.css">
-    <script src="./main.js"></script>
-</body>
+</head>
 <body>
     <header>
         <h1>Catálogo de Videojuegos JS/CSS</h1>
@@ -15,7 +14,7 @@
     <main>
         <section class="games-grid">
             <div class="game-card">
-                <img src="./snake/image.png" alt="Captura del juego">
+                <canvas data-game="snake"></canvas>
                 <div class="game-info">
                     <div class="game-title">Snake Clásico</div>
                     <div class="game-category">Arcade</div>
@@ -24,7 +23,7 @@
                 </div>
             </div>
             <div class="game-card">
-                <img src="./tetris/image.png" alt="Captura del juego">
+                <canvas data-game="tetris"></canvas>
                 <div class="game-info">
                     <div class="game-title">Tetris JS</div>
                     <div class="game-category">Puzzle</div>
@@ -33,7 +32,7 @@
                 </div>
             </div>
             <div class="game-card">
-                <img src="./pong/image.png" alt="Captura del juego">
+                <canvas data-game="pong"></canvas>
                 <div class="game-info">
                     <div class="game-title">Pong Clásico</div>
                     <div class="game-category">Arcade</div>
@@ -42,7 +41,7 @@
                 </div>
             </div>
             <div class="game-card">
-                <img src="./breakout/image.png" alt="Captura del juego">
+                <canvas data-game="breakout"></canvas>
                 <div class="game-info">
                     <div class="game-title">Breakout</div>
                     <div class="game-category">Arcade</div>
@@ -51,7 +50,7 @@
                 </div>
             </div>
             <div class="game-card">
-                <img src="./2048/image.png" alt="Captura del juego">
+                <canvas data-game="2048"></canvas>
                 <div class="game-info">
                     <div class="game-title">2048</div>
                     <div class="game-category">Puzzle</div>
@@ -60,7 +59,7 @@
                 </div>
             </div>
             <div class="game-card">
-                <img src="./memorama/image.png" alt="Captura del juego">
+                <canvas data-game="memorama"></canvas>
                 <div class="game-info">
                     <div class="game-title">Memorama</div>
                     <div class="game-category">Puzzle</div>
@@ -69,7 +68,7 @@
                 </div>
             </div>
             <div class="game-card">
-                <img src="./flappybird/image.png" alt="Captura del juego">
+                <canvas data-game="flappybird"></canvas>
                 <div class="game-info">
                     <div class="game-title">Flappy Bird</div>
                     <div class="game-category">Arcade</div>
@@ -78,7 +77,7 @@
                 </div>
             </div>
             <div class="game-card">
-                <img src="./spaceinvaders/image.png" alt="Captura del juego">
+                <canvas data-game="spaceinvaders"></canvas>
                 <div class="game-info">
                     <div class="game-title">Space Invaders</div>
                     <div class="game-category">Shooter</div>
@@ -87,7 +86,7 @@
                 </div>
             </div>
             <div class="game-card">
-                <img src="./whackamole/image.png" alt="Captura del juego" onerror="this.style.background='#2a2a2a';this.removeAttribute('onerror')">
+                <canvas data-game="whackamole"></canvas>
                 <div class="game-info">
                     <div class="game-title">Whack-a-Mole</div>
                     <div class="game-category">Arcade</div>
@@ -96,7 +95,7 @@
                 </div>
             </div>
             <div class="game-card">
-                <img src="./simon/image.png" alt="Captura del juego" onerror="this.style.background='#2a2a2a';this.removeAttribute('onerror')">
+                <canvas data-game="simon"></canvas>
                 <div class="game-info">
                     <div class="game-title">Simon Dice</div>
                     <div class="game-category">Memoria</div>
@@ -105,7 +104,7 @@
                 </div>
             </div>
             <div class="game-card">
-                <img src="./runner/image.png" alt="Captura del juego" onerror="this.style.background='#2a2a2a';this.removeAttribute('onerror')">
+                <canvas data-game="runner"></canvas>
                 <div class="game-info">
                     <div class="game-title">Endless Runner</div>
                     <div class="game-category">Arcade</div>
@@ -114,7 +113,7 @@
                 </div>
             </div>
             <div class="game-card">
-                <img src="./minesweeper/image.png" alt="Captura del juego" onerror="this.style.background='#2a2a2a';this.removeAttribute('onerror')">
+                <canvas data-game="minesweeper"></canvas>
                 <div class="game-info">
                     <div class="game-title">Buscaminas</div>
                     <div class="game-category">Puzzle</div>
@@ -123,7 +122,7 @@
                 </div>
             </div>
             <div class="game-card">
-                <img src="./tictactoe/image.png" alt="Captura del juego" onerror="this.style.background='#2a2a2a';this.removeAttribute('onerror')">
+                <canvas data-game="tictactoe"></canvas>
                 <div class="game-info">
                     <div class="game-title">Tres en Raya</div>
                     <div class="game-category">Estrategia</div>
@@ -132,7 +131,7 @@
                 </div>
             </div>
             <div class="game-card">
-                <img src="./connectfour/image.png" alt="Captura del juego" onerror="this.style.background='#2a2a2a';this.removeAttribute('onerror')">
+                <canvas data-game="connectfour"></canvas>
                 <div class="game-info">
                     <div class="game-title">Conecta 4</div>
                     <div class="game-category">Estrategia</div>
@@ -141,7 +140,7 @@
                 </div>
             </div>
             <div class="game-card">
-                <img src="./asteroids/image.png" alt="Captura del juego" onerror="this.style.background='#2a2a2a';this.removeAttribute('onerror')">
+                <canvas data-game="asteroids"></canvas>
                 <div class="game-info">
                     <div class="game-title">Asteroids</div>
                     <div class="game-category">Shooter</div>
@@ -150,7 +149,7 @@
                 </div>
             </div>
             <div class="game-card">
-                <img src="./frogger/image.png" alt="Captura del juego" onerror="this.style.background='#2a2a2a';this.removeAttribute('onerror')">
+                <canvas data-game="frogger"></canvas>
                 <div class="game-info">
                     <div class="game-title">Frogger</div>
                     <div class="game-category">Arcade</div>
@@ -159,7 +158,7 @@
                 </div>
             </div>
             <div class="game-card">
-                <img src="./wordle/image.png" alt="Captura del juego" onerror="this.style.background='#2a2a2a';this.removeAttribute('onerror')">
+                <canvas data-game="wordle"></canvas>
                 <div class="game-info">
                     <div class="game-title">Wordle</div>
                     <div class="game-category">Palabras</div>
@@ -168,7 +167,7 @@
                 </div>
             </div>
             <div class="game-card">
-                <img src="./typingspeed/image.png" alt="Captura del juego" onerror="this.style.background='#2a2a2a';this.removeAttribute('onerror')">
+                <canvas data-game="typingspeed"></canvas>
                 <div class="game-info">
                     <div class="game-title">Velocidad de Escritura</div>
                     <div class="game-category">Habilidad</div>
@@ -177,7 +176,7 @@
                 </div>
             </div>
             <div class="game-card">
-                <img src="./slidingpuzzle/image.png" alt="Captura del juego" onerror="this.style.background='#2a2a2a';this.removeAttribute('onerror')">
+                <canvas data-game="slidingpuzzle"></canvas>
                 <div class="game-info">
                     <div class="game-title">Puzzle 15</div>
                     <div class="game-category">Puzzle</div>
@@ -186,7 +185,7 @@
                 </div>
             </div>
             <div class="game-card">
-                <img src="./fruitcatcher/image.png" alt="Captura del juego" onerror="this.style.background='#2a2a2a';this.removeAttribute('onerror')">
+                <canvas data-game="fruitcatcher"></canvas>
                 <div class="game-info">
                     <div class="game-title">Atrapa Frutas</div>
                     <div class="game-category">Arcade</div>
@@ -196,5 +195,6 @@
             </div>
         </section>
     </main>
+    <script src="./thumbnails.js"></script>
 </body>
 </html>
