@@ -16,7 +16,8 @@
       "Bash(done)",
       "Read(//Users/hahn/Documents/Desarrollo/Games/$game/**)",
       "Bash(echo \"OK: $game\")",
-      "Bash(echo \"MISSING: $game\")"
+      "Bash(echo \"MISSING: $game\")",
+      "Bash(node:*)"
     ]
   }
 }

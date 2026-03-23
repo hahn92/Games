@@ -86,6 +86,9 @@ function updateLanes() {
 
 var frogPx = { x: 0, y: 0 };
 var frogRidingOffset = 0;
+var exhaustParticles = []; // smoke from cars
+var jumpParticles   = [];  // dust/splash on frog jump
+var landSquash      = 0;   // frames of squash after landing (0-8)
 
 function getFrogPixel() {
     return {
@@ -192,6 +195,21 @@ function drawBackground() {
     }
     ctx.restore();
 
+    // Caustic light columns (animated vertical shimmer bands)
+    ctx.save();
+    for (var cCol = 0; cCol < 12; cCol++) {
+        var cBase = (cCol * 34 + frame * 0.4) % W;
+        var cAlpha = 0.06 + 0.04 * Math.sin(frame * 0.03 + cCol);
+        var causticG = ctx.createLinearGradient(cBase, CELL, cBase, CELL * 5);
+        causticG.addColorStop(0, 'rgba(140,200,255,' + cAlpha + ')');
+        causticG.addColorStop(0.5, 'rgba(160,220,255,' + (cAlpha * 1.6) + ')');
+        causticG.addColorStop(1, 'rgba(100,170,220,' + (cAlpha * 0.5) + ')');
+        ctx.fillStyle = causticG;
+        var bandW = 6 + 4 * Math.sin(frame * 0.02 + cCol * 0.8);
+        ctx.fillRect(cBase, CELL, bandW, CELL * 4);
+    }
+    ctx.restore();
+
     // Median row 5 (safety strip with patterned curb)
     ctx.fillStyle = '#4caf50';
     ctx.fillRect(0, CELL * 5, W, CELL);
@@ -267,56 +285,99 @@ function drawLogs() {
         if (!lane) continue;
         for (var i = 0; i < lane.objects.length; i++) {
             var o = lane.objects[i];
-            var oy = r * CELL + 2;
+            // Gentle bobbing per log (each log has its own phase)
+            var bob = Math.sin(frame * 0.04 + i * 1.7 + r * 2.3) * 2.5;
+            var oy = r * CELL + 2 + bob;
             var oh = o.h;
             var ow = o.w;
 
-            // Main log body with gradient
-            var logGrad = ctx.createLinearGradient(o.x, oy, o.x, oy + oh);
-            logGrad.addColorStop(0, '#a1887f');
-            logGrad.addColorStop(0.3, '#795548');
-            logGrad.addColorStop(1, '#4e342e');
-            ctx.fillStyle = logGrad;
-
-            // Rounded log body
+            // Water reflection (lighter strip below log)
+            ctx.save();
+            ctx.globalAlpha = 0.18 + 0.06 * Math.sin(frame * 0.05 + i);
+            var reflGrad = ctx.createLinearGradient(o.x, oy + oh, o.x, oy + oh + 7);
+            reflGrad.addColorStop(0, '#a1887f');
+            reflGrad.addColorStop(1, 'rgba(100,120,180,0)');
+            ctx.fillStyle = reflGrad;
             ctx.beginPath();
-            // Left cap (semicircle)
+            ctx.arc(o.x + oh/2, oy + oh + 4, oh/2, 0, Math.PI, false);
+            ctx.arc(o.x + ow - oh/2, oy + oh + 4, oh/2, Math.PI, 0, false);
+            ctx.closePath();
+            ctx.fill();
+            ctx.restore();
+
+            // Log body with cylindrical gradient
+            var logGrad = ctx.createLinearGradient(o.x, oy, o.x, oy + oh);
+            logGrad.addColorStop(0, '#b8957a');  // top highlight (lit)
+            logGrad.addColorStop(0.25, '#8b6343');
+            logGrad.addColorStop(0.55, '#6d4c32');
+            logGrad.addColorStop(0.85, '#4a3020');
+            logGrad.addColorStop(1, '#3a2416');    // bottom shadow
+            ctx.fillStyle = logGrad;
+            ctx.beginPath();
             ctx.arc(o.x + oh/2, oy + oh/2, oh/2, Math.PI/2, -Math.PI/2, true);
-            // Right cap (semicircle)
             ctx.arc(o.x + ow - oh/2, oy + oh/2, oh/2, -Math.PI/2, Math.PI/2, false);
             ctx.closePath();
             ctx.fill();
 
-            // Log end caps (darker rings)
-            ctx.fillStyle = '#4e342e';
-            ctx.beginPath();
-            ctx.ellipse(o.x + oh/2, oy + oh/2, oh/2, oh/2, 0, 0, Math.PI * 2);
-            ctx.fill();
-            ctx.fillStyle = '#6d4c41';
-            ctx.beginPath();
-            ctx.ellipse(o.x + oh/2, oy + oh/2, oh/2 - 3, oh/2 - 3, 0, 0, Math.PI * 2);
-            ctx.fill();
-            ctx.fillStyle = '#4e342e';
-            ctx.beginPath();
-            ctx.ellipse(o.x + ow - oh/2, oy + oh/2, oh/2, oh/2, 0, 0, Math.PI * 2);
-            ctx.fill();
-            ctx.fillStyle = '#6d4c41';
-            ctx.beginPath();
-            ctx.ellipse(o.x + ow - oh/2, oy + oh/2, oh/2 - 3, oh/2 - 3, 0, 0, Math.PI * 2);
-            ctx.fill();
-
-            // Wood grain lines
+            // Wet top highlight (specular)
             ctx.save();
-            ctx.strokeStyle = 'rgba(60,30,10,0.4)';
+            ctx.globalAlpha = 0.28 + 0.10 * Math.sin(frame * 0.06 + i * 1.3);
+            var shineGrad = ctx.createLinearGradient(o.x, oy, o.x, oy + oh * 0.35);
+            shineGrad.addColorStop(0, 'rgba(255,255,255,0.7)');
+            shineGrad.addColorStop(1, 'rgba(255,255,255,0)');
+            ctx.fillStyle = shineGrad;
+            ctx.beginPath();
+            ctx.arc(o.x + oh/2, oy + oh/2, oh/2, Math.PI/2, -Math.PI/2, true);
+            ctx.arc(o.x + ow - oh/2, oy + oh/2, oh/2, -Math.PI/2, Math.PI/2, false);
+            ctx.closePath();
+            ctx.fill();
+            ctx.restore();
+
+            // Wood grain lines on body
+            ctx.save();
+            ctx.strokeStyle = 'rgba(40,20,8,0.35)';
             ctx.lineWidth = 1;
-            var grainSpacing = 7;
-            for (var g = oh/2 + grainSpacing; g < ow - oh/2; g += grainSpacing) {
+            for (var g = oh/2 + 8; g < ow - oh/2; g += 8) {
                 ctx.beginPath();
-                ctx.moveTo(o.x + g, oy + 3);
-                ctx.lineTo(o.x + g, oy + oh - 3);
+                ctx.moveTo(o.x + g, oy + 4);
+                ctx.lineTo(o.x + g, oy + oh - 4);
                 ctx.stroke();
             }
             ctx.restore();
+
+            // End cap LEFT — tree rings cross-section
+            var capCx = o.x + oh/2, capCy = oy + oh/2, capR = oh/2;
+            var capG = ctx.createRadialGradient(capCx - capR*0.3, capCy - capR*0.3, 0, capCx, capCy, capR);
+            capG.addColorStop(0, '#c8a078');
+            capG.addColorStop(0.35, '#8b5e38');
+            capG.addColorStop(0.65, '#6b4020');
+            capG.addColorStop(1, '#3a2010');
+            ctx.fillStyle = capG;
+            ctx.beginPath(); ctx.arc(capCx, capCy, capR, 0, Math.PI*2); ctx.fill();
+            // tree rings (concentric)
+            ctx.strokeStyle = 'rgba(40,15,5,0.4)'; ctx.lineWidth = 1;
+            for (var ring = 1; ring <= 3; ring++) {
+                ctx.beginPath(); ctx.arc(capCx, capCy, capR * (ring/4), 0, Math.PI*2); ctx.stroke();
+            }
+            // highlight dot
+            ctx.fillStyle = 'rgba(255,255,255,0.22)';
+            ctx.beginPath(); ctx.arc(capCx - capR*0.3, capCy - capR*0.3, capR*0.25, 0, Math.PI*2); ctx.fill();
+
+            // End cap RIGHT — same
+            var capRx = o.x + ow - oh/2;
+            var capG2 = ctx.createRadialGradient(capRx - capR*0.3, capCy - capR*0.3, 0, capRx, capCy, capR);
+            capG2.addColorStop(0, '#c8a078');
+            capG2.addColorStop(0.35, '#8b5e38');
+            capG2.addColorStop(0.65, '#6b4020');
+            capG2.addColorStop(1, '#3a2010');
+            ctx.fillStyle = capG2;
+            ctx.beginPath(); ctx.arc(capRx, capCy, capR, 0, Math.PI*2); ctx.fill();
+            ctx.strokeStyle = 'rgba(40,15,5,0.4)'; ctx.lineWidth = 1;
+            for (var ring2 = 1; ring2 <= 3; ring2++) {
+                ctx.beginPath(); ctx.arc(capRx, capCy, capR * (ring2/4), 0, Math.PI*2); ctx.stroke();
+            }
+            ctx.fillStyle = 'rgba(255,255,255,0.22)';
+            ctx.beginPath(); ctx.arc(capRx - capR*0.3, capCy - capR*0.3, capR*0.25, 0, Math.PI*2); ctx.fill();
         }
     }
 }
@@ -452,6 +513,37 @@ function drawCars() {
             ctx.fillStyle = 'rgba(255,160,150,0.6)';
             ctx.fillRect(rearEdge + 1, oy + 3, 2, oh * 0.14);
             ctx.fillRect(rearEdge + 1, oy + oh - oh * 0.28 - 1, 2, oh * 0.14);
+
+            // Speed lines on fast lanes (speed > 2.0)
+            if (Math.abs(lane.speed) > 2.0) {
+                ctx.save();
+                ctx.globalAlpha = 0.12;
+                ctx.strokeStyle = o.color;
+                ctx.lineWidth = 1;
+                for (var sl = 0; sl < 3; sl++) {
+                    var slX = o.x - dir * (10 + sl * 8);
+                    var slLen = (lane.speed - 2.0) * 8;
+                    ctx.beginPath();
+                    ctx.moveTo(slX, oy + oh * (0.25 + sl * 0.25));
+                    ctx.lineTo(slX - dir * slLen, oy + oh * (0.25 + sl * 0.25));
+                    ctx.stroke();
+                }
+                ctx.restore();
+
+                // Exhaust puff spawn
+                if (frame % 4 === 0) {
+                    var exX = dir > 0 ? o.x : o.x + ow;
+                    exhaustParticles.push({
+                        x: exX + (Math.random() - 0.5) * 4,
+                        y: oy + oh/2 + (Math.random() - 0.5) * oh * 0.5,
+                        vx: -dir * (0.3 + Math.random() * 0.4),
+                        vy: (Math.random() - 0.5) * 0.3,
+                        r: 2 + Math.random() * 2,
+                        life: 12 + Math.random() * 8 | 0,
+                        maxLife: 20
+                    });
+                }
+            }
         }
     }
 }
@@ -521,8 +613,9 @@ function drawFrogShape(cx, cy, r, moving) {
     }
 
     // ======= BODY =======
-    var bodyRx = r * 0.62 * (1 - jE * 0.06 + breathe);
-    var bodyRy = r * 0.50 * (1 + jE * 0.14 + breathe);
+    var squashT = landSquash / 8;
+    var bodyRx = r * 0.62 * (1 - jE * 0.06 + breathe + squashT * 0.22);
+    var bodyRy = r * 0.50 * (1 + jE * 0.14 + breathe - squashT * 0.18);
     var bodyGrad = ctx.createRadialGradient(cx - r * 0.2, cy - r * 0.2, r * 0.05, cx, cy, r * 0.75);
     bodyGrad.addColorStop(0, lightGreen);
     bodyGrad.addColorStop(0.6, bodyColor);
@@ -725,8 +818,10 @@ function drawFrog() {
     } else {
         frogCx = logX;
         frogCy = logY;
+        if (frogHop) { landSquash = 8; } // just landed
         frogHop = null;
     }
+    if (landSquash > 0) landSquash--;
 
     if (frogMoveFlash > 0) frogMoveFlash--;
     drawFrogShape(frogCx, frogCy, frogR, true);
@@ -769,6 +864,38 @@ function drawDeathAnim() {
     if (deathAnim.timer > 30 && deathAnim.particles.length === 0) {
         deathAnim.done = true;
         deathAnim = null;
+    }
+}
+
+function updateAndDrawExhaust() {
+    for (var i = exhaustParticles.length - 1; i >= 0; i--) {
+        var p = exhaustParticles[i];
+        p.x += p.vx; p.y += p.vy;
+        p.r += 0.15;
+        p.life--;
+        if (p.life <= 0) { exhaustParticles.splice(i, 1); continue; }
+        var a = (p.life / p.maxLife) * 0.25;
+        ctx.save();
+        ctx.globalAlpha = a;
+        ctx.fillStyle = '#ccc';
+        ctx.beginPath(); ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2); ctx.fill();
+        ctx.restore();
+    }
+}
+
+function updateAndDrawJumpParticles() {
+    for (var i = jumpParticles.length - 1; i >= 0; i--) {
+        var p = jumpParticles[i];
+        p.x += p.vx; p.y += p.vy;
+        p.vy += 0.08;
+        p.life--;
+        if (p.life <= 0) { jumpParticles.splice(i, 1); continue; }
+        var a = p.life / p.maxLife;
+        ctx.save();
+        ctx.globalAlpha = a * 0.75;
+        ctx.fillStyle = p.color;
+        ctx.beginPath(); ctx.arc(p.x, p.y, p.r * a, 0, Math.PI * 2); ctx.fill();
+        ctx.restore();
     }
 }
 
@@ -920,6 +1047,8 @@ function gameLoop() {
     drawCars();
     drawFrog();
     drawDeathAnim();
+    updateAndDrawExhaust();
+    updateAndDrawJumpParticles();
 
     animFrameId = requestAnimationFrame(gameLoop);
 }
@@ -929,28 +1058,60 @@ function moveFrog(dr, dc) {
     if (deathAnim) return; // can't move during death
     if (frogHop && frogHop.t < frogHop.duration) return; // wait for hop to finish
 
-    var nr = frog.row + dr;
+    var curRow = frog.row;
+    var onRiver = (curRow >= 1 && curRow <= 4);
+    var lateralOnRiver = (dr === 0 && dc !== 0 && onRiver);
+
+    var nr = curRow + dr;
     var nc = frog.col + dc;
-    if (nr < 0 || nr > 11 || nc < 1 || nc > COLS) return;
+    if (nr < 0 || nr > 11) return;
+    // For lateral river moves, skip column bounds — pixel clamp handles limits
+    if (!lateralOnRiver && (nc < 1 || nc > COLS)) return;
 
     // Save current visual position as hop start
-    var fromX = (frog.row >= 1 && frog.row <= 4 && frogRidingX !== null)
+    var fromX = (onRiver && frogRidingX !== null)
         ? frogRidingX
         : (frog.col - 0.5) * CELL;
-    var fromY = frog.row * CELL + CELL / 2;
+    var fromY = curRow * CELL + CELL / 2;
 
     // Update logical position immediately (collision detection uses this)
     frog.row = nr;
     frog.col = nc;
     frogMoveFlash = 12;
     if (nr >= 1 && nr <= 4) {
-        frogRidingX = (nc - 0.5) * CELL;
+        if (lateralOnRiver) {
+            // Half-cell lateral step on river: easier to position on logs
+            var newRX = fromX + dc * CELL * 0.5;
+            newRX = Math.max(CELL * 0.25, Math.min(W - CELL * 0.25, newRX));
+            frogRidingX = newRX;
+            frog.col = Math.max(1, Math.min(COLS, Math.round(newRX / CELL + 0.5)));
+        } else {
+            frogRidingX = (nc - 0.5) * CELL;
+        }
     } else {
         frogRidingX = null;
     }
 
     // Kick off hop tween
     frogHop = { fromX: fromX, fromY: fromY, t: 0, duration: 10 };
+
+    // Spawn jump dust/ripple particles
+    var isRiver = (frog.row >= 1 && frog.row <= 4);
+    var pColors = isRiver ? ['#64b5f6','#90caf9','#bbdefb'] : ['#c8a96e','#a1887f','#8d6e63'];
+    for (var pi = 0; pi < 5; pi++) {
+        var ang = (pi / 5) * Math.PI * 2;
+        jumpParticles.push({
+            x: fromX + Math.cos(ang) * 4,
+            y: fromY + Math.sin(ang) * 4,
+            vx: Math.cos(ang) * (0.8 + Math.random() * 0.8),
+            vy: Math.sin(ang) * (0.8 + Math.random() * 0.8) - 0.5,
+            r: 3 + Math.random() * 2,
+            life: 10 + Math.random() * 6 | 0,
+            maxLife: 16,
+            color: pColors[pi % pColors.length]
+        });
+    }
+
     GameAudio.hop();
 
     if (nr > 0) score += 1;
@@ -973,6 +1134,9 @@ function startGame() {
     deathAnim = null;
     frogMoveFlash = 0;
     frogHop = null;
+    exhaustParticles = [];
+    jumpParticles = [];
+    landSquash = 0;
     isPlaying = true;
     initLanes();
     updateHUD();
