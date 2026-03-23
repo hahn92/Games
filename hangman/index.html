@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <title>Ahorcado</title>
+    <link rel="stylesheet" href="./styles.css">
+</head>
+<body>
+    <main>
+        <div class="responsive-layout">
+            <!-- LEFT: game visuals -->
+            <div class="game-side" id="gameSide">
+                <canvas id="hangmanCanvas" width="300" height="320"></canvas>
+
+                <div id="wordDisplay">
+                    <!-- Letter slots injected by JS -->
+                </div>
+
+                <div id="wrongLettersArea">
+                    <div class="wrong-count-label">Letras incorrectas</div>
+                    <div id="wrongLettersList">&nbsp;</div>
+                </div>
+
+                <!-- Mobile-only overlays -->
+                <button id="mobileStartBtn" style="display:none;position:absolute;top:20px;left:50%;transform:translateX(-50%);z-index:1000;padding:1rem 2.5rem;font-size:1.3rem;border-radius:12px;background:var(--grad-primary);color:#222;font-weight:bold;border:none;box-shadow:0 2px 8px rgba(0,0,0,0.15);">Jugar</button>
+                <div id="mobileScore" class="mobile-score" style="top:8px;left:5px;right:5px;display:none;">
+                    Puntaje: <span id="mScore">0</span> &nbsp;|&nbsp; Mejor: <span id="mHighScore">0</span>
+                </div>
+            </div>
+
+            <!-- RIGHT: info panel -->
+            <div class="info-side" id="infoSide">
+                <h1>Ahorcado</h1>
+
+                <!-- Category selector -->
+                <div>
+                    <div class="section-label">Categoría</div>
+                    <div class="category-buttons" id="categoryButtons">
+                        <button class="cat-btn active" data-category="Animales">Animales</button>
+                        <button class="cat-btn" data-category="Países">Países</button>
+                        <button class="cat-btn" data-category="Deportes">Deportes</button>
+                    </div>
+                </div>
+
+                <!-- Score panel -->
+                <div class="score-panel">
+                    <div class="score-row">
+                        <span class="score-label">Puntaje</span>
+                        <span class="score-value" id="score">0</span>
+                    </div>
+                    <div class="score-row">
+                        <span class="score-label">Mejor puntaje</span>
+                        <span class="score-value" id="highScore">0</span>
+                    </div>
+                    <div class="score-row">
+                        <span class="score-label">Categoría actual</span>
+                        <span class="score-value" id="currentCategory">—</span>
+                    </div>
+                </div>
+
+                <!-- On-screen keyboard -->
+                <div>
+                    <div class="section-label">Teclado</div>
+                    <div id="keyboard"></div>
+                </div>
+
+                <!-- Action buttons -->
+                <div class="buttons-panel">
+                    <button class="btn-primary" id="startBtn">Nueva Partida</button>
+                    <button class="btn-primary" id="restartBtn" disabled>Reintentar</button>
+                </div>
+
+                <!-- Instructions -->
+                <div class="instructions">
+                    <span>+10 pts</span> por letra correcta.<br>
+                    <span>+50 pts</span> bonus si ganas con &le;2 errores.<br>
+                    Tienes <span>6 intentos</span> antes de perder.
+                </div>
+            </div>
+        </div>
+
+        <!-- Result overlay (win/lose) -->
+        <div id="resultOverlay" class="result-overlay" style="display:none;">
+            <div class="result-box">
+                <h2 id="resultTitle"></h2>
+                <div id="resultWord" class="result-word"></div>
+                <div id="resultStats" class="result-stats"></div>
+                <button class="btn-primary" id="playAgainBtn">Jugar de nuevo</button>
+            </div>
+        </div>
+    </main>
+
+    <script>
+    function isMobile() {
+        return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+    }
+
+    function adjustMobileLayout() {
+        var gameSide = document.getElementById('gameSide');
+        var infoSide = document.getElementById('infoSide');
+        var mobileStartBtn = document.getElementById('mobileStartBtn');
+        var mobileScore = document.getElementById('mobileScore');
+
+        var vHeight = window.visualViewport ? window.visualViewport.height : window.innerHeight;
+
+        if (isMobile()) {
+            gameSide.style.position = 'fixed';
+            gameSide.style.top = '0';
+            gameSide.style.left = '0';
+            gameSide.style.width = window.innerWidth + 'px';
+            gameSide.style.height = vHeight + 'px';
+            gameSide.style.zIndex = '999';
+            gameSide.style.background = 'var(--grad-bg)';
+            gameSide.style.overflowY = 'auto';
+            infoSide.style.display = 'none';
+            mobileScore.style.display = 'block';
+        } else if (window.innerWidth < 900) {
+            gameSide.style.position = '';
+            gameSide.style.width = '';
+            gameSide.style.height = '';
+            gameSide.style.zIndex = '';
+            gameSide.style.background = '';
+            gameSide.style.overflowY = '';
+            infoSide.style.display = '';
+            mobileScore.style.display = 'none';
+        } else {
+            gameSide.style.position = '';
+            gameSide.style.width = '';
+            gameSide.style.height = '';
+            gameSide.style.zIndex = '';
+            gameSide.style.background = '';
+            gameSide.style.overflowY = '';
+            infoSide.style.display = '';
+            mobileScore.style.display = 'none';
+        }
+    }
+
+    window.addEventListener('resize', adjustMobileLayout);
+    if (window.visualViewport) window.visualViewport.addEventListener('resize', adjustMobileLayout);
+    document.addEventListener('DOMContentLoaded', adjustMobileLayout);
+
+    document.addEventListener('DOMContentLoaded', function () {
+        var mobileStartBtn = document.getElementById('mobileStartBtn');
+        var startBtn = document.getElementById('startBtn');
+        if (mobileStartBtn && startBtn) {
+            mobileStartBtn.addEventListener('click', function () {
+                startBtn.click();
+                mobileStartBtn.style.display = 'none';
+            });
+        }
+    });
+    </script>
+
+    <script src="../audio.js"></script>
+    <script src="./main.js"></script>
+    <script src="../fullscreen-btn.js"></script>
+</body>
+</html>

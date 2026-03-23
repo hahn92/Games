@@ -114,6 +114,7 @@ function renderBoard() {
     var container = document.getElementById('mineBoard');
     container.innerHTML = '';
     container.style.gridTemplateColumns = 'repeat(' + COLS + ', 1fr)';
+    container.style.gridTemplateRows    = 'repeat(' + ROWS + ', 1fr)';
 
     // Set board size based on difficulty
     if (currentDifficulty === 'easy') {
@@ -446,6 +447,8 @@ function startGame() {
     document.getElementById('startBtn').disabled = true;
     document.getElementById('restartBtn').disabled = false;
     updateHUD();
+    // Re-aplicar layout móvil después de que renderBoard fije dimensiones del tablero
+    if (typeof adjustMobileLayout === 'function') adjustMobileLayout();
 }
 
 function restartGame() {

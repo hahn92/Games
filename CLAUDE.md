@@ -70,6 +70,11 @@ Each game lives in its own folder with:
 | `typingspeed/` | Velocidad de Escritura | Habilidad | DOM |
 | `slidingpuzzle/` | Puzzle 15 | Puzzle | DOM |
 | `fruitcatcher/` | Atrapa Frutas | Arcade | Canvas |
+| `pacman/` | Pac-Man | Arcade | Canvas |
+| `bubbleshooter/` | Bubble Shooter | Arcade | Canvas |
+| `hangman/` | Ahorcado | Palabras | DOM |
+| `carrace/` | Carrera de Autos | Arcade | Canvas |
+| `platformer/` | Plataformero | Plataformas | Canvas |
 
 ## Sound system (`audio.js`)
 

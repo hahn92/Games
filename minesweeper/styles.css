@@ -173,6 +173,7 @@ body {
 /* ---- Cells ---- */
 .mine-cell {
     /* 3D relief look */
+    box-sizing: border-box;
     background: #c8c8c8;
     border-style: solid;
     border-width: 2px;
@@ -192,6 +193,8 @@ body {
     transition: background 0.1s, box-shadow 0.1s;
     position: relative;
     overflow: hidden;
+    width: 100%;
+    height: 100%;
 }
 .mine-cell:hover:not(.revealed) {
     background: #d4d0c8;
@@ -207,7 +210,7 @@ body {
 
 .mine-cell.revealed {
     background: #d8d8d8;
-    border: 1px solid #aaa;
+    border: 2px solid #aaa;
     box-shadow: inset 1px 1px 3px rgba(0,0,0,0.15);
     cursor: default;
 }
