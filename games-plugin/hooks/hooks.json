@@ -1,0 +1,24 @@
+{
+  "hooks": {
+    "PostToolUse": [
+      {
+        "matcher": "Edit|Write",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node -e \"var fs=require('fs'),path=require('path');var f=process.env.CLAUDE_TOOL_INPUT_FILE_PATH||'';if(!f.endsWith('main.js'))process.exit(0);try{var c=fs.readFileSync(f,'utf8'),w=[],n=path.basename(path.dirname(f));if(/ctx\\.shadowBlur[^;]+;[\\s\\S]{0,200}for\\s*\\(|for\\s*\\([^)]+\\)[\\s\\S]{0,100}ctx\\.shadowBlur/.test(c))w.push('⚠  shadowBlur dentro de un loop — muévelo fuera para no destruir el rendimiento.');if(/ctx\\.fillText\\(.*[\\u{1F300}-\\u{1FFFF}]/u.test(c))w.push('⚠  Emoji en ctx.fillText() — dibuja con formas canvas en su lugar.');if(/setInterval/.test(c)&&!/requestAnimationFrame/.test(c))w.push('⚠  setInterval como game loop — usa requestAnimationFrame.');var lines=c.split('\\n'),inDraw=false;lines.forEach(function(l,i){if(/function\\s+(draw|render|paint)\\b/.test(l))inDraw=true;if(inDraw&&/\\}/.test(l)&&l.trim()==='\\x7d')inDraw=false;if(inDraw&&/Math\\.random\\(\\)/.test(l))w.push('⚠  Math.random() en función de render (línea '+(i+1)+') — pre-computa en spawn.');});if(!/GameAudio/.test(c))w.push('ℹ  GameAudio no encontrado — agrega sonidos con /games:add-sounds '+n);if(w.length){console.log('\\n🔍 Games Plugin — Quality Check: '+n+'/main.js');w.forEach(function(x){console.log('   '+x);});console.log('');};}catch(e){}\""
+          }
+        ]
+      },
+      {
+        "matcher": "Edit|Write",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node -e \"var fs=require('fs'),path=require('path');var f=process.env.CLAUDE_TOOL_INPUT_FILE_PATH||'';if(!f.endsWith('index.html'))process.exit(0);try{var c=fs.readFileSync(f,'utf8'),w=[],n=path.basename(path.dirname(f));if(/'100vw'/.test(c))w.push('⚠  100vw detectado — usa window.innerWidth+\\'px\\' para evitar overflow en iOS Safari.');if(/audio\\.js/.test(c)&&!/fullscreen-btn\\.js/.test(c))w.push('⚠  audio.js incluido pero falta fullscreen-btn.js.');if(!/audio\\.js/.test(c)&&/main\\.js/.test(c))w.push('ℹ  audio.js no incluido — agrega <script src=\\\"../audio.js\\\"> antes de main.js');if(!/fullscreen-btn\\.js/.test(c))w.push('ℹ  fullscreen-btn.js no incluido — agrega <script src=\\\"../fullscreen-btn.js\\\"> después de main.js');if(w.length){console.log('\\n🔍 Games Plugin — Layout Check: '+n+'/index.html');w.forEach(function(x){console.log('   '+x);});console.log('');};}catch(e){}\""
+          }
+        ]
+      }
+    ]
+  }
+}

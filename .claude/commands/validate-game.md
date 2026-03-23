@@ -1,76 +1,50 @@
-# Validate Game Quality
+---
+description: Validate a game against all quality criteria (sound, graphics, mobile, touch, code quality). Pass a game name or leave blank to validate all 20 games.
+---
 
-Validate that a game meets all quality criteria for this project. Checks: sound, graphics, mobile layout, touch controls, and code quality.
+# Validate Game
 
-## Usage
-```
-/validate-game [game-name]
-```
-If no game name is given, validate all games.
+Use the `game-validator` subagent to validate the game **"$ARGUMENTS"** (or all games if no argument given) against every quality criterion in this project.
 
-## Instructions
+Read `$ARGUMENTS/index.html`, `$ARGUMENTS/main.js`, and `$ARGUMENTS/styles.css`, then check each section:
 
-You are validating games in `/Users/hahn/Documents/Desarrollo/Games/`. For each game to validate, read `main.js`, `index.html`, and `styles.css`, then check ALL criteria below and produce a structured report.
+## 🔊 Sound
 
-### Criteria Checklist
+- `<script src="../audio.js">` present in `index.html` before `main.js`
+- `GameAudio.start()` called when game begins
+- `GameAudio.gameOver()` called on game over
+- `GameAudio.score()` or equivalent called when player scores
+- `GameAudio.click()` called in `startBtn`, `restartBtn`, and `playAgainBtn` handlers
+- At least 2 game-specific sounds beyond the basics (jump, hit, explode, etc.)
 
-#### 🔊 Sound (audio.js integration)
-- [ ] `<script src="../audio.js"></script>` is present in `index.html`
-- [ ] `GameAudio.start()` is called when game starts
-- [ ] `GameAudio.gameOver()` is called on game over
-- [ ] `GameAudio.score()` or equivalent is called when points are scored
-- [ ] Game-specific sounds are used (e.g. `GameAudio.jump()`, `GameAudio.hit()`, etc.)
+## 🎨 Graphics
 
-#### 🎨 Graphics
-- [ ] Canvas games use `ctx.fillText()` / `ctx.arc()` etc. for all game elements (NO emoji in canvas)
-- [ ] Animations use `requestAnimationFrame`, not `setInterval`
-- [ ] No `ctx.shadowBlur` inside draw loops (only on player/UI elements)
-- [ ] Canvas size is appropriate for the game type
+- No emoji inside `ctx.fillText()` on canvas
+- `requestAnimationFrame` used for game loop (not `setInterval` alone)
+- `ctx.shadowBlur` NOT set inside any loop that iterates over many elements
+- Game elements drawn with canvas primitives (`arc`, `rect`, `bezierCurveTo`, paths)
 
-#### 📱 Mobile layout
-- [ ] `index.html` has `adjustMobileLayout()` function
-- [ ] Uses `window.innerWidth + 'px'` (NOT `'100vw'`) for gameSide width
-- [ ] Canvas height offset is ≤ 60px (no large chunk reserved for hidden touch buttons)
-- [ ] `<script src="../fullscreen-btn.js"></script>` is present in `index.html`
-- [ ] mobileScore displays current score/stats
+## 📱 Mobile
 
-#### 👆 Touch controls
-- [ ] Canvas games handle `touchstart`/`touchmove`/`touchend` on canvas (swipe gestures)
-- [ ] No reliance on hidden touch button panels for gameplay
-- [ ] `touch-action: manipulation` is set on interactive elements
+- `adjustMobileLayout()` present in `index.html`
+- Uses `window.innerWidth + 'px'` (NOT `'100vw'`) for `gameSide` width
+- Canvas height offset is ≤ 60px
+- `<script src="../fullscreen-btn.js">` present in `index.html`
+- `#mobileScore` div updated with relevant stats
 
-#### ⚡ Code quality
-- [ ] `requestAnimationFrame` used for game loop
-- [ ] No `Math.random()` calls in the render path
-- [ ] Score saved to `localStorage` (highScore, etc.)
-- [ ] `startGame()` resets all state properly
+## 👆 Touch
 
-### Output Format
+- Canvas games have `touchstart`/`touchend` listeners on the canvas element
+- No gameplay dependency on `.touch-controls` buttons (globally hidden via CSS)
+- Touch coordinates scaled correctly if `canvas.style.width ≠ canvas.width`
 
-For each game, output:
+## ⚡ Code Quality
 
-```
-## [GameName] — [✅ PASS / ⚠️ ISSUES / ❌ FAIL]
+- `localStorage` used for high scores / persistent stats
+- `startGame()` resets all game state
+- No `Math.random()` inside render/draw functions
+- Delta-time throttle in rAF loop (`if (dt < 15) return;` or similar)
 
-### Sound
-- ✅ audio.js included
-- ✅ GameAudio.start() called
-- ❌ Missing: GameAudio.score() not called on scoring
-...
+## Output format
 
-### Graphics
-...
-
-### Mobile
-...
-
-### Touch
-...
-
-### Code Quality
-...
-
-**Issues to fix:** [list or "None"]
-```
-
-End with a summary table of all games and their status.
+For each criterion: ✅ PASS or ❌ FAIL with a brief reason. End with a **Required Fixes** list ordered by severity.

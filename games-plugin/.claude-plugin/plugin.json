@@ -1,0 +1,8 @@
+{
+  "name": "games",
+  "description": "Plugin for the browser-games collection. Provides skills and agents for creating, validating, and maintaining the 20 classic browser games built with vanilla JS, HTML5 Canvas, and CSS.",
+  "version": "1.0.0",
+  "author": {
+    "name": "hahn"
+  }
+}
