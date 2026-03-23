@@ -5,8 +5,8 @@ var ctx = canvas.getContext('2d');
 var WIDTH  = canvas.width;   // 600
 var HEIGHT = canvas.height;  // 200
 
-var GRAVITY     = 0.6;
-var JUMP_FORCE  = -12;
+var GRAVITY     = 0.72;
+var JUMP_FORCE  = -9.2;
 var GROUND_Y    = 155;
 var PLAYER_SIZE = 36;
 var CROUCH_H    = 20;   // altura dino agachado
@@ -55,32 +55,44 @@ var clouds = [
 // type 1: cactus bajo  (pequeño, saltar O agacharse)
 // type 2: pájaro volador (media altura, SOLO agacharse)
 
+function makeCactus(xOff, tall) {
+    var w = tall ? (18 + Math.random() * 12) : (12 + Math.random() * 8);
+    var h = tall ? (34 + Math.random() * 28) : (14 + Math.random() * 14);
+    return { x: WIDTH + xOff, width: w, height: h, type: tall ? 0 : 1 };
+}
+function makeBird(xOff) {
+    return { x: WIDTH + xOff, width: 38, height: 22, type: 2, flapTick: 0, flyY: GROUND_Y - 3 };
+}
+
 function spawnObstacle() {
-    var type = Math.floor(Math.random() * 3);
-    var o;
-    if (type === 0) {
-        // Cactus alto clásico
-        var w = 18 + Math.random() * 14;
-        var h = 32 + Math.random() * 30;
-        o = { x: WIDTH, width: w, height: h, type: 0 };
-    } else if (type === 1) {
-        // Cactus bajo — se puede esquivar saltando O agachándose
-        var w = 14 + Math.random() * 10;
-        var h = 16 + Math.random() * 12;
-        o = { x: WIDTH, width: w, height: h, type: 1 };
+    var roll = Math.random();
+    if (roll < 0.28) {
+        // cactus alto solo
+        obstacles.push(makeCactus(0, true));
+    } else if (roll < 0.50) {
+        // cactus bajo solo
+        obstacles.push(makeCactus(0, false));
+    } else if (roll < 0.66) {
+        // pájaro
+        obstacles.push(makeBird(0));
+    } else if (roll < 0.82) {
+        // cluster doble: alto + bajo (o bajo + alto)
+        var c1 = makeCactus(0, Math.random() < 0.5);
+        obstacles.push(c1);
+        obstacles.push(makeCactus(c1.width + 22 + Math.random() * 16, Math.random() < 0.5));
+    } else if (roll < 0.92) {
+        // pájaro + cactus bajo detrás
+        obstacles.push(makeBird(0));
+        obstacles.push(makeCactus(60 + Math.random() * 20, false));
     } else {
-        // Pájaro volador — vuela a media altura (SOLO agacharse)
-        o = {
-            x: WIDTH,
-            width: 36,
-            height: 20,
-            type: 2,
-            flapTick: 0,
-            // Y fijo a media altura del jugador
-            flyY: GROUND_Y - 26 + Math.random() * 10   // ala media
-        };
+        // triple cactus bajos
+        var ox = 0;
+        for (var ci = 0; ci < 3; ci++) {
+            var c = makeCactus(ox, false);
+            obstacles.push(c);
+            ox += c.width + 14 + Math.random() * 8;
+        }
     }
-    obstacles.push(o);
 }
 
 // ─── JUMP / CROUCH ──────────────────────────────────────────
@@ -106,10 +118,13 @@ function checkCrouchKeys() {
 
 // ─── PLAYER UPDATE ─────────────────────────────────────────
 function updatePlayer() {
-    if (keys['ArrowLeft']  || keys['a'] || keys['A'])
-        player.x = Math.max(PLAYER_MIN_X, player.x - PLAYER_SPEED);
-    if (keys['ArrowRight'] || keys['d'] || keys['D'])
-        player.x = Math.min(PLAYER_MAX_X, player.x + PLAYER_SPEED);
+    // Movimiento lateral solo en el suelo — sin cambio de dirección en el aire
+    if (player.onGround) {
+        if (keys['ArrowLeft']  || keys['a'] || keys['A'])
+            player.x = Math.max(PLAYER_MIN_X, player.x - PLAYER_SPEED);
+        if (keys['ArrowRight'] || keys['d'] || keys['D'])
+            player.x = Math.min(PLAYER_MAX_X, player.x + PLAYER_SPEED);
+    }
 
     checkCrouchKeys();
 
@@ -207,92 +222,126 @@ function drawObstacles() {
 
 function drawCactus(o) {
     var oy = GROUND_Y + PLAYER_SIZE - o.height;
-    var grad = ctx.createLinearGradient(o.x, oy, o.x + o.width, oy);
-    grad.addColorStop(0, '#2e7d32');
-    grad.addColorStop(1, '#1b5e20');
-    ctx.fillStyle = grad;
-    ctx.beginPath();
-    ctx.roundRect(o.x, oy, o.width, o.height, 4);
-    ctx.fill();
-    ctx.fillStyle = 'rgba(255,255,255,0.13)';
-    ctx.fillRect(o.x + 2, oy + 2, o.width / 3, o.height - 4);
+    ctx.save();
+    ctx.translate(o.x, oy);
+
+    var w = o.width, h = o.height;
+
+    function cactusSegment(sx, sy, sw, sh, lit) {
+        var g = ctx.createLinearGradient(sx, sy, sx + sw, sy);
+        g.addColorStop(0, lit ? '#388e3c' : '#2e7d32');
+        g.addColorStop(0.4, lit ? '#43a047' : '#388e3c');
+        g.addColorStop(1, '#1b5e20');
+        ctx.fillStyle = g;
+        ctx.beginPath();
+        ctx.roundRect(sx, sy, sw, sh, sw * 0.45);
+        ctx.fill();
+        // top shine
+        ctx.fillStyle = 'rgba(255,255,255,0.12)';
+        ctx.beginPath(); ctx.roundRect(sx + sw*0.2, sy + 2, sw*0.3, sh*0.25, sw*0.15); ctx.fill();
+        // dark right edge
+        ctx.fillStyle = 'rgba(0,0,0,0.18)';
+        ctx.beginPath(); ctx.roundRect(sx + sw*0.72, sy + 2, sw*0.2, sh - 4, sw*0.1); ctx.fill();
+    }
+
+    // Main trunk
+    cactusSegment(0, 0, w, h, true);
 
     if (o.type === 0) {
-        // Arms on tall cactus
-        var midY = oy + o.height * 0.4;
-        ctx.fillStyle = '#2e7d32';
-        // Left arm
-        ctx.beginPath(); ctx.roundRect(o.x - 8, midY, 9, 5, 2); ctx.fill();
-        ctx.beginPath(); ctx.roundRect(o.x - 9, midY - 8, 5, 10, 2); ctx.fill();
+        var armY = h * 0.35;
+        var armH = Math.max(6, h * 0.28);
+        var armW = Math.max(5, w * 0.55);
+        // Left arm (horizontal + vertical tip)
+        cactusSegment(-armW + 2, armY, armW, w * 0.8, false);
+        cactusSegment(-armW + 2, armY - armH, w * 0.8, armH + w * 0.8, false);
         // Right arm
-        ctx.beginPath(); ctx.roundRect(o.x + o.width - 1, midY + 4, 9, 5, 2); ctx.fill();
-        ctx.beginPath(); ctx.roundRect(o.x + o.width + 4, midY - 4, 5, 10, 2); ctx.fill();
+        cactusSegment(w - 2, armY + h * 0.1, armW - 2, w * 0.8, true);
+        cactusSegment(w - 2, armY + h * 0.1 - armH * 0.7, w * 0.8, armH * 0.7 + w * 0.8, true);
     }
+
+    // Spines (small dots of light)
+    ctx.fillStyle = 'rgba(255,255,255,0.35)';
+    for (var si = 0; si < 4; si++) {
+        ctx.beginPath(); ctx.arc(w * 0.18, h * 0.15 + si * h * 0.2, 1.2, 0, Math.PI*2); ctx.fill();
+        ctx.beginPath(); ctx.arc(w * 0.82, h * 0.25 + si * h * 0.18, 1.2, 0, Math.PI*2); ctx.fill();
+    }
+
+    ctx.restore();
 }
 
 function drawBird(o) {
     var bx = o.x + o.width / 2;
     var by = o.flyY;
-    var flap = Math.sin(o.flapTick * 0.3) > 0;
+    var flapAngle = Math.sin(o.flapTick * 0.35) * 0.55; // smooth continuous flap
 
     ctx.save();
     ctx.translate(bx, by);
 
-    // Body
-    ctx.fillStyle = '#5c3317';
-    ctx.beginPath();
-    ctx.ellipse(0, 0, 16, 9, 0, 0, Math.PI * 2);
-    ctx.fill();
+    // Shadow
+    ctx.fillStyle = 'rgba(0,0,0,0.15)';
+    ctx.beginPath(); ctx.ellipse(0, 18, 18, 4, 0, 0, Math.PI*2); ctx.fill();
 
-    // Wing
-    ctx.fillStyle = '#7a4520';
-    if (flap) {
-        // Wing up
-        ctx.beginPath();
-        ctx.ellipse(-2, -7, 13, 5, -0.3, 0, Math.PI * 2);
-        ctx.fill();
-    } else {
-        // Wing down
-        ctx.beginPath();
-        ctx.ellipse(-2, 5, 13, 5, 0.3, 0, Math.PI * 2);
-        ctx.fill();
-    }
+    // Wing (animated with rotation)
+    ctx.save();
+    ctx.rotate(flapAngle);
+    var wg = ctx.createLinearGradient(-18, 0, 0, 0);
+    wg.addColorStop(0, '#6d4c41'); wg.addColorStop(1, '#8d6e63');
+    ctx.fillStyle = wg;
+    ctx.beginPath();
+    ctx.moveTo(-2, -2);
+    ctx.bezierCurveTo(-8, -5, -16, -3, -20, 2);
+    ctx.bezierCurveTo(-18, 6, -10, 7, -4, 5);
+    ctx.bezierCurveTo(-2, 4, -1, 2, -2, -2);
+    ctx.closePath(); ctx.fill();
+    ctx.restore();
+
+    // Body
+    var bg = ctx.createRadialGradient(-3, -2, 1, 0, 0, 14);
+    bg.addColorStop(0, '#8d6e63'); bg.addColorStop(1, '#4e342e');
+    ctx.fillStyle = bg;
+    ctx.beginPath();
+    ctx.moveTo(-14, 0);
+    ctx.bezierCurveTo(-14, -5, -8, -8, 0, -8);
+    ctx.bezierCurveTo(8, -8, 14, -4, 14, 0);
+    ctx.bezierCurveTo(14, 4, 8, 8, 0, 8);
+    ctx.bezierCurveTo(-8, 8, -14, 5, -14, 0);
+    ctx.closePath(); ctx.fill();
+
+    // Tail feathers
+    ctx.fillStyle = '#3e2723';
+    ctx.beginPath();
+    ctx.moveTo(-12, -2); ctx.bezierCurveTo(-18, -5, -24, -4, -26, -1);
+    ctx.bezierCurveTo(-24, 1, -18, 3, -12, 2);
+    ctx.closePath(); ctx.fill();
+    ctx.fillStyle = '#4e342e';
+    ctx.beginPath();
+    ctx.moveTo(-12, 0); ctx.bezierCurveTo(-17, -3, -22, -1, -24, 1);
+    ctx.bezierCurveTo(-22, 3, -16, 3, -12, 1);
+    ctx.closePath(); ctx.fill();
 
     // Head
-    ctx.fillStyle = '#5c3317';
-    ctx.beginPath();
-    ctx.arc(13, -4, 7, 0, Math.PI * 2);
-    ctx.fill();
+    var hg = ctx.createRadialGradient(12, -6, 1, 12, -6, 8);
+    hg.addColorStop(0, '#8d6e63'); hg.addColorStop(1, '#4e342e');
+    ctx.fillStyle = hg;
+    ctx.beginPath(); ctx.arc(12, -5, 8, 0, Math.PI*2); ctx.fill();
 
     // Eye
-    ctx.fillStyle = '#fff';
-    ctx.beginPath();
-    ctx.arc(15, -6, 2.5, 0, Math.PI * 2);
-    ctx.fill();
-    ctx.fillStyle = '#111';
-    ctx.beginPath();
-    ctx.arc(16, -6.5, 1.3, 0, Math.PI * 2);
-    ctx.fill();
+    ctx.fillStyle = '#fff'; ctx.beginPath(); ctx.arc(15, -7, 2.8, 0, Math.PI*2); ctx.fill();
+    ctx.fillStyle = '#111'; ctx.beginPath(); ctx.arc(15.6, -7.2, 1.6, 0, Math.PI*2); ctx.fill();
+    ctx.fillStyle = '#fff'; ctx.beginPath(); ctx.arc(16.2, -7.8, 0.7, 0, Math.PI*2); ctx.fill();
 
     // Beak
+    ctx.fillStyle = '#f57f17';
+    ctx.beginPath();
+    ctx.moveTo(18, -5); ctx.bezierCurveTo(22, -4, 27, -3, 27, -2);
+    ctx.bezierCurveTo(26, -1, 21, -1, 18, -2);
+    ctx.closePath(); ctx.fill();
+    // Beak lower
     ctx.fillStyle = '#e65100';
     ctx.beginPath();
-    ctx.moveTo(19, -4);
-    ctx.lineTo(26, -3);
-    ctx.lineTo(19, -1);
-    ctx.closePath();
-    ctx.fill();
-
-    // Tail
-    ctx.fillStyle = '#3e2206';
-    ctx.beginPath();
-    ctx.moveTo(-14, -2);
-    ctx.lineTo(-24, -6);
-    ctx.lineTo(-22, 0);
-    ctx.lineTo(-24, 5);
-    ctx.lineTo(-14, 2);
-    ctx.closePath();
-    ctx.fill();
+    ctx.moveTo(18, -2); ctx.bezierCurveTo(21, -1, 25, -1, 25, 0);
+    ctx.bezierCurveTo(23, 1, 19, 1, 18, 0);
+    ctx.closePath(); ctx.fill();
 
     ctx.restore();
 }
@@ -415,200 +464,215 @@ function drawBackground() {
 
 // ─── DRAW DINO ─────────────────────────────────────────────
 function drawDino(x, y, running, dead, deathAng) {
-    var lp      = (running && player.onGround && !isCrouching) ? Math.floor(animTick / 7) % 2 : 0;
+    var lp      = (running && player.onGround && !isCrouching) ? Math.floor(animTick / 5) % 4 : 0;
     var isJump  = !player.onGround && !dead;
     var isBlink = blinkTimer < 3;
     var crouch  = isCrouching && !dead;
+    var sx = dead ? 1 : squishX;
+    var sy = dead ? 1 : squishY;
 
-    var G1 = '#43a047';   // body green
-    var G2 = '#2e7d32';   // dark green (detail)
-    var G3 = '#c8e6c9';   // belly highlight
-    var G4 = '#66bb6a';   // lighter highlight
+    /* palette */
+    var TOP  = '#6ecf6b';   // lit top
+    var MID  = '#46a843';   // base
+    var DRK  = '#2d7a2a';   // shadow / outlines
+    var BELY = '#d6f0d4';   // belly
+    var LEG  = '#3a8c38';   // legs
 
-    // ── CROUCHING: pose separado sin scale para evitar distorsión ──
+    /* ── CROUCH ─────────────────────────────────────────────── */
     if (crouch) {
         ctx.save();
-        // Origen: esquina izquierda inferior del hitbox (nivel del suelo)
-        ctx.translate(x, y + PLAYER_SIZE);
+        ctx.translate(x, y + PLAYER_SIZE);  // origin = ground-left
 
-        // Cola (curvada hacia atrás-arriba)
-        ctx.fillStyle = G1;
+        // shadow
+        ctx.fillStyle = 'rgba(0,0,0,0.15)';
+        ctx.beginPath(); ctx.ellipse(22, 2, 24, 4, 0, 0, Math.PI*2); ctx.fill();
+
+        // tail
+        ctx.fillStyle = DRK;
         ctx.beginPath();
-        ctx.moveTo(2, -14);
-        ctx.quadraticCurveTo(-8, -9, -13, -3);
-        ctx.lineTo(-7,  0);
-        ctx.lineTo( 3, -8);
-        ctx.closePath();
-        ctx.fill();
+        ctx.moveTo(5, -10);
+        ctx.bezierCurveTo(-3, -7, -12, -3, -15, 2);
+        ctx.lineTo(-10, 5); ctx.bezierCurveTo(-6, 1, 2, -3, 7, -7);
+        ctx.closePath(); ctx.fill();
 
-        // Cuerpo horizontal
-        ctx.fillStyle = G1;
-        ctx.beginPath(); ctx.roundRect(0, -18, 28, 13, 6); ctx.fill();
-        // Highlight superior del cuerpo
-        ctx.fillStyle = G4;
-        ctx.beginPath(); ctx.roundRect(2, -17, 11, 5, 3); ctx.fill();
-        // Panza
-        ctx.fillStyle = G3;
-        ctx.beginPath(); ctx.ellipse(14, -11, 8, 4, 0, 0, Math.PI * 2); ctx.fill();
+        // body (flat, horizontal ellipse)
+        var bg = ctx.createLinearGradient(0, -20, 0, -6);
+        bg.addColorStop(0, TOP); bg.addColorStop(0.55, MID); bg.addColorStop(1, DRK);
+        ctx.fillStyle = bg;
+        ctx.beginPath(); ctx.roundRect(2, -20, 28, 14, 7); ctx.fill();
+        ctx.strokeStyle = DRK; ctx.lineWidth = 1; ctx.stroke();
+        // belly stripe
+        ctx.fillStyle = 'rgba(214,240,212,0.55)';
+        ctx.beginPath(); ctx.ellipse(16, -11, 10, 5, 0, 0, Math.PI*2); ctx.fill();
 
-        // Cuello (conecta cuerpo con cabeza)
-        ctx.fillStyle = G1;
-        ctx.beginPath(); ctx.roundRect(24, -21, 8, 11, 4); ctx.fill();
+        // neck → head connection
+        ctx.fillStyle = MID;
+        ctx.beginPath(); ctx.roundRect(26, -25, 9, 13, 4); ctx.fill();
 
-        // Cabeza extendida hacia adelante
-        ctx.fillStyle = G1;
-        ctx.beginPath(); ctx.roundRect(28, -24, 19, 14, 5); ctx.fill();
-        // Cresta superior de la cabeza
-        ctx.fillStyle = G2;
-        ctx.beginPath(); ctx.roundRect(34, -27, 11, 5, 2); ctx.fill();
+        // head (big, forward-extended)
+        var hg = ctx.createLinearGradient(25, -30, 25, -14);
+        hg.addColorStop(0, TOP); hg.addColorStop(0.6, MID); hg.addColorStop(1, DRK);
+        ctx.fillStyle = hg;
+        ctx.beginPath(); ctx.roundRect(24, -30, 24, 16, 6); ctx.fill();
+        ctx.strokeStyle = DRK; ctx.lineWidth = 0.8; ctx.stroke();
+        // snout
+        ctx.fillStyle = DRK;
+        ctx.beginPath(); ctx.roundRect(44, -24, 8, 7, [0,3,3,0]); ctx.fill();
+        // nostril
+        ctx.fillStyle = 'rgba(0,0,0,0.3)';
+        ctx.beginPath(); ctx.arc(50, -22, 1.3, 0, Math.PI*2); ctx.fill();
 
-        // Hocico
-        ctx.fillStyle = G2;
-        ctx.beginPath(); ctx.roundRect(45, -19, 9, 6, [0,2,2,0]); ctx.fill();
-        // Fosa nasal
-        ctx.fillStyle = G1;
-        ctx.beginPath(); ctx.arc(51, -22, 1.2, 0, Math.PI * 2); ctx.fill();
-
-        // Ojo
+        // eye
+        var ex = 33, ey = -24;
         ctx.fillStyle = '#fff';
-        ctx.beginPath();
-        if (isBlink) { ctx.ellipse(37, -18, 3.5, 0.9, 0, 0, Math.PI * 2); }
-        else          { ctx.arc(37, -18, 3.5, 0, Math.PI * 2); }
-        ctx.fill();
+        if (isBlink) { ctx.beginPath(); ctx.ellipse(ex, ey, 4.5, 1.2, 0, 0, Math.PI*2); ctx.fill(); }
+        else { ctx.beginPath(); ctx.arc(ex, ey, 4.5, 0, Math.PI*2); ctx.fill(); }
         if (!isBlink) {
-            ctx.fillStyle = '#1a1a1a';
-            ctx.beginPath(); ctx.arc(38.5, -18, 2, 0, Math.PI * 2); ctx.fill();
-            ctx.fillStyle = '#fff';
-            ctx.beginPath(); ctx.arc(39.5, -19, 0.8, 0, Math.PI * 2); ctx.fill();
+            ctx.fillStyle = '#1a1a2e'; ctx.beginPath(); ctx.arc(ex+0.8, ey+0.5, 2.6, 0, Math.PI*2); ctx.fill();
+            ctx.fillStyle = '#fff'; ctx.beginPath(); ctx.arc(ex+1.8, ey-0.8, 1.1, 0, Math.PI*2); ctx.fill();
         }
 
-        // Patas dobladas
-        ctx.fillStyle = G2;
-        ctx.beginPath(); ctx.roundRect( 4, -7, 10, 7, 2); ctx.fill();
-        ctx.beginPath(); ctx.roundRect(16, -7, 10, 7, 2); ctx.fill();
-        // Pies
-        ctx.beginPath(); ctx.roundRect( 2, -3, 14, 4, [0,0,2,2]); ctx.fill();
-        ctx.beginPath(); ctx.roundRect(14, -3, 14, 4, [0,0,2,2]); ctx.fill();
+        // legs bent
+        ctx.fillStyle = LEG;
+        ctx.beginPath(); ctx.roundRect(6, -7, 9, 7, 3); ctx.fill();
+        ctx.beginPath(); ctx.roundRect(17, -7, 9, 7, 3); ctx.fill();
+        ctx.beginPath(); ctx.ellipse(10, 0, 8, 3, 0, 0, Math.PI*2); ctx.fill();
+        ctx.beginPath(); ctx.ellipse(21, 0, 8, 3, 0, 0, Math.PI*2); ctx.fill();
 
         ctx.restore();
         return;
     }
 
-    // ── POSE NORMAL / SALTO / MUERTE (con squish desde pivot) ──
-    var sx = dead ? 1 : squishX;
-    var sy = dead ? 1 : squishY;
-
+    /* ── NORMAL / JUMP / DEAD ──────────────────────────────── */
     ctx.save();
-    var pivotX = x + 18;
-    var pivotY = y + PLAYER_SIZE;
-
+    var pivotX = x + 18, pivotY = y + PLAYER_SIZE;
     if (dead) {
-        ctx.translate(pivotX, pivotY);
-        ctx.rotate(deathAng);
-        ctx.translate(-18, -PLAYER_SIZE);
+        ctx.translate(pivotX, pivotY); ctx.rotate(deathAng); ctx.translate(-18, -PLAYER_SIZE);
     } else {
-        ctx.translate(pivotX, pivotY);
-        ctx.scale(sx, sy);
-        ctx.translate(-18, -PLAYER_SIZE);
+        ctx.translate(pivotX, pivotY); ctx.scale(sx, sy); ctx.translate(-18, -PLAYER_SIZE);
     }
 
-    var headLean = (running && player.onGround && !dead) ? 2 : 0;
+    var hl = (running && player.onGround && !dead) ? 1.5 : 0;
+    var tw = running && !dead ? Math.sin(animTick * 0.22) * 3.5 : 0;
 
-    // Cola — bezier más gruesa y con onda
-    var tailWave = (running && !dead) ? Math.sin(animTick * 0.22) * 4 : 0;
-    ctx.fillStyle = G1;
+    /* TAIL */
+    ctx.fillStyle = DRK;
     ctx.beginPath();
-    ctx.moveTo(6, 16);
-    ctx.bezierCurveTo(1, 19, -4, 21 + tailWave * 0.4, -10, 27 + tailWave);
-    ctx.lineTo(-6, 31 + tailWave);
-    ctx.bezierCurveTo(-2, 26 + tailWave * 0.6, 5, 21, 9, 18);
-    ctx.closePath();
-    ctx.fill();
+    ctx.moveTo(6, 21);
+    ctx.bezierCurveTo(0, 25, -7, 28 + tw, -13, 32 + tw);
+    ctx.lineTo(-9, 35 + tw);
+    ctx.bezierCurveTo(-4, 30 + tw * 0.6, 4, 25, 9, 23);
+    ctx.closePath(); ctx.fill();
 
-    // Cuerpo principal
-    ctx.fillStyle = G1;
-    ctx.beginPath(); ctx.roundRect(2, 12, 22, 18, 6); ctx.fill();
-    // Highlight del cuerpo
-    ctx.fillStyle = G4;
-    ctx.beginPath(); ctx.roundRect(4, 13, 10, 7, 3); ctx.fill();
-    // Panza
-    ctx.fillStyle = G3;
-    ctx.beginPath(); ctx.ellipse(13, 22, 7, 6, 0, 0, Math.PI * 2); ctx.fill();
-
-    // Espinas dorsales (3 picos en la espalda/cuello)
-    ctx.fillStyle = G2;
-    for (var si = 0; si < 3; si++) {
+    /* BODY */
+    var bg = ctx.createLinearGradient(3, 12, 3, 30);
+    bg.addColorStop(0, TOP); bg.addColorStop(0.5, MID); bg.addColorStop(1, DRK);
+    ctx.fillStyle = bg;
+    ctx.beginPath(); ctx.roundRect(3, 13, 21, 17, 8); ctx.fill();
+    ctx.strokeStyle = DRK; ctx.lineWidth = 1; ctx.stroke();
+    // belly
+    ctx.fillStyle = 'rgba(214,240,212,0.6)';
+    ctx.beginPath(); ctx.ellipse(13, 24, 8, 6, 0, 0, Math.PI*2); ctx.fill();
+    // dorsal bumps
+    ctx.fillStyle = DRK;
+    for (var di = 0; di < 3; di++) {
         ctx.beginPath();
-        ctx.moveTo(18 + si * 3 - 2, 13 - si * 2);
-        ctx.lineTo(18 + si * 3,      8 - si * 2);
-        ctx.lineTo(18 + si * 3 + 2, 13 - si * 2);
-        ctx.closePath();
-        ctx.fill();
+        ctx.moveTo(14 + di*3.5 - 2.5, 13);
+        ctx.lineTo(14 + di*3.5, 8 - di);
+        ctx.lineTo(14 + di*3.5 + 2.5, 13);
+        ctx.closePath(); ctx.fill();
     }
 
-    // Cuello
-    ctx.fillStyle = G1;
-    ctx.beginPath(); ctx.roundRect(19, 6, 9, 13, 4); ctx.fill();
+    /* NECK */
+    var ng = ctx.createLinearGradient(18, 8, 26, 18);
+    ng.addColorStop(0, TOP); ng.addColorStop(1, MID);
+    ctx.fillStyle = ng;
+    ctx.beginPath(); ctx.roundRect(18, 9, 9, 12, 4); ctx.fill();
 
-    // Cabeza
-    ctx.fillStyle = G1;
-    ctx.beginPath(); ctx.roundRect(15 + headLean, 0, 22, 13, 5); ctx.fill();
-    // Cresta/reborde superior cabeza
-    ctx.fillStyle = G2;
-    ctx.beginPath(); ctx.roundRect(22 + headLean, -3, 13, 5, 2); ctx.fill();
+    /* HEAD — grande y expresiva */
+    var hg = ctx.createLinearGradient(12 + hl, 0, 12 + hl, 14);
+    hg.addColorStop(0, TOP); hg.addColorStop(0.55, MID); hg.addColorStop(1, DRK);
+    ctx.fillStyle = hg;
+    ctx.beginPath(); ctx.roundRect(12 + hl, 0, 24, 15, 7); ctx.fill();
+    ctx.strokeStyle = DRK; ctx.lineWidth = 0.9; ctx.stroke();
+    // top crest
+    ctx.fillStyle = DRK;
+    ctx.beginPath(); ctx.roundRect(21 + hl, -4, 13, 5, 2); ctx.fill();
+    // snout
+    var sg = ctx.createLinearGradient(32 + hl, 6, 32 + hl, 14);
+    sg.addColorStop(0, MID); sg.addColorStop(1, DRK);
+    ctx.fillStyle = sg;
+    ctx.beginPath(); ctx.roundRect(32 + hl, 6, 9, 8, [0,3,3,0]); ctx.fill();
+    // jaw line
+    ctx.strokeStyle = DRK; ctx.lineWidth = 0.9; ctx.lineCap = 'round';
+    ctx.beginPath(); ctx.moveTo(32 + hl, 11); ctx.lineTo(40 + hl, 11); ctx.stroke();
+    // nostril
+    ctx.fillStyle = 'rgba(0,0,0,0.3)';
+    ctx.beginPath(); ctx.arc(38 + hl, 4, 1.4, 0, Math.PI*2); ctx.fill();
 
-    // Hocico
-    ctx.fillStyle = G2;
-    ctx.beginPath(); ctx.roundRect(30 + headLean, 6, 10, 6, [0,2,2,0]); ctx.fill();
-    // Fosa nasal
-    ctx.fillStyle = G1;
-    ctx.beginPath(); ctx.arc(37 + headLean, 3, 1.2, 0, Math.PI * 2); ctx.fill();
-
-    // Ojo
+    /* EYE — grande y expresivo */
+    var ex = 22 + hl, ey = 6;
+    // socket highlight
+    ctx.fillStyle = 'rgba(255,255,255,0.18)';
+    ctx.beginPath(); ctx.arc(ex, ey, 6, 0, Math.PI*2); ctx.fill();
+    // sclera
     ctx.fillStyle = '#fff';
-    ctx.beginPath();
-    if (isBlink) { ctx.ellipse(24 + headLean, 5, 3.5, 0.9, 0, 0, Math.PI * 2); }
-    else          { ctx.arc(24 + headLean, 5, 3.5, 0, Math.PI * 2); }
-    ctx.fill();
-    if (!isBlink) {
-        ctx.fillStyle = '#1a1a1a';
-        ctx.beginPath(); ctx.arc(25.5 + headLean, 5, 2, 0, Math.PI * 2); ctx.fill();
-        ctx.fillStyle = '#fff';
-        ctx.beginPath(); ctx.arc(26.5 + headLean, 4, 0.8, 0, Math.PI * 2); ctx.fill();
-    }
-
-    // Brazo T-Rex (codo doblado)
-    ctx.fillStyle = G2;
-    ctx.beginPath(); ctx.roundRect(21, 19, 5, 5, 2); ctx.fill();  // brazo superior
-    ctx.beginPath(); ctx.roundRect(24, 22, 6, 3, 1); ctx.fill();  // antebrazo
-    // Garras
-    ctx.beginPath(); ctx.arc(29, 23, 1.3, 0, Math.PI * 2); ctx.fill();
-    ctx.beginPath(); ctx.arc(30, 25, 1.3, 0, Math.PI * 2); ctx.fill();
-
-    // Patas
-    ctx.fillStyle = G2;
-    if (dead) {
-        ctx.beginPath(); ctx.roundRect( 4, 28, 7, 4, 2); ctx.fill();
-        ctx.beginPath(); ctx.roundRect(14, 28, 7, 4, 2); ctx.fill();
-    } else if (isJump) {
-        // Patas recogidas al saltar
-        ctx.beginPath(); ctx.roundRect( 3, 26, 6, 7, 2); ctx.fill();
-        ctx.beginPath(); ctx.roundRect(14, 26, 6, 7, 2); ctx.fill();
-        ctx.beginPath(); ctx.moveTo( 3,32); ctx.lineTo(11,30); ctx.lineTo(11,33); ctx.closePath(); ctx.fill();
-        ctx.beginPath(); ctx.moveTo(14,32); ctx.lineTo(22,30); ctx.lineTo(22,33); ctx.closePath(); ctx.fill();
-    } else if (lp === 0) {
-        // Pierna izquierda adelante
-        ctx.beginPath(); ctx.roundRect( 5, 26, 6, 11, 2); ctx.fill();
-        ctx.beginPath(); ctx.roundRect(15, 26, 6,  8, 2); ctx.fill();
-        ctx.beginPath(); ctx.roundRect( 3, 34, 11, 4, [0,0,2,2]); ctx.fill();
-        ctx.beginPath(); ctx.roundRect(13, 31, 10, 4, [0,0,2,2]); ctx.fill();
+    if (isBlink) {
+        ctx.beginPath(); ctx.ellipse(ex, ey, 5, 1.3, 0, 0, Math.PI*2); ctx.fill();
     } else {
-        // Pierna derecha adelante
-        ctx.beginPath(); ctx.roundRect( 3, 26, 6,  8, 2); ctx.fill();
-        ctx.beginPath(); ctx.roundRect(16, 26, 6, 11, 2); ctx.fill();
-        ctx.beginPath(); ctx.roundRect( 1, 31, 10, 4, [0,0,2,2]); ctx.fill();
-        ctx.beginPath(); ctx.roundRect(14, 34, 11, 4, [0,0,2,2]); ctx.fill();
+        ctx.beginPath(); ctx.arc(ex, ey, 5, 0, Math.PI*2); ctx.fill();
     }
+    if (!isBlink) {
+        // iris
+        ctx.fillStyle = '#2a7a28';
+        ctx.beginPath(); ctx.arc(ex + 0.8, ey + 0.5, 3.2, 0, Math.PI*2); ctx.fill();
+        // pupil
+        ctx.fillStyle = '#1a1a2e';
+        ctx.beginPath(); ctx.arc(ex + 0.8, ey + 0.5, 1.9, 0, Math.PI*2); ctx.fill();
+        // highlight
+        ctx.fillStyle = '#fff';
+        ctx.beginPath(); ctx.arc(ex + 2, ey - 1, 1.2, 0, Math.PI*2); ctx.fill();
+    }
+    // eye outline
+    ctx.strokeStyle = DRK; ctx.lineWidth = 0.7;
+    ctx.beginPath(); ctx.arc(ex, ey, 5, 0, Math.PI*2); ctx.stroke();
+
+    /* ARM (tiny T-Rex) */
+    ctx.fillStyle = LEG;
+    ctx.beginPath(); ctx.roundRect(22, 20, 5, 4, 2); ctx.fill();
+    ctx.beginPath(); ctx.roundRect(25, 22, 5, 3, 1); ctx.fill();
+    ctx.strokeStyle = DRK; ctx.lineWidth = 0.8;
+    ctx.beginPath(); ctx.moveTo(29, 24); ctx.lineTo(32, 27); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(29, 25); ctx.lineTo(31, 28); ctx.stroke();
+
+    /* LEGS — 4-frame con muslo + espinilla + pie */
+    // leg positions per frame: [frontThighY, frontShinH, rearThighY, rearShinH]
+    var lfs = [
+        [25, 11, 27, 7],
+        [26, 9,  26, 9],
+        [27, 7,  25, 11],
+        [26, 9,  26, 9]
+    ];
+    var lf = isJump  ? [25, 6, 25, 6]  :
+             dead     ? [26, 9, 26, 9]  :
+             lfs[lp];
+
+    ctx.fillStyle = LEG;
+    // rear leg (behind body)
+    ctx.beginPath(); ctx.roundRect(5, lf[2], 8, lf[3] + 2, 3); ctx.fill();
+    ctx.strokeStyle = DRK; ctx.lineWidth = 0.7; ctx.stroke();
+    // rear foot
+    ctx.fillStyle = LEG;
+    ctx.beginPath(); ctx.ellipse(9, lf[2] + lf[3] + 3, 7, 3, isJump ? -0.25 : 0, 0, Math.PI*2); ctx.fill();
+    ctx.strokeStyle = DRK; ctx.lineWidth = 0.5; ctx.stroke();
+    // front leg
+    ctx.fillStyle = LEG;
+    ctx.beginPath(); ctx.roundRect(15, lf[0], 8, lf[1] + 2, 3); ctx.fill();
+    ctx.strokeStyle = DRK; ctx.lineWidth = 0.7; ctx.stroke();
+    // front foot
+    ctx.fillStyle = LEG;
+    ctx.beginPath(); ctx.ellipse(19, lf[0] + lf[1] + 3, 7, 3, isJump ? -0.25 : 0, 0, Math.PI*2); ctx.fill();
+    ctx.strokeStyle = DRK; ctx.lineWidth = 0.5; ctx.stroke();
 
     ctx.restore();
 }
@@ -640,19 +704,7 @@ function drawScore() {
         ctx.restore();
     }
 
-    // Crouch hint when bird approaching
-    for (var i = 0; i < obstacles.length; i++) {
-        if (obstacles[i].type === 2 && obstacles[i].x < WIDTH && obstacles[i].x > player.x - 30) {
-            ctx.save();
-            ctx.globalAlpha = 0.75;
-            ctx.font = 'bold 12px monospace';
-            ctx.fillStyle = '#fff';
-            ctx.textAlign = 'center';
-            ctx.fillText('AGACHATE!', player.x + 20, player.y - 12);
-            ctx.restore();
-            break;
-        }
-    }
+
 }
 
 function updateScore() {
@@ -707,7 +759,7 @@ function gameLoop() {
 
     frame++;
     animTick++;
-    SPEED += 0.001;
+    SPEED += 0.0014;
     score = Math.floor(frame / 6);
 
     checkMilestone();
