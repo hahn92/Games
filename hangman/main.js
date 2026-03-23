@@ -62,7 +62,8 @@ const resultTitle   = document.getElementById('resultTitle');
 const resultWord    = document.getElementById('resultWord');
 const resultStats   = document.getElementById('resultStats');
 const playAgainBtn  = document.getElementById('playAgainBtn');
-const catButtons    = document.querySelectorAll('.cat-btn');
+const catButtons        = document.querySelectorAll('#categoryButtons .cat-btn');
+const resultCatButtons  = document.querySelectorAll('#resultCategoryButtons .cat-btn');
 
 // ─── CANVAS DRAWING ───────────────────────────────────
 
@@ -340,8 +341,19 @@ function showResult(won, bonus) {
     statsHtml += `Puntaje: <b>${state.score}</b>`;
     resultStats.innerHTML = statsHtml;
 
+    // Sync result category buttons with current category
+    resultCatButtons.forEach(btn => {
+        btn.classList.toggle('active', btn.dataset.category === state.category);
+    });
+
     resultOverlay.style.display = 'flex';
     restartBtn.disabled = false;
+
+    // Re-show mobile start button so mobile users can restart
+    const mobileStartBtn = document.getElementById('mobileStartBtn');
+    if (mobileStartBtn && /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent)) {
+        mobileStartBtn.style.display = 'none'; // overlay handles it
+    }
 }
 
 function hideResult() {
@@ -408,6 +420,17 @@ catButtons.forEach(btn => {
     });
 });
 
+resultCatButtons.forEach(btn => {
+    btn.addEventListener('click', () => {
+        resultCatButtons.forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        // Also sync the sidebar category buttons
+        catButtons.forEach(b => b.classList.toggle('active', b.dataset.category === btn.dataset.category));
+        state.category = btn.dataset.category;
+        GameAudio.click();
+    });
+});
+
 // ─── BUTTON HANDLERS ──────────────────────────────────
 
 startBtn.addEventListener('click', () => {
@@ -420,9 +443,10 @@ restartBtn.addEventListener('click', () => {
 });
 
 playAgainBtn.addEventListener('click', () => {
-    hideResult();
+    GameAudio.click();
     catButtons.forEach(btn => btn.disabled = false);
-    // Allow category change before new game
+    hideResult();
+    startGame();
 });
 
 // ─── INIT ─────────────────────────────────────────────
