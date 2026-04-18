@@ -76,6 +76,7 @@ Each game lives in its own folder with:
 | `carrace/` | Carrera de Autos | Arcade | Canvas |
 | `platformer/` | Plataformero | Plataformas | Canvas |
 | `stacktower/` | Apilador de Bloques | Arcade | Canvas |
+| `catapulta/` | Catapulta | Física | Canvas |
 
 ## Sound system (`audio.js`)
 

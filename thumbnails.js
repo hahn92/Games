@@ -2157,6 +2157,140 @@
             ctx.fillText('Récord: 42', W - 8, 11);
             ctx.textBaseline = 'alphabetic'; ctx.textAlign = 'left';
         },
+
+        /* ── CATAPULTA ──────────────────────────────────────────────── */
+        catapulta: function (ctx) {
+            // cielo con degradado (noche / atardecer)
+            var skyG = ctx.createLinearGradient(0, 0, 0, H);
+            skyG.addColorStop(0, '#182b55');
+            skyG.addColorStop(0.55, '#4d3a7d');
+            skyG.addColorStop(1, '#8b5a83');
+            ctx.fillStyle = skyG; ctx.fillRect(0, 0, W, H);
+
+            // estrellas puntuales
+            ctx.fillStyle = 'rgba(255,255,255,0.6)';
+            for (var i = 0; i < 24; i++) {
+                var sx = (i * 67) % W;
+                var sy = ((i * 37) % 120) + 8;
+                ctx.fillRect(sx, sy, (i % 4 === 0) ? 2 : 1, (i % 4 === 0) ? 2 : 1);
+            }
+
+            // montañas al fondo
+            ctx.fillStyle = '#28294f';
+            ctx.beginPath();
+            ctx.moveTo(0, 150);
+            ctx.lineTo(40, 120); ctx.lineTo(85, 140);
+            ctx.lineTo(130, 110); ctx.lineTo(170, 135);
+            ctx.lineTo(210, 118); ctx.lineTo(W, 145);
+            ctx.lineTo(W, 175); ctx.lineTo(0, 175);
+            ctx.closePath(); ctx.fill();
+
+            // suelo
+            var gg = ctx.createLinearGradient(0, 175, 0, H);
+            gg.addColorStop(0, '#5b3e1f');
+            gg.addColorStop(0.35, '#8a6038');
+            gg.addColorStop(1, '#4a351f');
+            ctx.fillStyle = gg; ctx.fillRect(0, 175, W, H - 175);
+            ctx.fillStyle = '#3fa250'; ctx.fillRect(0, 172, W, 4);
+
+            // catapulta
+            var SX = 46, SY = 152;
+            ctx.fillStyle = '#4e3218'; ctx.fillRect(SX - 22, 164, 44, 8);
+            ctx.fillStyle = '#714922'; ctx.fillRect(SX - 22, 162, 44, 3);
+            ctx.fillStyle = '#1a1a1a';
+            ctx.beginPath(); ctx.arc(SX - 14, 176, 7, 0, Math.PI * 2); ctx.fill();
+            ctx.beginPath(); ctx.arc(SX + 14, 176, 7, 0, Math.PI * 2); ctx.fill();
+            ctx.strokeStyle = '#7a4e22'; ctx.lineWidth = 5;
+            ctx.beginPath(); ctx.moveTo(SX - 8, 164); ctx.lineTo(SX, SY); ctx.stroke();
+            ctx.beginPath(); ctx.moveTo(SX + 8, 164); ctx.lineTo(SX, SY); ctx.stroke();
+            ctx.fillStyle = '#9c6a30';
+            ctx.beginPath(); ctx.ellipse(SX, SY, 10, 5, 0, 0, Math.PI * 2); ctx.fill();
+
+            // proyectil (roca)
+            var PX = 62, PY = 138;
+            var prg = ctx.createRadialGradient(PX - 3, PY - 3, 1, PX, PY, 9);
+            prg.addColorStop(0, '#e0d4b5');
+            prg.addColorStop(0.5, '#867563');
+            prg.addColorStop(1, '#3b322a');
+            ctx.fillStyle = prg;
+            ctx.beginPath(); ctx.arc(PX, PY, 9, 0, Math.PI * 2); ctx.fill();
+            ctx.strokeStyle = '#2a2018'; ctx.lineWidth = 1; ctx.stroke();
+
+            // gomas del tirachinas
+            ctx.strokeStyle = '#c96c3c'; ctx.lineWidth = 2;
+            ctx.beginPath(); ctx.moveTo(SX - 8, SY - 3); ctx.lineTo(PX - 2, PY + 2); ctx.stroke();
+            ctx.beginPath(); ctx.moveTo(SX + 8, SY - 3); ctx.lineTo(PX + 2, PY + 2); ctx.stroke();
+
+            // trayectoria punteada (parábola)
+            ctx.fillStyle = 'rgba(255,255,255,0.85)';
+            var arcPts = [
+                [82, 125], [100, 110], [118, 98],
+                [136, 90], [154, 85], [172, 85],
+                [190, 92]
+            ];
+            arcPts.forEach(function (p, idx) {
+                var s = idx % 2 === 0 ? 2 : 2;
+                ctx.fillRect(p[0] - 1, p[1] - 1, s, s);
+            });
+
+            // castillo objetivo 1 (grande con bandera)
+            function drawCastle(tx, ty, tw, th, hue) {
+                var cg = ctx.createLinearGradient(tx, ty, tx, ty + th);
+                cg.addColorStop(0, 'hsl(' + hue + ',55%,72%)');
+                cg.addColorStop(1, 'hsl(' + hue + ',60%,40%)');
+                ctx.fillStyle = cg; ctx.fillRect(tx, ty, tw, th);
+                ctx.fillStyle = 'hsl(' + hue + ',60%,30%)';
+                ctx.fillRect(tx, ty + th - 3, tw, 3);
+                var mW = 5, gap = 3, step = mW + gap;
+                for (var m = 0; m < Math.floor(tw / step); m++) {
+                    ctx.fillStyle = 'hsl(' + hue + ',55%,55%)';
+                    ctx.fillRect(tx + 1 + m * step, ty - 5, mW, 5);
+                }
+                // ventana
+                var wW = Math.min(9, tw * 0.35), wH = Math.min(12, th * 0.4);
+                var wx = tx + (tw - wW) / 2, wy = ty + 6;
+                ctx.fillStyle = '#231a14'; ctx.fillRect(wx, wy, wW, wH);
+                ctx.fillStyle = 'hsl(42,90%,65%)';
+                ctx.fillRect(wx + 1, wy + 1, wW - 2, wH - 6);
+                // bandera
+                ctx.strokeStyle = '#2a2a2a'; ctx.lineWidth = 1;
+                ctx.beginPath(); ctx.moveTo(tx + tw / 2, ty - 5); ctx.lineTo(tx + tw / 2, ty - 16); ctx.stroke();
+                ctx.fillStyle = 'hsl(' + ((hue + 180) % 360) + ',80%,58%)';
+                ctx.beginPath();
+                ctx.moveTo(tx + tw / 2, ty - 16);
+                ctx.lineTo(tx + tw / 2 + 7, ty - 13);
+                ctx.lineTo(tx + tw / 2, ty - 10);
+                ctx.closePath(); ctx.fill();
+            }
+            drawCastle(192, 118, 40, 48, 200);
+            drawCastle(152, 140, 28, 26, 340);
+
+            // explosión en castillo derribado
+            var EX = 162, EY = 135;
+            for (var p = 0; p < 14; p++) {
+                var ang = p * (Math.PI * 2 / 14);
+                var rr  = 10 + (p % 3) * 4;
+                ctx.fillStyle = (p % 2 === 0) ? '#ffd866' : '#ff6b4a';
+                ctx.fillRect(EX + Math.cos(ang) * rr - 1, EY + Math.sin(ang) * rr - 1, 2, 2);
+            }
+
+            // viento (flecha) top-right
+            ctx.strokeStyle = '#8fd3f4'; ctx.lineWidth = 2;
+            ctx.beginPath(); ctx.moveTo(158, 18); ctx.lineTo(188, 18); ctx.stroke();
+            ctx.fillStyle = '#8fd3f4';
+            ctx.beginPath();
+            ctx.moveTo(188, 18); ctx.lineTo(183, 14); ctx.lineTo(183, 22);
+            ctx.closePath(); ctx.fill();
+
+            // HUD
+            ctx.fillStyle = 'rgba(0,0,0,0.55)'; ctx.fillRect(0, 0, W, 22);
+            ctx.fillStyle = '#fff'; ctx.font = 'bold 11px monospace';
+            ctx.textAlign = 'left'; ctx.textBaseline = 'middle';
+            ctx.fillText('Nivel 2   Tiros:3', 6, 11);
+            ctx.textAlign = 'right';
+            ctx.fillText('Viento', 150, 11);
+            ctx.textBaseline = 'alphabetic'; ctx.textAlign = 'left';
+        },
     };
 
     /* ── render all thumbnails on DOMContentLoaded ── */
