@@ -2291,6 +2291,292 @@
             ctx.fillText('Viento', 150, 11);
             ctx.textBaseline = 'alphabetic'; ctx.textAlign = 'left';
         },
+
+        /* ── HELICOIDAL ─────────────────────────────────────────────── */
+        helicoidal: function (ctx) {
+            // fondo: cielo cósmico con degradado vertical
+            var sky = ctx.createLinearGradient(0, 0, 0, H);
+            sky.addColorStop(0, '#120635');
+            sky.addColorStop(0.55, '#2a1260');
+            sky.addColorStop(1, '#601e8c');
+            ctx.fillStyle = sky; ctx.fillRect(0, 0, W, H);
+
+            // estrellas
+            ctx.fillStyle = 'rgba(255,255,255,0.65)';
+            for (var i = 0; i < 36; i++) {
+                var sx = (i * 61) % W;
+                var sy = ((i * 37) % H);
+                ctx.fillRect(sx, sy, (i % 4 === 0) ? 2 : 1, (i % 4 === 0) ? 2 : 1);
+            }
+
+            // poste central vertical
+            var px = W / 2 - 10;
+            var poleG = ctx.createLinearGradient(px, 0, px + 20, 0);
+            poleG.addColorStop(0, '#100423');
+            poleG.addColorStop(0.5, '#2a1644');
+            poleG.addColorStop(1, '#100423');
+            ctx.fillStyle = poleG; ctx.fillRect(px, 0, 20, H);
+            ctx.fillStyle = 'rgba(255,255,255,0.09)';
+            ctx.fillRect(px + 7, 0, 3, H);
+
+            // discos elípticos apilados
+            var cx = W / 2, rx = 95, ry = 14;
+            var discs = [
+                { y: 48,  rotOffset: 0.0,  palette: 'cyan',   reds: [2],    gaps: [6] },
+                { y: 100, rotOffset: 0.35, palette: 'teal',   reds: [1, 5], gaps: [3] },
+                { y: 160, rotOffset: 0.8,  palette: 'cyan',   reds: [0, 4], gaps: [7] },
+                { y: 205, rotOffset: 1.15, palette: 'teal',   reds: [3],    gaps: [1, 5] },
+            ];
+
+            function drawWedge(cx, cy, rx, ry, a0, a1, fillGrad, alpha) {
+                ctx.globalAlpha = alpha;
+                ctx.beginPath();
+                ctx.moveTo(cx, cy);
+                ctx.ellipse(cx, cy, rx, ry, 0, a0, a1);
+                ctx.closePath();
+                ctx.fillStyle = fillGrad;
+                ctx.fill();
+                ctx.strokeStyle = 'rgba(10,4,30,0.6)';
+                ctx.lineWidth = 1.2;
+                ctx.stroke();
+                ctx.globalAlpha = 1;
+            }
+
+            discs.forEach(function (d) {
+                for (var s = 0; s < 8; s++) {
+                    var a0 = d.rotOffset + s * Math.PI / 4;
+                    var a1 = a0 + Math.PI / 4;
+                    var aMid = (a0 + a1) / 2;
+                    var inFront = Math.sin(aMid) > 0;
+                    var isGap = d.gaps.indexOf(s) >= 0;
+                    var isRed = d.reds.indexOf(s) >= 0;
+                    if (isGap) continue;
+                    var g;
+                    if (isRed) {
+                        g = ctx.createLinearGradient(cx, d.y - ry, cx, d.y + ry);
+                        g.addColorStop(0, '#ff7566');
+                        g.addColorStop(1, '#a81e14');
+                    } else if (d.palette === 'cyan') {
+                        g = ctx.createLinearGradient(cx, d.y - ry, cx, d.y + ry);
+                        g.addColorStop(0, '#6fd3ff');
+                        g.addColorStop(1, '#2a74a8');
+                    } else {
+                        g = ctx.createLinearGradient(cx, d.y - ry, cx, d.y + ry);
+                        g.addColorStop(0, '#7be0b3');
+                        g.addColorStop(1, '#2e8a5d');
+                    }
+                    drawWedge(cx, d.y, rx, ry, a0, a1, g, inFront ? 1 : 0.65);
+                }
+                // anillo exterior sutil
+                ctx.globalAlpha = 0.35;
+                ctx.strokeStyle = '#000'; ctx.lineWidth = 1;
+                ctx.beginPath();
+                ctx.ellipse(cx, d.y, rx, ry, 0, 0, Math.PI * 2);
+                ctx.stroke();
+                ctx.globalAlpha = 1;
+            });
+
+            // sombra bajo la bola (en el disco de nivel 160)
+            ctx.globalAlpha = 0.35;
+            ctx.fillStyle = '#000';
+            ctx.beginPath();
+            ctx.ellipse(cx + 2, 158, 13, 4, 0, 0, Math.PI * 2); ctx.fill();
+            ctx.globalAlpha = 1;
+
+            // bola (rebotando sobre el disco medio-alto)
+            var bx = cx, by = 135;
+            var bg = ctx.createRadialGradient(bx - 4, by - 5, 1, bx, by, 16);
+            bg.addColorStop(0, '#ffd866');
+            bg.addColorStop(0.55, '#ff9f45');
+            bg.addColorStop(1, '#8f1a06');
+            ctx.fillStyle = bg;
+            ctx.beginPath(); ctx.arc(bx, by, 13, 0, Math.PI * 2); ctx.fill();
+            ctx.strokeStyle = 'rgba(0,0,0,0.35)'; ctx.lineWidth = 1; ctx.stroke();
+            ctx.fillStyle = 'rgba(255,255,255,0.55)';
+            ctx.beginPath(); ctx.arc(bx - 4, by - 5, 4, 0, Math.PI * 2); ctx.fill();
+            ctx.fillStyle = '#2a0e04';
+            ctx.fillRect(bx + 3, by - 1, 2, 2);
+
+            // partículas de rebote (amarillas)
+            ctx.fillStyle = '#ffd866';
+            [[cx - 10, 148], [cx + 14, 150], [cx - 18, 154], [cx + 20, 146], [cx - 4, 158]].forEach(function (p) {
+                ctx.fillRect(p[0] - 1, p[1] - 1, 2, 2);
+            });
+
+            // indicador de rotación (flechas circulares debajo)
+            ctx.strokeStyle = 'rgba(255,255,255,0.8)';
+            ctx.lineWidth = 2.5;
+            ctx.beginPath();
+            ctx.arc(W / 2, H - 30, 22, Math.PI * 0.15, Math.PI * 0.85);
+            ctx.stroke();
+            ctx.fillStyle = 'rgba(255,255,255,0.85)';
+            ctx.beginPath();
+            ctx.moveTo(W / 2 - 22, H - 38);
+            ctx.lineTo(W / 2 - 32, H - 30);
+            ctx.lineTo(W / 2 - 22, H - 22);
+            ctx.closePath(); ctx.fill();
+            ctx.beginPath();
+            ctx.moveTo(W / 2 + 22, H - 38);
+            ctx.lineTo(W / 2 + 32, H - 30);
+            ctx.lineTo(W / 2 + 22, H - 22);
+            ctx.closePath(); ctx.fill();
+
+            // HUD
+            ctx.fillStyle = 'rgba(0,0,0,0.55)';
+            ctx.fillRect(0, 0, W, 22);
+            ctx.fillStyle = '#fff'; ctx.font = 'bold 12px monospace';
+            ctx.textAlign = 'left'; ctx.textBaseline = 'middle';
+            ctx.fillText('Puntos: 12', 8, 11);
+            ctx.textAlign = 'right';
+            ctx.fillText('Récord: 48', W - 8, 11);
+            ctx.textBaseline = 'alphabetic'; ctx.textAlign = 'left';
+
+            // Combo flash
+            ctx.fillStyle = '#ffd866';
+            ctx.font = 'bold 18px monospace';
+            ctx.textAlign = 'center';
+            ctx.fillText('x3', W / 2, 42);
+            ctx.textAlign = 'left';
+        },
+
+        /* ── RITMO ──────────────────────────────────────────────────── */
+        ritmo: function (ctx) {
+            // fondo degradado púrpura/azul estilo escenario nocturno
+            var bgG = ctx.createLinearGradient(0, 0, 0, H);
+            bgG.addColorStop(0, '#130738');
+            bgG.addColorStop(0.55, '#2a0d5a');
+            bgG.addColorStop(1, '#090218');
+            ctx.fillStyle = bgG;
+            ctx.fillRect(0, 0, W, H);
+
+            // estrellas sutiles
+            ctx.fillStyle = 'rgba(255,255,255,0.55)';
+            var stars = [[20,18],[48,52],[90,30],[140,70],[180,22],[210,60],
+                         [40,100],[110,120],[170,130],[200,150]];
+            stars.forEach(function (s) { ctx.fillRect(s[0], s[1], 1, 1); });
+
+            // 4 carriles con líneas suaves
+            var laneW = W / 4;
+            ctx.strokeStyle = 'rgba(255,255,255,0.12)';
+            ctx.lineWidth = 1;
+            for (var l = 1; l < 4; l++) {
+                ctx.beginPath();
+                ctx.moveTo(l * laneW, 0);
+                ctx.lineTo(l * laneW, H);
+                ctx.stroke();
+            }
+
+            // banda de zona de golpe (glow translúcido)
+            var hitY = H - 52;
+            ctx.fillStyle = 'rgba(143,211,244,0.25)';
+            ctx.fillRect(0, hitY - 22, W, 44);
+
+            // línea de impacto brillante
+            ctx.strokeStyle = '#8fd3f4';
+            ctx.lineWidth = 3;
+            ctx.beginPath();
+            ctx.moveTo(0, hitY);
+            ctx.lineTo(W, hitY);
+            ctx.stroke();
+            ctx.fillStyle = '#8fd3f4';
+            ctx.beginPath(); ctx.arc(6, hitY, 3, 0, Math.PI * 2); ctx.fill();
+            ctx.beginPath(); ctx.arc(W - 6, hitY, 3, 0, Math.PI * 2); ctx.fill();
+
+            // paletas de tiles por carril
+            var palettes = [
+                { a: '#ff7ad9', b: '#a8247d' },   // rosa
+                { a: '#ffd866', b: '#c27a11' },   // oro
+                { a: '#7bf0c6', b: '#1e8a64' },   // turquesa
+                { a: '#8fb4ff', b: '#2b4fa8' }    // azul
+            ];
+
+            // bloques cayendo en cada carril a distinta altura
+            var blocks = [
+                { lane: 0, y: 40,  h: 48 },
+                { lane: 1, y: 90,  h: 48 },
+                { lane: 2, y: hitY - 24, h: 48 }, // justo sobre la línea — "a punto de tocar"
+                { lane: 3, y: 150, h: 48 }
+            ];
+            blocks.forEach(function (b) {
+                var x = b.lane * laneW + 6;
+                var w = laneW - 12;
+                var pal = palettes[b.lane];
+                // cuerpo con gradiente vertical
+                var g = ctx.createLinearGradient(0, b.y, 0, b.y + b.h);
+                g.addColorStop(0, pal.a);
+                g.addColorStop(1, pal.b);
+                roundRect(ctx, x, b.y, w, b.h, 10, g, 'rgba(255,255,255,0.35)');
+                // highlight superior
+                ctx.fillStyle = 'rgba(255,255,255,0.22)';
+                roundRect(ctx, x + 4, b.y + 4, w - 8, 8, 5, 'rgba(255,255,255,0.25)');
+                // onda de sonido decorativa
+                ctx.strokeStyle = 'rgba(255,255,255,0.5)';
+                ctx.lineWidth = 1.8;
+                ctx.beginPath();
+                var midY = b.y + b.h * 0.68;
+                ctx.moveTo(x + 8, midY);
+                ctx.lineTo(x + w * 0.28, midY - 5);
+                ctx.lineTo(x + w * 0.5,  midY + 5);
+                ctx.lineTo(x + w * 0.72, midY - 5);
+                ctx.lineTo(x + w - 8, midY);
+                ctx.stroke();
+            });
+
+            // pulso/flash en el carril 2 (el que "acaba de acertarse")
+            ctx.globalAlpha = 0.25;
+            ctx.fillStyle = palettes[2].a;
+            ctx.fillRect(2 * laneW, 0, laneW, H);
+            ctx.globalAlpha = 1;
+
+            // anillo expansivo en la línea de impacto
+            ctx.strokeStyle = '#ffffff';
+            ctx.lineWidth = 2.5;
+            ctx.globalAlpha = 0.85;
+            ctx.beginPath();
+            ctx.arc(2 * laneW + laneW / 2, hitY, 22, 0, Math.PI * 2);
+            ctx.stroke();
+            ctx.globalAlpha = 0.4;
+            ctx.beginPath();
+            ctx.arc(2 * laneW + laneW / 2, hitY, 36, 0, Math.PI * 2);
+            ctx.stroke();
+            ctx.globalAlpha = 1;
+
+            // HUD superior
+            ctx.fillStyle = 'rgba(0,0,0,0.55)';
+            ctx.fillRect(0, 0, W, 22);
+            ctx.fillStyle = '#fff';
+            ctx.font = 'bold 12px monospace';
+            ctx.textAlign = 'left'; ctx.textBaseline = 'middle';
+            ctx.fillText('Puntos: 24', 8, 11);
+            ctx.textAlign = 'right';
+            ctx.fillText('Récord: 97', W - 8, 11);
+
+            // combo en el centro
+            ctx.textAlign = 'center';
+            ctx.fillStyle = '#ffd866';
+            ctx.font = 'bold 18px monospace';
+            ctx.fillText('x4', W / 2, 40);
+
+            // corazones de vida (esquina derecha bajo HUD)
+            function tinyHeart(hx, hy, on) {
+                var sz = 10;
+                ctx.fillStyle = on ? '#ff5a7a' : '#3a1c2a';
+                ctx.beginPath();
+                ctx.moveTo(hx, hy + sz * 0.3);
+                ctx.bezierCurveTo(hx, hy, hx - sz * 0.55, hy, hx - sz * 0.55, hy + sz * 0.35);
+                ctx.bezierCurveTo(hx - sz * 0.55, hy + sz * 0.65, hx, hy + sz * 0.85, hx, hy + sz);
+                ctx.bezierCurveTo(hx, hy + sz * 0.85, hx + sz * 0.55, hy + sz * 0.65, hx + sz * 0.55, hy + sz * 0.35);
+                ctx.bezierCurveTo(hx + sz * 0.55, hy, hx, hy, hx, hy + sz * 0.3);
+                ctx.closePath();
+                ctx.fill();
+            }
+            tinyHeart(W - 12, 30, true);
+            tinyHeart(W - 28, 30, true);
+            tinyHeart(W - 44, 30, false);
+
+            ctx.textBaseline = 'alphabetic';
+            ctx.textAlign = 'left';
+        },
     };
 
     /* ── render all thumbnails on DOMContentLoaded ── */

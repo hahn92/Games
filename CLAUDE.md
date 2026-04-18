@@ -77,6 +77,8 @@ Each game lives in its own folder with:
 | `platformer/` | Plataformero | Plataformas | Canvas |
 | `stacktower/` | Apilador de Bloques | Arcade | Canvas |
 | `catapulta/` | Catapulta | Física | Canvas |
+| `helicoidal/` | Helicoidal | Física | Canvas |
+| `ritmo/` | Ritmo | Ritmo | Canvas |
 
 ## Sound system (`audio.js`)
 
