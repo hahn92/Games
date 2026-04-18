@@ -75,6 +75,7 @@ Each game lives in its own folder with:
 | `hangman/` | Ahorcado | Palabras | DOM |
 | `carrace/` | Carrera de Autos | Arcade | Canvas |
 | `platformer/` | Plataformero | Plataformas | Canvas |
+| `stacktower/` | Apilador de Bloques | Arcade | Canvas |
 
 ## Sound system (`audio.js`)
 
