@@ -79,6 +79,7 @@ Each game lives in its own folder with:
 | `catapulta/` | Catapulta | Física | Canvas |
 | `helicoidal/` | Helicoidal | Física | Canvas |
 | `ritmo/` | Ritmo | Ritmo | Canvas |
+| `cambiocolor/` | Cambio de Color | Reflejos | Canvas |
 
 ## Sound system (`audio.js`)
 
