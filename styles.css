@@ -29,7 +29,8 @@ h1 {
 }
 .games-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    grid-template-columns: repeat(auto-fill, minmax(220px, 260px));
+    justify-content: center;
     gap: 1.2rem;
     padding: 1.5rem;
 }
@@ -85,6 +86,101 @@ h1 {
     .games-grid {
         grid-template-columns: 1fr;
     }
+}
+
+/* ── Catalog controls ─────────────────────────────────────────────────────── */
+.catalog-controls {
+    background: #1c1c1c;
+    border-bottom: 1px solid #333;
+    padding: 1rem 1.5rem 0.8rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+}
+.controls-top {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    flex-wrap: wrap;
+}
+.search-input {
+    flex: 1 1 180px;
+    padding: 0.55rem 1rem;
+    border-radius: 8px;
+    border: 1.5px solid #444;
+    background: #2a2a2a;
+    color: #f0f0f0;
+    font-size: 1rem;
+    outline: none;
+    transition: border-color 0.2s;
+}
+.search-input:focus { border-color: var(--primary-color); }
+.results-count {
+    color: #888;
+    font-size: 0.88rem;
+    white-space: nowrap;
+}
+.filter-btns {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.4rem;
+    padding-bottom: 0.2rem;
+}
+.filter-btn {
+    padding: 0.3rem 0.85rem;
+    border-radius: 20px;
+    border: 1.5px solid #444;
+    background: transparent;
+    color: #bbb;
+    font-size: 0.82rem;
+    cursor: pointer;
+    transition: border-color 0.18s, color 0.18s, background 0.18s;
+    line-height: 1.4;
+}
+.filter-btn:hover {
+    border-color: var(--primary-color);
+    color: var(--primary-color);
+}
+.filter-btn.active {
+    background: var(--primary-color);
+    border-color: var(--primary-color);
+    color: #1a1a1a;
+    font-weight: 700;
+}
+
+/* ── Pagination ────────────────────────────────────────────────────────────── */
+.pagination {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 1.2rem;
+    padding: 1.5rem 1rem 2rem;
+}
+.page-btn {
+    padding: 0.45rem 1.2rem;
+    border-radius: 8px;
+    border: 1.5px solid var(--primary-color);
+    background: transparent;
+    color: var(--primary-color);
+    font-size: 0.95rem;
+    cursor: pointer;
+    transition: background 0.18s, color 0.18s;
+}
+.page-btn:hover:not(:disabled) {
+    background: var(--primary-color);
+    color: #1a1a1a;
+}
+.page-btn:disabled { opacity: 0.3; cursor: not-allowed; }
+.page-info { color: #999; font-size: 0.9rem; min-width: 100px; text-align: center; }
+
+/* ── No results ────────────────────────────────────────────────────────────── */
+.no-results {
+    display: none;
+    grid-column: 1 / -1;
+    text-align: center;
+    padding: 3rem 1rem;
+    color: #666;
+    font-size: 1.1rem;
 }
 
 /* Touch button panels hidden globally — all games use canvas swipe/tap gestures */

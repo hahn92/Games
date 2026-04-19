@@ -1,2 +1,126 @@
-// Aquí puedes agregar scripts JS para funcionalidades futuras
-// Por ejemplo, filtros, búsqueda, animaciones, etc.
+/* main.js — Catalog filter, search and pagination */
+(function () {
+    var GAMES_PER_PAGE = 10;
+    var currentPage    = 1;
+    var activeCategory = 'Todos';
+    var searchQuery    = '';
+
+    var allCards = Array.from(document.querySelectorAll('.game-card'));
+
+    /* ── Assign data-category from the visible text ── */
+    allCards.forEach(function (card) {
+        var catEl = card.querySelector('.game-category');
+        if (catEl) card.dataset.category = catEl.textContent.trim();
+    });
+
+    /* ── Build sorted category list ── */
+    var catSet = {};
+    allCards.forEach(function (card) { catSet[card.dataset.category] = true; });
+    var categories = ['Todos'].concat(Object.keys(catSet).sort());
+
+    /* ── Inject controls HTML before <main> ── */
+    var main = document.querySelector('main');
+    var controlsDiv = document.createElement('div');
+    controlsDiv.className = 'catalog-controls';
+    controlsDiv.innerHTML =
+        '<div class="controls-top">' +
+            '<input type="search" class="search-input" id="catalogSearch" placeholder="Buscar juego..." autocomplete="off">' +
+            '<span class="results-count" id="resultsCount"></span>' +
+        '</div>' +
+        '<div class="filter-btns" id="filterBtns"></div>';
+    main.parentNode.insertBefore(controlsDiv, main);
+
+    /* ── Inject pagination HTML after the grid ── */
+    var paginationDiv = document.createElement('div');
+    paginationDiv.className = 'pagination';
+    paginationDiv.id = 'pagination';
+    paginationDiv.style.display = 'none';
+    paginationDiv.innerHTML =
+        '<button class="page-btn" id="prevBtn">\u2190 Anterior</button>' +
+        '<span class="page-info" id="pageInfo"></span>' +
+        '<button class="page-btn" id="nextBtn">Siguiente \u2192</button>';
+    main.appendChild(paginationDiv);
+
+    /* ── Build filter buttons ── */
+    var filterBtnsEl = document.getElementById('filterBtns');
+    categories.forEach(function (cat) {
+        var btn = document.createElement('button');
+        btn.className = 'filter-btn' + (cat === 'Todos' ? ' active' : '');
+        btn.textContent = cat;
+        btn.addEventListener('click', function () {
+            activeCategory = cat;
+            currentPage = 1;
+            document.querySelectorAll('.filter-btn').forEach(function (b) {
+                b.classList.toggle('active', b === btn);
+            });
+            applyFilters();
+        });
+        filterBtnsEl.appendChild(btn);
+    });
+
+    /* ── Search input ── */
+    document.getElementById('catalogSearch').addEventListener('input', function () {
+        searchQuery = this.value.trim().toLowerCase();
+        currentPage = 1;
+        applyFilters();
+    });
+
+    /* ── Pagination buttons ── */
+    document.getElementById('prevBtn').addEventListener('click', function () {
+        if (currentPage > 1) { currentPage--; applyFilters(); scrollToGrid(); }
+    });
+    document.getElementById('nextBtn').addEventListener('click', function () {
+        currentPage++; applyFilters(); scrollToGrid();
+    });
+
+    function scrollToGrid() {
+        var grid = document.querySelector('.games-grid');
+        if (grid) grid.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+
+    /* ── Core filter + paginate ── */
+    function applyFilters() {
+        var filtered = allCards.filter(function (card) {
+            var matchCat = activeCategory === 'Todos' || card.dataset.category === activeCategory;
+            var title    = (card.querySelector('.game-title') || {}).textContent || '';
+            var matchQ   = !searchQuery || title.toLowerCase().includes(searchQuery);
+            return matchCat && matchQ;
+        });
+
+        var total      = filtered.length;
+        var totalPages = Math.max(1, Math.ceil(total / GAMES_PER_PAGE));
+        if (currentPage > totalPages) currentPage = totalPages;
+
+        var start = (currentPage - 1) * GAMES_PER_PAGE;
+        var end   = start + GAMES_PER_PAGE;
+
+        allCards.forEach(function (card) { card.style.display = 'none'; });
+        filtered.slice(start, end).forEach(function (card) { card.style.display = ''; });
+
+        /* no-results message */
+        var noResults = document.getElementById('noResults');
+        if (noResults) noResults.style.display = total === 0 ? 'block' : 'none';
+
+        /* results count label */
+        var countEl = document.getElementById('resultsCount');
+        if (countEl) {
+            countEl.textContent = total === allCards.length
+                ? total + ' juegos'
+                : total + ' de ' + allCards.length + ' juegos';
+        }
+
+        /* pagination controls */
+        var pagination = document.getElementById('pagination');
+        var pageInfo   = document.getElementById('pageInfo');
+        var prevBtn    = document.getElementById('prevBtn');
+        var nextBtn    = document.getElementById('nextBtn');
+
+        pagination.style.display = totalPages > 1 ? 'flex' : 'none';
+        pageInfo.textContent = 'Página ' + currentPage + ' / ' + totalPages;
+        prevBtn.disabled = currentPage <= 1;
+        nextBtn.disabled = currentPage >= totalPages;
+    }
+
+    /* ── Init ── */
+    applyFilters();
+}());
