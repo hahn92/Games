@@ -1,6 +1,6 @@
 /* main.js — Catalog filter, search and pagination */
 (function () {
-    var GAMES_PER_PAGE = 10;
+    var GAMES_PER_PAGE = 8;
     var currentPage    = 1;
     var activeCategory = 'Todos';
     var searchQuery    = '';
