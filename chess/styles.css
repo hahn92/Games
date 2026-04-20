@@ -1,0 +1,90 @@
+@import url('../styles.css');
+
+body { background: var(--grad-bg); color: #fff; min-height: 100vh; margin: 0; }
+
+/* Layout */
+.responsive-layout {
+    display: flex;
+    flex-direction: row;
+    justify-content: center;
+    align-items: flex-start;
+    gap: 2.5rem;
+    width: 100%;
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 2rem 1rem;
+    box-sizing: border-box;
+}
+.game-side {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+}
+.info-side {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    justify-content: center;
+    min-width: 280px;
+    max-width: 400px;
+    background: rgba(36,36,36,0.85);
+    border-radius: 18px;
+    box-shadow: 0 8px 32px rgba(0,0,0,0.25);
+    padding: 2rem;
+}
+.info-side h1 {
+    font-size: 2.2rem;
+    margin-bottom: 1rem;
+    background: var(--grad-primary);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+}
+.info-side p { font-size: 1.1rem; margin-bottom: 1.5rem; color: var(--text-muted); }
+.buttons-panel { display: flex; gap: 1rem; margin-top: 1.5rem; }
+.score-panel { display: flex; gap: 1.5rem; font-size: 1.1rem; margin-bottom: 1.5rem; color: var(--text-muted); flex-wrap: wrap; }
+
+.buttons-panel button, .chess-mobile-btns button {
+    background: var(--grad-primary);
+    color: #222;
+    border: none;
+    border-radius: 8px;
+    padding: 0.9rem 2rem;
+    font-size: 1.05rem;
+    font-weight: bold;
+    cursor: pointer;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+    transition: opacity 0.2s, transform 0.2s;
+}
+.buttons-panel button:hover, .chess-mobile-btns button:hover {
+    opacity: 0.9;
+    transform: scale(1.05);
+}
+
+@media (max-width: 900px) {
+    .responsive-layout { flex-direction: column; align-items: center; gap: 1.5rem; padding: 1rem 0.5rem; }
+    .info-side { max-width: 100vw; width: 100%; align-items: center; text-align: center; }
+    .info-side h1 { font-size: 1.7rem; }
+    .game-side { width: 100%; justify-content: center; }
+}
+
+#chessCanvas {
+    display: block;
+    cursor: pointer;
+    background: #1a1a1a;
+    border-bottom: 2px solid #8fd3f4;
+}
+
+.chess-mobile-btns {
+    display: none;
+    gap: 0.7rem;
+    padding: 0.55rem 1rem;
+    background: #1c1c1c;
+    justify-content: center;
+    width: 100%;
+    box-sizing: border-box;
+    border-bottom: 1px solid #333;
+}
+

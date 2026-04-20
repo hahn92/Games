@@ -17,7 +17,10 @@
       "Read(//Users/hahn/Documents/Desarrollo/Games/$game/**)",
       "Bash(echo \"OK: $game\")",
       "Bash(echo \"MISSING: $game\")",
-      "Bash(node:*)"
+      "Bash(node:*)",
+      "Bash(npx serve *)",
+      "Bash(echo \"Server PID: $!\")",
+      "Bash(open \"http://localhost:3456/chess/\")"
     ]
   }
 }

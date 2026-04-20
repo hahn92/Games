@@ -80,6 +80,8 @@ Each game lives in its own folder with:
 | `helicoidal/` | Helicoidal | Física | Canvas |
 | `ritmo/` | Ritmo | Ritmo | Canvas |
 | `cambiocolor/` | Cambio de Color | Reflejos | Canvas |
+| `cosecha/` | La Cosecha | Gestión | Canvas |
+| `chess/` | Ajedrez | Estrategia | Canvas |
 
 ## Sound system (`audio.js`)
 
