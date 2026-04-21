@@ -82,6 +82,8 @@ Each game lives in its own folder with:
 | `cambiocolor/` | Cambio de Color | Reflejos | Canvas |
 | `cosecha/` | La Cosecha | Gestión | Canvas |
 | `chess/` | Ajedrez | Estrategia | Canvas |
+| `plinko/` | Plinko | Física | Canvas |
+| `dardos/` | Dardos | Física | Canvas |
 
 ## Sound system (`audio.js`)
 

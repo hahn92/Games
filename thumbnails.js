@@ -2887,6 +2887,234 @@
             ctx.fillText('27s', W - 14, 30);
             ctx.textAlign = 'left'; ctx.textBaseline = 'alphabetic';
         },
+        /* ── PLINKO (drop & bounce) ────────────────────────────────── */
+        plinko: function (ctx) {
+            // fondo azul profundo con gradiente vertical
+            var bg = ctx.createLinearGradient(0, 0, 0, H);
+            bg.addColorStop(0, '#101c3a');
+            bg.addColorStop(1, '#070a1a');
+            ctx.fillStyle = bg; ctx.fillRect(0, 0, W, H);
+
+            // franja superior (drop zone)
+            ctx.fillStyle = 'rgba(143,211,244,0.08)';
+            ctx.fillRect(0, 0, W, 34);
+            ctx.strokeStyle = 'rgba(143,211,244,0.3)';
+            ctx.lineWidth = 1;
+            ctx.beginPath(); ctx.moveTo(0, 34); ctx.lineTo(W, 34); ctx.stroke();
+
+            // línea guía de la bola
+            ctx.strokeStyle = 'rgba(255,255,255,0.25)';
+            ctx.setLineDash([4, 4]);
+            ctx.beginPath(); ctx.moveTo(110, 26); ctx.lineTo(110, 34); ctx.stroke();
+            ctx.setLineDash([]);
+
+            // pinchos: rejilla triangular alterna
+            var pegR = 3.2;
+            var rows = 6;
+            var rowY0 = 54;
+            var rowDY = 24;
+            var colDX = 28;
+            ctx.fillStyle = '#cfe8ff';
+            for (var r = 0; r < rows; r++) {
+                var even = r % 2 === 0;
+                var count = even ? 7 : 8;
+                var x0 = even ? 30 : 16;
+                for (var c = 0; c < count; c++) {
+                    var px = x0 + c * colDX;
+                    var py = rowY0 + r * rowDY;
+                    ctx.beginPath(); ctx.arc(px, py, pegR, 0, Math.PI * 2); ctx.fill();
+                }
+            }
+            // borde tenue de los pinchos (un pase batch)
+            ctx.strokeStyle = 'rgba(143,211,244,0.45)';
+            ctx.lineWidth = 1;
+            for (var r2 = 0; r2 < rows; r2++) {
+                var even2 = r2 % 2 === 0;
+                var count2 = even2 ? 7 : 8;
+                var x02 = even2 ? 30 : 16;
+                for (var c2 = 0; c2 < count2; c2++) {
+                    var px2 = x02 + c2 * colDX;
+                    var py2 = rowY0 + r2 * rowDY;
+                    ctx.beginPath(); ctx.arc(px2, py2, pegR + 0.6, 0, Math.PI * 2); ctx.stroke();
+                }
+            }
+
+            // bola en caída rebotando (posición representativa)
+            var ballX = 110, ballY = 38;
+            // trail
+            ctx.fillStyle = 'rgba(255,180,90,0.35)';
+            ctx.fillRect(110 - 1.5, 28 - 1.5, 3, 3);
+            ctx.fillStyle = 'rgba(255,180,90,0.25)';
+            ctx.fillRect(108 - 1.5, 20 - 1.5, 3, 3);
+            // bola principal
+            var bg2 = ctx.createRadialGradient(ballX - 2, ballY - 2, 0, ballX, ballY, 7);
+            bg2.addColorStop(0, '#ffe29a');
+            bg2.addColorStop(0.5, '#ff8a3d');
+            bg2.addColorStop(1, '#c43211');
+            ctx.fillStyle = bg2;
+            ctx.beginPath(); ctx.arc(ballX, ballY, 7, 0, Math.PI * 2); ctx.fill();
+            ctx.fillStyle = 'rgba(255,255,255,0.55)';
+            ctx.beginPath(); ctx.arc(ballX - 2, ballY - 2.5, 1.8, 0, Math.PI * 2); ctx.fill();
+
+            // segunda bola cayendo en otro lado
+            var ballX2 = 170, ballY2 = 120;
+            ctx.fillStyle = bg2;
+            ctx.save(); ctx.translate(ballX2 - ballX, ballY2 - ballY);
+            ctx.beginPath(); ctx.arc(ballX, ballY, 7, 0, Math.PI * 2); ctx.fill();
+            ctx.restore();
+            ctx.fillStyle = 'rgba(255,255,255,0.55)';
+            ctx.beginPath(); ctx.arc(ballX2 - 2, ballY2 - 2.5, 1.8, 0, Math.PI * 2); ctx.fill();
+
+            // ranuras inferiores con multiplicadores
+            var slotY = 180, slotH = 40;
+            var slots = 7;
+            var slotW = W / slots;
+            var mults = [0, 1, 3, 10, 3, 1, 0];
+            function mcolor(m) {
+                if (m >= 10) return '#ff4081';
+                if (m >= 3)  return '#ffb347';
+                if (m >= 1)  return '#8fd3f4';
+                return '#4a4a52';
+            }
+            // fondo común ranuras
+            ctx.fillStyle = '#1a2550';
+            ctx.fillRect(0, slotY, W, slotH);
+            // barra superior por ranura
+            for (var s = 0; s < slots; s++) {
+                var m = mults[s];
+                ctx.fillStyle = mcolor(m);
+                ctx.fillRect(s * slotW + 1, slotY, slotW - 2, 14);
+            }
+            // divisores
+            ctx.strokeStyle = 'rgba(143,211,244,0.3)';
+            ctx.lineWidth = 1;
+            for (var s2 = 1; s2 < slots; s2++) {
+                ctx.beginPath();
+                ctx.moveTo(s2 * slotW, slotY);
+                ctx.lineTo(s2 * slotW, slotY + slotH);
+                ctx.stroke();
+            }
+            // texto multiplicador (no emoji)
+            ctx.font = 'bold 11px Segoe UI, Arial, sans-serif';
+            ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+            for (var s3 = 0; s3 < slots; s3++) {
+                var m3 = mults[s3];
+                ctx.fillStyle = m3 === 0 ? '#999' : '#111';
+                ctx.fillText(m3 + 'x', s3 * slotW + slotW / 2, slotY + 7);
+            }
+
+            // partículas de celebración en la ranura 10x (última)
+            var partX = W - slotW / 2;
+            var partY = slotY + 8;
+            var partColor = '#ff4081';
+            var partOffsets = [[-10,-6],[ -4,-12],[3,-9],[8,-14],[-6,-16],[2,-18]];
+            for (var p = 0; p < partOffsets.length; p++) {
+                ctx.globalAlpha = 0.6 + p * 0.04;
+                ctx.fillStyle = partColor;
+                ctx.fillRect(partX + partOffsets[p][0], partY + partOffsets[p][1], 3, 3);
+            }
+            ctx.globalAlpha = 1;
+
+            // puntuación arriba
+            ctx.fillStyle = '#fff';
+            ctx.font = 'bold 15px Segoe UI, Arial, sans-serif';
+            ctx.textAlign = 'left'; ctx.textBaseline = 'middle';
+            ctx.fillText('2400', 10, 18);
+            ctx.fillStyle = '#ffb347';
+            ctx.font = 'bold 13px Segoe UI, Arial, sans-serif';
+            ctx.textAlign = 'right';
+            ctx.fillText('Bolas: 7', W - 10, 18);
+            ctx.textAlign = 'left'; ctx.textBaseline = 'alphabetic';
+        },
+
+        dardos: function (ctx) {
+            // fondo oscuro
+            var bg = ctx.createLinearGradient(0, 0, 0, H);
+            bg.addColorStop(0, '#120a24');
+            bg.addColorStop(1, '#1a0838');
+            ctx.fillStyle = bg; ctx.fillRect(0, 0, W, H);
+
+            // estrellas (puntos fijos)
+            ctx.fillStyle = 'rgba(255,255,255,0.22)';
+            var stars = [[18,12],[55,28],[100,8],[175,40],[250,18],[310,35],[40,65],[130,55],[200,70],[290,50],[350,22]];
+            for (var si = 0; si < stars.length; si++) ctx.fillRect(stars[si][0], stars[si][1], 1.5, 1.5);
+
+            // diana giratoria
+            var cx = W / 2, cy = 92;
+            var R = 68;
+            var rings = [
+                {r: R,        fill: '#1a0a2e'},
+                {r: R * 0.82, fill: '#2d1b4e'},
+                {r: R * 0.62, fill: '#1a0a2e'},
+                {r: R * 0.42, fill: '#3d2b5e'},
+                {r: R * 0.24, fill: '#ff512f'},
+                {r: R * 0.10, fill: '#fff'},
+            ];
+            for (var ri = 0; ri < rings.length; ri++) {
+                ctx.beginPath(); ctx.arc(cx, cy, rings[ri].r, 0, Math.PI * 2);
+                ctx.fillStyle = rings[ri].fill; ctx.fill();
+                ctx.strokeStyle = 'rgba(143,211,244,0.3)'; ctx.lineWidth = 1; ctx.stroke();
+            }
+            // sector lines
+            ctx.strokeStyle = 'rgba(143,211,244,0.15)'; ctx.lineWidth = 1;
+            for (var si2 = 0; si2 < 8; si2++) {
+                var a = (si2 / 8) * Math.PI * 2;
+                ctx.beginPath(); ctx.moveTo(cx, cy);
+                ctx.lineTo(cx + Math.cos(a) * R, cy + Math.sin(a) * R); ctx.stroke();
+            }
+            // glow ring
+            ctx.shadowColor = '#8fd3f4'; ctx.shadowBlur = 12;
+            ctx.beginPath(); ctx.arc(cx, cy, R, 0, Math.PI * 2);
+            ctx.strokeStyle = '#8fd3f4'; ctx.lineWidth = 2; ctx.stroke();
+            ctx.shadowBlur = 0;
+
+            // dardos clavados (5 dardos en distintos ángulos)
+            var stuck = [
+                {rel: -0.4,  color: '#8fd3f4'},
+                {rel:  0.7,  color: '#ff512f'},
+                {rel:  1.9,  color: '#ffd700'},
+                {rel: -1.8,  color: '#7fff7f'},
+                {rel:  3.0,  color: '#ff80ab'},
+            ];
+            var boardAngle = 0.3;
+            ctx.lineCap = 'round';
+            for (var di = 0; di < stuck.length; di++) {
+                var globalA = stuck[di].rel + boardAngle;
+                var tx = cx + Math.cos(globalA) * (R - 2);
+                var ty = cy + Math.sin(globalA) * (R - 2);
+                ctx.strokeStyle = stuck[di].color; ctx.lineWidth = 2.5;
+                ctx.beginPath();
+                ctx.moveTo(tx, ty);
+                ctx.lineTo(tx + Math.cos(globalA) * 20, ty + Math.sin(globalA) * 20);
+                ctx.stroke();
+                ctx.fillStyle = stuck[di].color;
+                ctx.beginPath(); ctx.arc(tx, ty, 3.5, 0, Math.PI * 2); ctx.fill();
+            }
+
+            // dardo en vuelo (desde abajo)
+            ctx.shadowColor = '#ffd700'; ctx.shadowBlur = 7;
+            ctx.strokeStyle = '#ffd700'; ctx.lineWidth = 2.5;
+            ctx.beginPath(); ctx.moveTo(cx, cy + R + 30); ctx.lineTo(cx, cy + R + 8); ctx.stroke();
+            ctx.shadowBlur = 0;
+            ctx.fillStyle = '#fff';
+            ctx.beginPath(); ctx.arc(cx, cy + R + 8, 3.5, 0, Math.PI * 2); ctx.fill();
+
+            // barra de progreso
+            var bY = cy + R + 42, bW = 120, bH = 7;
+            var bX = (W - bW) / 2;
+            ctx.fillStyle = 'rgba(36,36,36,0.7)';
+            ctx.beginPath(); ctx.roundRect(bX, bY, bW, bH, 3); ctx.fill();
+            var grad = ctx.createLinearGradient(bX, 0, bX + bW, 0);
+            grad.addColorStop(0, '#8fd3f4'); grad.addColorStop(1, '#ff512f');
+            ctx.fillStyle = grad;
+            ctx.beginPath(); ctx.roundRect(bX, bY, bW * (5 / 6), bH, 3); ctx.fill();
+
+            // texto
+            ctx.fillStyle = 'rgba(255,255,255,0.8)';
+            ctx.font = 'bold 11px Segoe UI, Arial, sans-serif';
+            ctx.textAlign = 'center'; ctx.textBaseline = 'top';
+            ctx.fillText('5/6 dardos  Niv.1', W / 2, bY + bH + 4);
+        },
     };
 
     /* ── render all thumbnails on DOMContentLoaded ── */
