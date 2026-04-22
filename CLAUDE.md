@@ -84,6 +84,8 @@ Each game lives in its own folder with:
 | `chess/` | Ajedrez | Estrategia | Canvas |
 | `plinko/` | Plinko | Física | Canvas |
 | `dardos/` | Dardos | Física | Canvas |
+| `gemas/` | Gemas | Puzzle | Canvas |
+| `minero/` | Minero de Oro | Habilidad | Canvas |
 
 ## Sound system (`audio.js`)
 
