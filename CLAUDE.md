@@ -88,6 +88,7 @@ Each game lives in its own folder with:
 | `minero/` | Minero de Oro | Habilidad | Canvas |
 | `laberinto/` | Laberinto Neón | Laberinto | Canvas |
 | `sokoban/` | Empuja Cajas | Lógica | Canvas |
+| `pinball/` | Pinball Neón | Arcade | Canvas |
 
 ## Sound system (`audio.js`)
 
