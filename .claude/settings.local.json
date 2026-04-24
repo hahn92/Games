@@ -21,7 +21,8 @@
       "Bash(npx serve *)",
       "Bash(echo \"Server PID: $!\")",
       "Bash(open \"http://localhost:3456/chess/\")",
-      "Bash(python3 *)"
+      "Bash(python3 *)",
+      "Bash(gh pr *)"
     ]
   }
 }

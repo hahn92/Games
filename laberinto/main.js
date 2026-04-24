@@ -622,15 +622,16 @@
 
     /* ── buttons ─────────────────────────────────────────────────── */
     if (startBtn) startBtn.addEventListener('click', function () {
+        GameAudio.click();
         level = 1;
         updateHUD();
         startGame();
         startBtn.disabled = true;
     });
 
-    if (restartBtn) restartBtn.addEventListener('click', restartLevel);
-    if (nextLvlBtn) nextLvlBtn.addEventListener('click', nextLevel);
-    if (replayBtn)  replayBtn.addEventListener('click', restartLevel);
+    if (restartBtn) restartBtn.addEventListener('click', function () { GameAudio.click(); restartLevel(); });
+    if (nextLvlBtn) nextLvlBtn.addEventListener('click', function () { GameAudio.click(); nextLevel(); });
+    if (replayBtn)  replayBtn.addEventListener('click',  function () { GameAudio.click(); restartLevel(); });
 
     /* ══════════════════════════════════════════════════════════════
      * BOOTSTRAP
