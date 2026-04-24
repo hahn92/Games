@@ -1,4 +1,4 @@
-/* fullscreen-btn.js — Shared fullscreen/landscape button for all games */
+/* fullscreen-btn.js — Fullscreen/landscape button + inter-game navigation */
 (function () {
     function isMobile() {
         return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
@@ -8,11 +8,162 @@
             (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
     }
 
-    if (!isMobile()) return;
+    /* ── Game list (same order as catalog) ─────────────────────────── */
+    var GAMES = [
+        ['snake',        'Snake Clásico'],
+        ['tetris',       'Tetris JS'],
+        ['pong',         'Pong Clásico'],
+        ['breakout',     'Breakout'],
+        ['2048',         '2048'],
+        ['memorama',     'Memorama'],
+        ['flappybird',   'Flappy Bird'],
+        ['spaceinvaders','Space Invaders'],
+        ['whackamole',   'Whack-a-Mole'],
+        ['simon',        'Simon Dice'],
+        ['runner',       'Endless Runner'],
+        ['minesweeper',  'Buscaminas'],
+        ['tictactoe',    'Tres en Raya'],
+        ['connectfour',  'Conecta 4'],
+        ['asteroids',    'Asteroids'],
+        ['frogger',      'Frogger'],
+        ['wordle',       'Wordle'],
+        ['typingspeed',  'Velocidad de Escritura'],
+        ['slidingpuzzle','Puzzle 15'],
+        ['fruitcatcher', 'Atrapa Frutas'],
+        ['pacman',       'Pac-Man'],
+        ['bubbleshooter','Bubble Shooter'],
+        ['hangman',      'Ahorcado'],
+        ['carrace',      'Carrera de Autos'],
+        ['platformer',   'Plataformero'],
+        ['stacktower',   'Apilador de Bloques'],
+        ['catapulta',    'Catapulta'],
+        ['helicoidal',   'Helicoidal'],
+        ['ritmo',        'Ritmo'],
+        ['cambiocolor',  'Cambio de Color'],
+        ['cosecha',      'La Cosecha'],
+        ['chess',        'Ajedrez'],
+        ['plinko',       'Plinko'],
+        ['dardos',       'Dardos Giratorios'],
+        ['gemas',        'Gemas'],
+        ['minero',       'Minero de Oro'],
+        ['laberinto',    'Laberinto Neón'],
+        ['sokoban',      'Empuja Cajas'],
+    ];
 
-    var ios = isIOS();
+    /* ── Detect current game folder from URL ────────────────────────── */
+    function detectFolder() {
+        var parts = window.location.pathname.split('/').filter(Boolean);
+        // Remove trailing filename (e.g. 'index.html')
+        if (parts.length > 0 && parts[parts.length - 1].indexOf('.') > -1) parts.pop();
+        return parts.length > 0 ? parts[parts.length - 1] : '';
+    }
 
+    function findGameIndex(folder) {
+        for (var i = 0; i < GAMES.length; i++) {
+            if (GAMES[i][0] === folder) return i;
+        }
+        return -1;
+    }
+
+    /* ── Build navigation bar ───────────────────────────────────────── */
+    function buildNav(idx) {
+        var prev = idx > 0 ? GAMES[idx - 1] : null;
+        var next = idx < GAMES.length - 1 ? GAMES[idx + 1] : null;
+
+        var nav = document.createElement('div');
+        nav.id = 'gameNavBar';
+        nav.style.cssText =
+            'position:fixed;top:10px;left:10px;z-index:9998;' +
+            'display:flex;align-items:center;gap:2px;' +
+            'background:rgba(15,20,30,0.88);' +
+            'border-radius:24px;padding:4px 6px;' +
+            'box-shadow:0 2px 12px rgba(0,0,0,0.55);' +
+            '-webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px);' +
+            'border:1px solid rgba(143,211,244,0.18);' +
+            'font-family:sans-serif;';
+
+        function svgLeft() {
+            return '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>';
+        }
+        function svgHome() {
+            return '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>';
+        }
+        function svgRight() {
+            return '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>';
+        }
+
+        function makeBtn(html, href, title, disabled) {
+            var el = disabled ? document.createElement('span') : document.createElement('a');
+            if (!disabled) el.href = href;
+            el.title = title;
+            el.innerHTML = html;
+            el.style.cssText =
+                'color:' + (disabled ? 'rgba(143,211,244,0.25)' : '#8fd3f4') + ';' +
+                'text-decoration:none;' +
+                'width:28px;height:28px;display:flex;align-items:center;justify-content:center;' +
+                'border-radius:50%;' +
+                'transition:background 0.15s,color 0.15s;' +
+                'cursor:' + (disabled ? 'default' : 'pointer') + ';' +
+                'touch-action:manipulation;-webkit-tap-highlight-color:transparent;' +
+                'flex-shrink:0;';
+            if (!disabled) {
+                el.addEventListener('mouseenter', function () {
+                    this.style.background = 'rgba(143,211,244,0.18)';
+                    this.style.color = '#fff';
+                });
+                el.addEventListener('mouseleave', function () {
+                    this.style.background = '';
+                    this.style.color = '#8fd3f4';
+                });
+            }
+            return el;
+        }
+
+        // Separator
+        function sep() {
+            var s = document.createElement('span');
+            s.style.cssText =
+                'width:1px;height:18px;background:rgba(143,211,244,0.18);flex-shrink:0;margin:0 1px;';
+            return s;
+        }
+
+        // Prev
+        var homeHref = '../';
+        nav.appendChild(makeBtn(
+            svgLeft(),
+            prev ? ('../' + prev[0] + '/') : '#',
+            prev ? ('◀ ' + prev[1]) : 'Primer juego',
+            !prev
+        ));
+        nav.appendChild(sep());
+
+        // Home
+        nav.appendChild(makeBtn(svgHome(), homeHref, 'Catálogo de juegos', false));
+        nav.appendChild(sep());
+
+        // Next
+        nav.appendChild(makeBtn(
+            svgRight(),
+            next ? ('../' + next[0] + '/') : '#',
+            next ? (next[1] + ' ▶') : 'Último juego',
+            !next
+        ));
+
+        document.body.appendChild(nav);
+    }
+
+    /* ── DOMContentLoaded — nav for all devices ─────────────────────── */
     document.addEventListener('DOMContentLoaded', function () {
+
+        /* Navigation */
+        var folder = detectFolder();
+        var idx    = findGameIndex(folder);
+        if (idx >= 0) buildNav(idx);
+
+        /* Fullscreen button — mobile only */
+        if (!isMobile()) return;
+
+        var ios = isIOS();
 
         /* ── Button ── */
         var btn = document.createElement('button');
@@ -75,7 +226,6 @@
                 rotateHint.style.display = 'none';
             });
 
-            /* Auto-dismiss when device rotates to landscape */
             function onOrientationChange() {
                 setTimeout(function () {
                     var landscape = window.innerWidth > window.innerHeight;
@@ -93,7 +243,6 @@
 
         /* ── Helpers ── */
         function triggerResize() {
-            /* Fire multiple times to catch slow paint cycles */
             [100, 350, 700].forEach(function (d) {
                 setTimeout(function () {
                     window.dispatchEvent(new Event('resize'));
@@ -112,18 +261,11 @@
                       el.webkitRequestFullscreen ||
                       el.mozRequestFullScreen ||
                       el.msRequestFullscreen;
-            if (!req) {
-                /* Browser doesn't support fullscreen (rare on Android) */
-                triggerResize();
-                return;
-            }
+            if (!req) { triggerResize(); return; }
             var p = req.call(el);
             if (p && typeof p.then === 'function') {
-                p.then(function () {
-                    onEnterFSDone();
-                }).catch(function () {});
+                p.then(function () { onEnterFSDone(); }).catch(function () {});
             } else {
-                /* Non-Promise implementation — assume success */
                 setTimeout(onEnterFSDone, 200);
             }
         }
@@ -145,24 +287,15 @@
             if (ex) ex.call(document);
         }
 
-        /* ── Click handler ── */
         btn.addEventListener('click', function () {
             if (ios) {
                 var landscape = window.innerWidth > window.innerHeight;
-                if (landscape) {
-                    /* Already landscape — just recalculate layout */
-                    triggerResize();
-                } else {
-                    /* Portrait on iOS — show rotate hint */
-                    rotateHint.style.display = 'flex';
-                }
+                if (landscape) { triggerResize(); } else { rotateHint.style.display = 'flex'; }
                 return;
             }
-            /* Android / other */
             if (fsActive) { exitFS(); } else { enterFS(); }
         });
 
-        /* ── Fullscreen change (Android) ── */
         ['fullscreenchange', 'webkitfullscreenchange', 'mozfullscreenchange', 'MSFullscreenChange']
             .forEach(function (ev) {
                 document.addEventListener(ev, function () {

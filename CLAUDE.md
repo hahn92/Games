@@ -26,7 +26,7 @@ Or open `index.html` (root or per-game) directly in a browser.
 | `index.html` | Game catalog/landing page |
 | `styles.css` | Shared design system (CSS variables, card layout, global rules) |
 | `audio.js` | Shared Web Audio API sound system — `GameAudio.*()` calls |
-| `fullscreen-btn.js` | Injects the floating fullscreen/landscape button on mobile |
+| `fullscreen-btn.js` | Inter-game navigation bar (all devices) + fullscreen/landscape button (mobile only) |
 | `main.js` | Placeholder for future catalog-level JS |
 
 ### Per-game structure
@@ -87,6 +87,7 @@ Each game lives in its own folder with:
 | `gemas/` | Gemas | Puzzle | Canvas |
 | `minero/` | Minero de Oro | Habilidad | Canvas |
 | `laberinto/` | Laberinto Neón | Laberinto | Canvas |
+| `sokoban/` | Empuja Cajas | Lógica | Canvas |
 
 ## Sound system (`audio.js`)
 

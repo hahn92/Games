@@ -1,9 +1,37 @@
-/* main.js — Catalog filter, search and pagination */
+/* main.js — Catalog filter, search and pagination with shareable URLs */
 (function () {
     var GAMES_PER_PAGE = 8;
     var currentPage    = 1;
     var activeCategory = 'Todos';
     var searchQuery    = '';
+
+    /* ── Read state from URL query params ─────────────────────────── */
+    function getParam(name) {
+        var match = window.location.search.match(
+            new RegExp('[?&]' + name + '=([^&]*)')
+        );
+        return match ? decodeURIComponent(match[1].replace(/\+/g, ' ')) : null;
+    }
+
+    function readURL() {
+        activeCategory = getParam('cat') || 'Todos';
+        searchQuery    = getParam('q')   || '';
+        currentPage    = parseInt(getParam('p'), 10) || 1;
+    }
+
+    /* ── Push current state to URL without page reload ─────────────── */
+    function syncURL() {
+        var parts = [];
+        if (activeCategory !== 'Todos') parts.push('cat=' + encodeURIComponent(activeCategory));
+        if (searchQuery)                parts.push('q='   + encodeURIComponent(searchQuery));
+        if (currentPage > 1)           parts.push('p='   + currentPage);
+        var qs  = parts.length ? '?' + parts.join('&') : '';
+        var url = window.location.pathname + qs;
+        if (history.replaceState) history.replaceState(null, '', url);
+    }
+
+    /* ── Init state from URL ── */
+    readURL();
 
     var allCards = Array.from(document.querySelectorAll('.game-card'));
 
@@ -36,16 +64,16 @@
     paginationDiv.id = 'pagination';
     paginationDiv.style.display = 'none';
     paginationDiv.innerHTML =
-        '<button class="page-btn" id="prevBtn">\u2190 Anterior</button>' +
+        '<button class="page-btn" id="prevBtn">← Anterior</button>' +
         '<span class="page-info" id="pageInfo"></span>' +
-        '<button class="page-btn" id="nextBtn">Siguiente \u2192</button>';
+        '<button class="page-btn" id="nextBtn">Siguiente →</button>';
     main.appendChild(paginationDiv);
 
-    /* ── Build filter buttons ── */
+    /* ── Build filter buttons (mark active from URL state) ── */
     var filterBtnsEl = document.getElementById('filterBtns');
     categories.forEach(function (cat) {
         var btn = document.createElement('button');
-        btn.className = 'filter-btn' + (cat === 'Todos' ? ' active' : '');
+        btn.className = 'filter-btn' + (cat === activeCategory ? ' active' : '');
         btn.textContent = cat;
         btn.addEventListener('click', function () {
             activeCategory = cat;
@@ -58,8 +86,10 @@
         filterBtnsEl.appendChild(btn);
     });
 
-    /* ── Search input ── */
-    document.getElementById('catalogSearch').addEventListener('input', function () {
+    /* ── Search input — restore value from URL ── */
+    var searchEl = document.getElementById('catalogSearch');
+    searchEl.value = searchQuery;
+    searchEl.addEventListener('input', function () {
         searchQuery = this.value.trim().toLowerCase();
         currentPage = 1;
         applyFilters();
@@ -78,7 +108,7 @@
         if (grid) grid.scrollIntoView({ behavior: 'smooth', block: 'start' });
     }
 
-    /* ── Core filter + paginate ── */
+    /* ── Core filter + paginate + URL sync ── */
     function applyFilters() {
         var filtered = allCards.filter(function (card) {
             var matchCat = activeCategory === 'Todos' || card.dataset.category === activeCategory;
@@ -119,6 +149,9 @@
         pageInfo.textContent = 'Página ' + currentPage + ' / ' + totalPages;
         prevBtn.disabled = currentPage <= 1;
         nextBtn.disabled = currentPage >= totalPages;
+
+        /* sync URL so the current view is shareable */
+        syncURL();
     }
 
     /* ── Init ── */
