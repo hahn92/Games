@@ -33,8 +33,8 @@ Or open `index.html` (root or per-game) directly in a browser.
 Each game lives in its own folder with:
 - `index.html` — game page; inline mobile layout script + script tags for `audio.js`, `main.js`, `fullscreen-btn.js`
 - `main.js` — all game logic (canvas rendering loop, input handling, game state, `GameAudio` calls)
-- `styles.css` — game-specific styles, always starts with `@import url('../styles.css')`
-- `image.png` — thumbnail shown in the catalog
+- `styles.css` — game-specific styles; must include the full standard layout block (see below)
+- Thumbnails are drawn via canvas in `thumbnails.js` — no `image.png` needed
 
 ### Shared CSS variables (defined in `styles.css`)
 ```
@@ -86,6 +86,7 @@ Each game lives in its own folder with:
 | `dardos/` | Dardos | Física | Canvas |
 | `gemas/` | Gemas | Puzzle | Canvas |
 | `minero/` | Minero de Oro | Habilidad | Canvas |
+| `laberinto/` | Laberinto Neón | Laberinto | Canvas |
 
 ## Sound system (`audio.js`)
 
@@ -249,18 +250,39 @@ Located in `.claude/agents/`:
 
 ## Adding a new game
 
-1. Create a new folder with `index.html`, `main.js`, `styles.css`, `image.png`
-2. `styles.css` must start with `@import url('../styles.css')`
-3. Copy `runner/index.html` as template (most complete mobile pattern)
-4. Script tag order in `index.html`:
+1. Create a new folder with `index.html`, `main.js`, `styles.css`
+2. Copy `runner/index.html` as template (most complete mobile pattern)
+3. Script tag order in `index.html`:
    ```html
    <script src="../audio.js"></script>
    <script src="./main.js"></script>
    <script src="../fullscreen-btn.js"></script>
    ```
-5. In `adjustMobileLayout()`: use `window.innerWidth + 'px'` for width, `≤ 50px` height offset
+4. In `adjustMobileLayout()`: use `window.innerWidth + 'px'` for width, `≤ 50px` height offset
+5. **`styles.css` must include the full standard layout block** — copy from `minero/styles.css` and replace `minero-canvas` with your canvas class. Required sections:
+   - `@import url('../styles.css')` at the top
+   - `.mobile-score` overlay (absolute-positioned score over canvas on mobile)
+   - `.responsive-layout`, `.game-side`, `.info-side` layout classes
+   - `@media (max-width: 900px)` responsive rules
+   - `body { background: var(--grad-bg); ... }`
+   - `#startBtn, #restartBtn` button styles
+   - `#playAgainBtn` (or equivalent end-of-game button) styles
+   - `.popup` and `.popup-content` overlay styles
+   - Game-specific canvas class (border: `3px solid var(--accent-color)`, border-radius, box-shadow)
 6. Add `GameAudio.*()` calls for all key game events (never inside render loops)
 7. Never use emoji for game-critical visuals — always use canvas shapes
-8. Add a game card in the root `index.html` with `onerror` on the img tag
-9. Use `requestAnimationFrame` for the game loop, not `setInterval`
-10. Run `/validate-game [name]` after finishing to confirm all criteria pass
+8. Add a game card in the root `index.html` — use `<canvas data-game="FOLDER">` (not `<img>`):
+   ```html
+   <div class="game-card">
+       <canvas data-game="FOLDER"></canvas>
+       <div class="game-info">
+           <div class="game-title">Título</div>
+           <div class="game-category">Categoría</div>
+           <div class="game-desc">Descripción breve.</div>
+           <a class="game-link" href="./FOLDER/index.html" target="_blank">Jugar</a>
+       </div>
+   </div>
+   ```
+9. Add a thumbnail drawing function to `thumbnails.js` under the game's folder name key
+10. Use `requestAnimationFrame` for the game loop, not `setInterval`
+11. Run `/validate-game [name]` after finishing to confirm all criteria pass
