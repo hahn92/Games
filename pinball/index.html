@@ -10,7 +10,7 @@
     <main>
         <div class="responsive-layout">
             <div class="game-side" id="gameSide">
-                <canvas id="pinballCanvas" width="360" height="580" class="pinball-canvas"></canvas>
+                <canvas id="pinballCanvas" width="400" height="620" class="pinball-canvas"></canvas>
                 <button id="mobileStartBtn" style="display:none;position:absolute;top:20px;left:50%;transform:translateX(-50%);z-index:1000;padding:1rem 2.5rem;font-size:1.3rem;border-radius:12px;background:var(--grad-primary);color:#222;font-weight:bold;border:none;box-shadow:0 2px 8px rgba(0,0,0,0.15);">Iniciar</button>
                 <div id="mobileScore" class="mobile-score"></div>
             </div>
@@ -29,7 +29,7 @@
                     <button id="startBtn">Iniciar</button>
                     <button id="restartBtn" disabled>Reiniciar</button>
                 </div>
-                <p class="hint">Teclado: Z / Flecha Izq = flipper izquierdo<br>X / Flecha Der = flipper derecho<br>Espacio = lanzar bola<br>Móvil: toca mitad izq/der de la pantalla</p>
+                <p class="hint">Teclado: Z / ← = flipper izquierdo<br>X / → = flipper derecho<br>Espacio = cargar y soltar plunger<br>Móvil: tap izq/der = flippers, tap zona inferior central = plunger</p>
             </div>
         </div>
         <div id="gameOverPopup" class="popup" style="display:none;">
@@ -65,7 +65,7 @@
                 mobileStartBtn.style.display = 'block';
                 mobileScore.style.display = 'block';
             }
-            var ratio = 360 / 580;
+            var ratio = 400 / 620;
             var availableWidth = window.innerWidth - 8;
             var availableHeight = vHeight - (isMobile() ? 50 : 0);
             var newHeight = Math.min(availableHeight, availableWidth / ratio);
