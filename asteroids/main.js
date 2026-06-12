@@ -468,8 +468,12 @@ function updateHUD() {
     document.getElementById('mobileScore').textContent = 'P:' + score + ' V:' + lives;
 }
 
-function gameLoop() {
+var lastFrameTs = 0;
+function gameLoop(ts) {
     if (!isPlaying) return;
+    // Throttle to ~60fps on high-refresh screens
+    if (ts - lastFrameTs < 15) { animFrameId = requestAnimationFrame(gameLoop); return; }
+    lastFrameTs = ts;
     update();
     draw();
     animFrameId = requestAnimationFrame(gameLoop);

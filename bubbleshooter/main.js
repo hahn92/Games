@@ -40,7 +40,7 @@ let shootAngle = -Math.PI / 2;  // radians, -π/2 = straight up
 let canShoot   = true;
 
 let score     = 0;
-let highScore = 0;
+let highScore = parseInt(localStorage.getItem('bubbleHighScore') || '0', 10);
 let level     = 1;
 let shots     = 0;          // shots fired this level cycle
 let gameState = 'idle';     // 'idle' | 'playing' | 'over' | 'win'
@@ -515,7 +515,10 @@ function triggerGameOver() {
     gameState = 'over';
     canShoot  = false;
     GameAudio.gameOver();
-    if (score > highScore) highScore = score;
+    if (score > highScore) {
+        highScore = score;
+        localStorage.setItem('bubbleHighScore', highScore);
+    }
 
     setTimeout(() => {
         document.getElementById('popupTitle').textContent  = '¡Juego terminado!';
@@ -530,7 +533,10 @@ function triggerWin() {
     gameState = 'win';
     canShoot  = false;
     GameAudio.win();
-    if (score > highScore) highScore = score;
+    if (score > highScore) {
+        highScore = score;
+        localStorage.setItem('bubbleHighScore', highScore);
+    }
 
     setTimeout(() => {
         document.getElementById('popupTitle').textContent  = '¡Tablero despejado!';
@@ -916,9 +922,9 @@ canvas.addEventListener('touchend', (e) => {
     fireCurrentBubble();
 }, { passive: false });
 
-document.getElementById('startBtn').addEventListener('click', startGame);
-document.getElementById('restartBtn').addEventListener('click', restartGame);
-document.getElementById('playAgainBtn').addEventListener('click', restartGame);
+document.getElementById('startBtn').addEventListener('click', () => { GameAudio.click(); startGame(); });
+document.getElementById('restartBtn').addEventListener('click', () => { GameAudio.click(); restartGame(); });
+document.getElementById('playAgainBtn').addEventListener('click', () => { GameAudio.click(); restartGame(); });
 
 // ─── Boot ────────────────────────────────────────────────────────────────────
 updateUI();

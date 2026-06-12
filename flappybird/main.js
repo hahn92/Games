@@ -15,6 +15,7 @@ const GAP_MIN    = 85;
 let birdY, birdV, pipes, score, highScore, isPlaying, frame, gameLoop, gameOverPopup;
 let pipeGap = GAP_EASY;
 
+
 // --- Visual extras ---
 let particles = [];
 let scorePopScale = 1;
@@ -152,11 +153,11 @@ function startGame() {
     document.getElementById('restartBtn').disabled = false;
     document.getElementById('startBtn').disabled = true;
     document.getElementById('gameOverPopup').style.display = 'none';
-    gameLoop = setInterval(update, 1000/60);
+    gameLoop = rafInterval(update, 15);
 }
 
 function restartGame() {
-    clearInterval(gameLoop);
+    rafClear(gameLoop);
     startGame();
 }
 
@@ -220,8 +221,8 @@ function update() {
         spawnDeathParticles(60, birdY + BIRD_SIZE / 2);
         shakeFrames = 14;
         flashAlpha  = 0.9;
-        clearInterval(gameLoop);
-        gameLoop = setInterval(updateDeathAnim, 1000/60);
+        rafClear(gameLoop);
+        gameLoop = rafInterval(updateDeathAnim, 15);
         return;
     }
     draw();
@@ -235,7 +236,7 @@ function updateDeathAnim() {
     draw();
     if (!deathAnimDone && shakeFrames <= 0 && flashAlpha <= 0 && particles.length === 0) {
         deathAnimDone = true;
-        clearInterval(gameLoop);
+        rafClear(gameLoop);
         endGame();
     }
 }
@@ -254,7 +255,7 @@ function checkCollision() {
 }
 
 function endGame() {
-    clearInterval(gameLoop);
+    rafClear(gameLoop);
     GameAudio.gameOver();
     isPlaying = false;
     const prevHigh = parseInt(localStorage.getItem('flappyHighScore') || '0', 10);
@@ -567,8 +568,9 @@ function draw() {
     ctx.save();
     // Screen shake
     if (shakeFrames > 0) {
-        const sx = (Math.random() - 0.5) * 6;
-        const sy = (Math.random() - 0.5) * 4;
+        // Deterministic jitter from the frame counter (no Math.random in render)
+        const sx = Math.sin(shakeFrames * 12.9898) * 3;
+        const sy = Math.cos(shakeFrames * 78.233) * 2;
         ctx.translate(sx, sy);
     }
 

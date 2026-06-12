@@ -881,8 +881,12 @@ function drawIdle() {
     drawScore();
 }
 
-function gameLoop() {
+var lastFrameTs = 0;
+function gameLoop(ts) {
     if (!isPlaying) return;
+    // Throttle to ~60fps on high-refresh screens
+    if (ts - lastFrameTs < 15) { animFrameId = requestAnimationFrame(gameLoop); return; }
+    lastFrameTs = ts;
 
     frame++;
     animTick++;

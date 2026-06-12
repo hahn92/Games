@@ -56,6 +56,7 @@ let highScore = localStorage.getItem('snakeHighScore') || 0;
 let gameInterval;
 let speed = 250;
 
+
 // --- Progresión ---
 let level = 1;
 let fruitsEaten = 0;
@@ -264,11 +265,6 @@ function drawHUD() {
     const multW = ctx.measureText(multText).width;
     ctx.fillText(multText, canvasSize / 2 - multW / 2, margin);
 
-    // Frutas hasta siguiente nivel
-    const fruitsToNext = 5 - (fruitsEaten % 5);
-    const nextText = `+${fruitsToNext}🍎`;
-    ctx.fillStyle = '#81c784';
-    const nw = ctx.measureText(nextText).width;
     // Barra de progreso de nivel
     const barW = Math.floor(canvasSize * 0.28);
     const barH = 5;
@@ -531,8 +527,8 @@ function moveSnake() {
     const targetSpeed = computeSpeed();
     if (targetSpeed !== speed) {
         speed = targetSpeed;
-        clearInterval(gameInterval);
-        gameInterval = setInterval(moveSnake, speed);
+        rafClear(gameInterval);
+        gameInterval = rafInterval(moveSnake, speed);
     }
 
     draw();
@@ -541,17 +537,17 @@ function moveSnake() {
 }
 
 function triggerDeathFlash() {
-    clearInterval(gameInterval);
+    rafClear(gameInterval);
     deathFlash = true;
     deathFlashTimer = 8;
     // Dibujar el flash y luego mostrar game over
     let flashCount = 0;
-    const flashInterval = setInterval(() => {
+    const flashInterval = rafInterval(() => {
         deathFlashTimer--;
         flashCount++;
         draw();
         if (flashCount >= 8) {
-            clearInterval(flashInterval);
+            rafClear(flashInterval);
             deathFlash = false;
             gameOver();
         }
@@ -628,13 +624,13 @@ function startGame() {
     updateScore();
     updateMobileScore();
     draw();
-    clearInterval(gameInterval);
-    gameInterval = setInterval(moveSnake, speed);
+    rafClear(gameInterval);
+    gameInterval = rafInterval(moveSnake, speed);
 }
 
 function restartGame() {
     if (!isPlaying) return;
-    clearInterval(gameInterval);
+    rafClear(gameInterval);
     syncCanvasLogicSize();
     snake = [{ x: 9 * box, y: 10 * box }];
     direction = 'RIGHT';
@@ -651,11 +647,11 @@ function restartGame() {
     updateScore();
     updateMobileScore();
     draw();
-    gameInterval = setInterval(moveSnake, speed);
+    gameInterval = rafInterval(moveSnake, speed);
 }
 
 function gameOver() {
-    clearInterval(gameInterval);
+    rafClear(gameInterval);
     if (score > highScore) {
         highScore = score;
         localStorage.setItem('snakeHighScore', highScore);

@@ -42,53 +42,6 @@
     50%       { color: #fff; text-shadow: 0 0 8px #8fd3f4; }
 }
 
-/* ---- Layout ---- */
-.mobile-score {
-    display: none;
-    position: absolute;
-    top: 5px;
-    right: 5px;
-    z-index: 1002;
-    background: rgba(36,36,36,0.85);
-    color: var(--text-muted);
-    font-size: 0.8rem;
-    padding: 0.7rem 1.2rem;
-    border-radius: 12px;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.15);
-    font-weight: bold;
-}
-
-.responsive-layout {
-    display: flex;
-    flex-direction: row;
-    justify-content: center;
-    align-items: flex-start;
-    gap: 2.5rem;
-    width: 100%;
-    max-width: 1200px;
-    margin: 0 auto;
-    padding: 2rem 1rem;
-    box-sizing: border-box;
-}
-.game-side {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    position: relative;
-}
-.info-side {
-    display: flex;
-    flex-direction: column;
-    align-items: flex-start;
-    justify-content: center;
-    min-width: 280px;
-    max-width: 400px;
-    background: rgba(36,36,36,0.85);
-    border-radius: 18px;
-    box-shadow: 0 8px 32px rgba(0,0,0,0.25);
-    padding: 2rem;
-}
 .info-side h1 {
     font-size: 2.2rem;
     margin-bottom: 1rem;

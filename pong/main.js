@@ -18,6 +18,7 @@ let highScore = localStorage.getItem('pongHighScore') || 0;
 let isPlaying = false, gameInterval;
 let speed = 1000/60;
 
+
 // --- Dificultad de IA ---
 // 0=Fácil, 1=Normal, 2=Difícil
 let aiDifficulty = 1;
@@ -449,8 +450,8 @@ function startGame() {
     resetBall();
     updateScore();
     draw();
-    clearInterval(gameInterval);
-    gameInterval = setInterval(update, speed);
+    rafClear(gameInterval);
+    gameInterval = rafInterval(update, speed);
     isPlaying = true;
     document.getElementById('restartBtn').disabled = false;
     document.getElementById('startBtn').disabled = true;
@@ -461,7 +462,7 @@ function restartGame() {
 }
 
 function gameOver(winner) {
-    clearInterval(gameInterval);
+    rafClear(gameInterval);
     GameAudio.gameOver();
     const popup = document.getElementById('gameOverPopup');
     const finalEl = document.getElementById('finalScore');

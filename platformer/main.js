@@ -1105,6 +1105,8 @@
     function loop(ts) {
         if (!gameRunning) return;
         const dt = ts - lastTime;
+        // Throttle to ~60fps on high-refresh screens
+        if (dt < 15) { rafId = requestAnimationFrame(loop); return; }
         lastTime = ts;
         if (dt > 100) { rafId = requestAnimationFrame(loop); return; } // skip big gaps
 
@@ -1198,9 +1200,10 @@
         restartBtn.disabled = true;
     }
 
-    startBtn.addEventListener('click', startGame);
-    restartBtn.addEventListener('click', startGame);
+    startBtn.addEventListener('click', () => { GameAudio.click(); startGame(); });
+    restartBtn.addEventListener('click', () => { GameAudio.click(); startGame(); });
     playAgainBtn.addEventListener('click', () => {
+        GameAudio.click();
         gameOverPopup.style.display = 'none';
         startGame();
     });

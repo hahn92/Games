@@ -550,9 +550,10 @@ function draw() {
 
     // Screen shake
     if (shakeFrames > 0) {
+        // Deterministic jitter from the frame counter (no Math.random in render)
         ctx.translate(
-            (Math.random() - 0.5) * 7,
-            (Math.random() - 0.5) * 5
+            Math.sin(shakeFrames * 12.9898) * 3.5,
+            Math.cos(shakeFrames * 78.233) * 2.5
         );
     }
 
@@ -699,8 +700,12 @@ function updateHUD() {
     document.getElementById('mobileScore').textContent = 'P:' + score + ' V:' + lives;
 }
 
-function gameLoop() {
+var lastFrameTs = 0;
+function gameLoop(ts) {
     if (!isPlaying) return;
+    // Throttle to ~60fps on high-refresh screens
+    if (ts - lastFrameTs < 15) { animFrameId = requestAnimationFrame(gameLoop); return; }
+    lastFrameTs = ts;
     if (!isPaused) update();
     draw();
     animFrameId = requestAnimationFrame(gameLoop);

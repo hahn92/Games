@@ -11,6 +11,7 @@ let board = Array.from({ length: ROWS }, () => Array(COLS).fill(0));
 let current, next, holdPiece = null;
 let score = 0, highScore = localStorage.getItem('tetrisHighScore') || 0;
 let gameInterval, speed = 500, isPlaying = false;
+
 let totalLines = 0, level = 1;
 let canHold = true;
 
@@ -468,8 +469,8 @@ function executeClearLines() {
 
     // Velocidad por nivel (500ms → 80ms en nivel 10+)
     speed = Math.max(80, 500 - (level - 1) * 48);
-    clearInterval(gameInterval);
-    gameInterval = setInterval(tick, speed);
+    rafClear(gameInterval);
+    gameInterval = rafInterval(tick, speed);
 
     updateScoreDOM();
 }
@@ -578,8 +579,8 @@ function startGame() {
     next = randomPiece();
     updateScoreDOM();
     drawBoard();
-    clearInterval(gameInterval);
-    gameInterval = setInterval(tick, speed);
+    rafClear(gameInterval);
+    gameInterval = rafInterval(tick, speed);
     isPlaying = true;
     document.getElementById('restartBtn').disabled = false;
     document.getElementById('startBtn').disabled = true;
@@ -590,7 +591,7 @@ function restartGame() {
 }
 
 function gameOver() {
-    clearInterval(gameInterval);
+    rafClear(gameInterval);
     GameAudio.gameOver();
     document.getElementById('gameOverPopup').style.display = 'flex';
     document.getElementById('finalScore').textContent = `Puntaje: ${score}  |  Nivel: ${level}  |  Líneas: ${totalLines}`;

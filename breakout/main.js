@@ -32,6 +32,7 @@ let score = 0, highScore = localStorage.getItem('breakoutHighScore') || 0;
 let isPlaying = false, gameInterval;
 let speed = 1000/60;
 
+
 // Teclas presionadas para movimiento continuo
 const keys = {};
 
@@ -222,19 +223,19 @@ function drawLives() {
     // Vidas como círculos en la esquina inferior derecha
     const r = 7;
     const spacing = 20;
-    const startX = WIDTH - 10 - lives * spacing + spacing / 2;
     const y = HEIGHT - 14;
+    // Shadow state set once for the whole batch (never per-element in a loop)
+    ctx.save();
+    ctx.shadowBlur = 6;
+    ctx.shadowColor = '#ffe082';
+    ctx.fillStyle = '#ffe082';
     for (let i = 0; i < lives; i++) {
         const cx = WIDTH - 10 - i * spacing;
-        ctx.save();
-        ctx.shadowBlur = 6;
-        ctx.shadowColor = '#ffe082';
-        ctx.fillStyle = '#ffe082';
         ctx.beginPath();
         ctx.arc(cx, y, r, 0, Math.PI * 2);
         ctx.fill();
-        ctx.restore();
     }
+    ctx.restore();
     ctx.save();
     ctx.font = '9px monospace';
     ctx.fillStyle = 'rgba(255,255,255,0.5)';
@@ -259,27 +260,24 @@ function draw() {
     ctx.fillStyle = '#0a0a18';
     ctx.fillRect(0, 0, WIDTH, HEIGHT);
 
+    ctx.fillStyle = '#ffffff';
     stars.forEach(s => {
-        ctx.save();
         ctx.globalAlpha = s.alpha;
-        ctx.fillStyle = '#ffffff';
         ctx.fillRect(s.x, s.y, s.size, s.size);
-        ctx.restore();
     });
+    ctx.globalAlpha = 1;
 
     // Trail de la primera bola
+    ctx.fillStyle = '#ffe082';
     ballTrail.forEach((pos, i) => {
         const ratio = i / TRAIL_LENGTH;
-        const alpha = 0.05 + ratio * 0.45;
         const radius = (BALL_SIZE / 2) * (0.3 + ratio * 0.7);
-        ctx.save();
-        ctx.globalAlpha = alpha;
-        ctx.fillStyle = '#ffe082';
+        ctx.globalAlpha = 0.05 + ratio * 0.45;
         ctx.beginPath();
         ctx.arc(pos.x + BALL_SIZE/2, pos.y + BALL_SIZE/2, radius, 0, Math.PI * 2);
         ctx.fill();
-        ctx.restore();
     });
+    ctx.globalAlpha = 1;
 
     // Partículas de ladrillo
     drawBrickParticles();
@@ -305,17 +303,17 @@ function draw() {
     ctx.fillRect(paddleX + 2, HEIGHT - PADDLE_HEIGHT - 10, pw - 4, 3);
     ctx.restore();
 
-    // Bolas
+    // Bolas — shadow state set once for the whole batch
+    ctx.save();
+    ctx.shadowBlur = 12;
+    ctx.shadowColor = '#fff';
+    ctx.fillStyle = '#ffe082';
     balls.forEach(b => {
-        ctx.save();
-        ctx.shadowBlur = 12;
-        ctx.shadowColor = '#fff';
-        ctx.fillStyle = '#ffe082';
         ctx.beginPath();
         ctx.arc(b.x + BALL_SIZE/2, b.y + BALL_SIZE/2, BALL_SIZE/2, 0, Math.PI*2);
         ctx.fill();
-        ctx.restore();
     });
+    ctx.restore();
 
     // Ladrillos con efecto 3D
     bricks.forEach(brick => {
@@ -610,8 +608,8 @@ function startGame() {
     resetBall();
     updateScore();
     draw();
-    clearInterval(gameInterval);
-    gameInterval = setInterval(update, speed);
+    rafClear(gameInterval);
+    gameInterval = rafInterval(update, speed);
     isPlaying = true;
     document.getElementById('restartBtn').disabled = false;
     document.getElementById('startBtn').disabled = true;
@@ -622,7 +620,7 @@ function restartGame() {
 }
 
 function gameOver() {
-    clearInterval(gameInterval);
+    rafClear(gameInterval);
     GameAudio.gameOver();
     document.getElementById('gameOverPopup').style.display = 'flex';
     document.getElementById('finalScore').textContent = `Puntaje: ${score}  |  Nivel: ${currentLevel}`;

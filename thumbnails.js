@@ -3809,6 +3809,438 @@
             ctx.fillText('FLIPPERS · BUMPERS · NEON', W/2, H - 14);
             ctx.textBaseline = 'alphabetic';
         },
+
+        /* ── BILLAR ─────────────────────────────────────────────────── */
+        billar: function (ctx) {
+            // marco de madera
+            ctx.fillStyle = '#5d3a1a';
+            ctx.fillRect(0, 0, W, H);
+            // paño verde
+            ctx.fillStyle = '#1b6b3a';
+            ctx.fillRect(16, 16, W - 32, H - 32);
+            var g = ctx.createRadialGradient(W/2, H/2, 30, W/2, H/2, 150);
+            g.addColorStop(0, 'rgba(255,255,255,0.08)');
+            g.addColorStop(1, 'rgba(0,0,0,0.25)');
+            ctx.fillStyle = g;
+            ctx.fillRect(16, 16, W - 32, H - 32);
+            // troneras
+            ctx.fillStyle = '#0a0a0a';
+            [[16,16],[W-16,16],[16,H-16],[W-16,H-16],[W/2,14],[W/2,H-14]].forEach(function (p) {
+                ctx.beginPath(); ctx.arc(p[0], p[1], 10, 0, Math.PI*2); ctx.fill();
+            });
+            // bolas de colores en triángulo
+            var cols = ['#e53935','#fdd835','#1e88e5','#8e24aa','#fb8c00','#43a047'];
+            var bi = 0;
+            for (var r = 0; r < 3; r++) {
+                for (var c = 0; c <= r; c++) {
+                    var bx = 140 + r * 17, by = 110 - r * 10 + c * 20;
+                    ctx.fillStyle = cols[bi++ % cols.length];
+                    ctx.beginPath(); ctx.arc(bx, by, 9, 0, Math.PI*2); ctx.fill();
+                    ctx.fillStyle = 'rgba(255,255,255,0.5)';
+                    ctx.beginPath(); ctx.arc(bx - 3, by - 3, 2.5, 0, Math.PI*2); ctx.fill();
+                }
+            }
+            // bola negra al centro del triángulo
+            ctx.fillStyle = '#111';
+            ctx.beginPath(); ctx.arc(157, 110, 9, 0, Math.PI*2); ctx.fill();
+            // bola blanca + línea de tiro
+            ctx.strokeStyle = 'rgba(255,255,255,0.4)';
+            ctx.setLineDash([5, 4]);
+            ctx.beginPath(); ctx.moveTo(55, 130); ctx.lineTo(135, 113); ctx.stroke();
+            ctx.setLineDash([]);
+            ctx.fillStyle = '#f5f5f5';
+            ctx.beginPath(); ctx.arc(55, 130, 10, 0, Math.PI*2); ctx.fill();
+            ctx.fillStyle = 'rgba(255,255,255,0.8)';
+            ctx.beginPath(); ctx.arc(51, 126, 3, 0, Math.PI*2); ctx.fill();
+            // taco
+            ctx.strokeStyle = '#c8924f'; ctx.lineWidth = 5;
+            ctx.beginPath(); ctx.moveTo(20, 175); ctx.lineTo(46, 138); ctx.stroke();
+            ctx.lineWidth = 1;
+        },
+
+        /* ── AIR HOCKEY ─────────────────────────────────────────────── */
+        airhockey: function (ctx) {
+            background(ctx, '#0c1024');
+            // mesa
+            roundRect(ctx, 22, 14, W - 44, H - 28, 14, '#101a3c', '#8fd3f4');
+            // línea central y círculo
+            ctx.strokeStyle = 'rgba(143,211,244,0.5)';
+            ctx.lineWidth = 2;
+            ctx.beginPath(); ctx.moveTo(24, H/2); ctx.lineTo(W - 24, H/2); ctx.stroke();
+            ctx.beginPath(); ctx.arc(W/2, H/2, 24, 0, Math.PI*2); ctx.stroke();
+            // porterías
+            ctx.strokeStyle = '#ff512f'; ctx.lineWidth = 4;
+            ctx.beginPath(); ctx.moveTo(W/2 - 28, 15); ctx.lineTo(W/2 + 28, 15); ctx.stroke();
+            ctx.beginPath(); ctx.moveTo(W/2 - 28, H - 15); ctx.lineTo(W/2 + 28, H - 15); ctx.stroke();
+            // mazo IA (arriba)
+            ctx.fillStyle = '#ff512f';
+            ctx.beginPath(); ctx.arc(80, 55, 17, 0, Math.PI*2); ctx.fill();
+            ctx.fillStyle = '#b33a20';
+            ctx.beginPath(); ctx.arc(80, 55, 9, 0, Math.PI*2); ctx.fill();
+            // mazo jugador (abajo)
+            ctx.fillStyle = '#8fd3f4';
+            ctx.beginPath(); ctx.arc(135, 168, 17, 0, Math.PI*2); ctx.fill();
+            ctx.fillStyle = '#5a98b8';
+            ctx.beginPath(); ctx.arc(135, 168, 9, 0, Math.PI*2); ctx.fill();
+            // disco con estela
+            ctx.fillStyle = 'rgba(255,224,130,0.25)';
+            ctx.beginPath(); ctx.arc(118, 122, 10, 0, Math.PI*2); ctx.fill();
+            ctx.beginPath(); ctx.arc(108, 134, 10, 0, Math.PI*2); ctx.fill();
+            ctx.fillStyle = '#ffe082';
+            ctx.beginPath(); ctx.arc(128, 110, 11, 0, Math.PI*2); ctx.fill();
+            // marcador
+            ctx.fillStyle = '#fff';
+            ctx.font = 'bold 13px monospace';
+            ctx.textAlign = 'center';
+            ctx.fillText('3 - 2', W/2, 32);
+            ctx.textAlign = 'left';
+        },
+
+        /* ── DAMAS ──────────────────────────────────────────────────── */
+        damas: function (ctx) {
+            background(ctx, '#241a12');
+            var n = 8, s = (W - 36) / n, ox = 18, oy = 18;
+            for (var r = 0; r < n; r++) {
+                for (var c = 0; c < n; c++) {
+                    ctx.fillStyle = (r + c) % 2 ? '#5d3a1a' : '#d8b98a';
+                    ctx.fillRect(ox + c * s, oy + r * s, s, s);
+                }
+            }
+            // fichas: rojas arriba, negras abajo
+            function piece(r, c, color, hi, king) {
+                var x = ox + c * s + s/2, y = oy + r * s + s/2;
+                var g = ctx.createRadialGradient(x - 3, y - 3, 2, x, y, s*0.4);
+                g.addColorStop(0, hi); g.addColorStop(1, color);
+                ctx.fillStyle = g;
+                ctx.beginPath(); ctx.arc(x, y, s*0.38, 0, Math.PI*2); ctx.fill();
+                ctx.strokeStyle = 'rgba(0,0,0,0.4)';
+                ctx.beginPath(); ctx.arc(x, y, s*0.27, 0, Math.PI*2); ctx.stroke();
+                if (king) {
+                    ctx.fillStyle = '#ffe082';
+                    ctx.beginPath(); ctx.arc(x, y, s*0.13, 0, Math.PI*2); ctx.fill();
+                }
+            }
+            [[0,1],[0,3],[0,5],[1,2],[1,6],[2,1]].forEach(function (p) { piece(p[0], p[1], '#b71c1c', '#ef5350'); });
+            piece(2, 5, '#b71c1c', '#ef5350', true);
+            [[7,0],[7,4],[7,6],[6,3],[6,5],[5,2]].forEach(function (p) { piece(p[0], p[1], '#1c1c1c', '#555'); });
+            // resaltado de movimiento
+            ctx.strokeStyle = '#ffe082'; ctx.lineWidth = 2;
+            ctx.strokeRect(ox + 3 * s, oy + 4 * s, s, s);
+            ctx.lineWidth = 1;
+        },
+
+        /* ── REVERSI ────────────────────────────────────────────────── */
+        reversi: function (ctx) {
+            background(ctx, '#0d2b1a');
+            var n = 8, s = (W - 36) / n, ox = 18, oy = 18;
+            ctx.fillStyle = '#1b6b3a';
+            ctx.fillRect(ox, oy, n * s, n * s);
+            ctx.strokeStyle = 'rgba(0,0,0,0.45)';
+            for (var i = 0; i <= n; i++) {
+                ctx.beginPath(); ctx.moveTo(ox + i * s, oy); ctx.lineTo(ox + i * s, oy + n * s); ctx.stroke();
+                ctx.beginPath(); ctx.moveTo(ox, oy + i * s); ctx.lineTo(ox + n * s, oy + i * s); ctx.stroke();
+            }
+            function disc(r, c, black) {
+                var x = ox + c * s + s/2, y = oy + r * s + s/2;
+                var g = ctx.createRadialGradient(x - 3, y - 3, 2, x, y, s*0.4);
+                if (black) { g.addColorStop(0, '#555'); g.addColorStop(1, '#0c0c0c'); }
+                else       { g.addColorStop(0, '#fff'); g.addColorStop(1, '#c9c9c9'); }
+                ctx.fillStyle = g;
+                ctx.beginPath(); ctx.arc(x, y, s*0.38, 0, Math.PI*2); ctx.fill();
+            }
+            [[3,3],[4,4],[2,3],[3,4],[4,2],[5,4]].forEach(function (p) { disc(p[0], p[1], true); });
+            [[3,2],[4,3],[2,4],[5,3],[4,5]].forEach(function (p) { disc(p[0], p[1], false); });
+            // indicadores de movimiento válido
+            ctx.fillStyle = 'rgba(255,224,130,0.55)';
+            [[2,2],[5,5],[1,4]].forEach(function (p) {
+                ctx.beginPath();
+                ctx.arc(ox + p[1]*s + s/2, oy + p[0]*s + s/2, 4, 0, Math.PI*2);
+                ctx.fill();
+            });
+        },
+
+        /* ── COMANDO MISIL ──────────────────────────────────────────── */
+        misiles: function (ctx) {
+            var bg = ctx.createLinearGradient(0, 0, 0, H);
+            bg.addColorStop(0, '#050514');
+            bg.addColorStop(1, '#141430');
+            ctx.fillStyle = bg; ctx.fillRect(0, 0, W, H);
+            // estelas de misiles enemigos
+            function trail(x0, y0, x1, y1, color) {
+                var g = ctx.createLinearGradient(x0, y0, x1, y1);
+                g.addColorStop(0, 'rgba(255,81,47,0)');
+                g.addColorStop(1, color);
+                ctx.strokeStyle = g; ctx.lineWidth = 2;
+                ctx.beginPath(); ctx.moveTo(x0, y0); ctx.lineTo(x1, y1); ctx.stroke();
+                ctx.fillStyle = '#fff';
+                ctx.fillRect(x1 - 1.5, y1 - 1.5, 3, 3);
+            }
+            trail(30, -5, 75, 120, '#ff512f');
+            trail(120, -10, 95, 95, '#ff512f');
+            trail(200, -5, 170, 130, '#ffa000');
+            // explosión interceptora
+            var ex = 150, ey = 80;
+            var eg = ctx.createRadialGradient(ex, ey, 4, ex, ey, 30);
+            eg.addColorStop(0, '#fff');
+            eg.addColorStop(0.4, '#ffe082');
+            eg.addColorStop(1, 'rgba(255,81,47,0)');
+            ctx.fillStyle = eg;
+            ctx.beginPath(); ctx.arc(ex, ey, 30, 0, Math.PI*2); ctx.fill();
+            // suelo
+            ctx.fillStyle = '#1a2f1a';
+            ctx.fillRect(0, H - 30, W, 30);
+            // ciudades
+            ctx.fillStyle = '#8fd3f4';
+            [[28, 12], [62, 16], [100, 10], [140, 14], [178, 12]].forEach(function (cd) {
+                ctx.fillRect(cd[0], H - 30 - cd[1], 16, cd[1]);
+            });
+            // base central
+            ctx.fillStyle = '#ffe082';
+            ctx.beginPath();
+            ctx.moveTo(W/2 - 14, H - 30); ctx.lineTo(W/2, H - 48); ctx.lineTo(W/2 + 14, H - 30);
+            ctx.closePath(); ctx.fill();
+            // mira
+            ctx.strokeStyle = '#76ff03'; ctx.lineWidth = 1.5;
+            ctx.beginPath(); ctx.arc(170, 50, 8, 0, Math.PI*2); ctx.stroke();
+            ctx.beginPath(); ctx.moveTo(170, 38); ctx.lineTo(170, 62); ctx.stroke();
+            ctx.beginPath(); ctx.moveTo(158, 50); ctx.lineTo(182, 50); ctx.stroke();
+        },
+
+        /* ── SALTADOR ───────────────────────────────────────────────── */
+        saltador: function (ctx) {
+            var bg = ctx.createLinearGradient(0, 0, 0, H);
+            bg.addColorStop(0, '#0e1d40');
+            bg.addColorStop(1, '#2a4a7a');
+            ctx.fillStyle = bg; ctx.fillRect(0, 0, W, H);
+            // estrellas
+            ctx.fillStyle = 'rgba(255,255,255,0.6)';
+            [[20,20],[60,45],[180,30],[200,70],[40,90],[150,15]].forEach(function (p) {
+                ctx.fillRect(p[0], p[1], 2, 2);
+            });
+            // plataformas
+            function plat(x, y, color) { roundRect(ctx, x, y, 52, 10, 5, color); }
+            plat(20, 190, '#43a047');
+            plat(95, 150, '#43a047');
+            plat(160, 110, '#8d6e63');   // rompible
+            plat(60, 70, '#43a047');
+            plat(150, 38, '#42a5f5');    // móvil
+            // muelle en una plataforma
+            ctx.fillStyle = '#ffe082';
+            ctx.fillRect(116, 142, 10, 8);
+            // personaje saltando
+            var px = 86, py = 122;
+            ctx.fillStyle = '#76ff03';
+            roundRect(ctx, px - 12, py - 18, 24, 22, 8, '#76ff03');
+            // ojos
+            ctx.fillStyle = '#fff';
+            ctx.beginPath(); ctx.arc(px - 4, py - 10, 3.5, 0, Math.PI*2); ctx.fill();
+            ctx.beginPath(); ctx.arc(px + 5, py - 10, 3.5, 0, Math.PI*2); ctx.fill();
+            ctx.fillStyle = '#222';
+            ctx.beginPath(); ctx.arc(px - 3, py - 10, 1.6, 0, Math.PI*2); ctx.fill();
+            ctx.beginPath(); ctx.arc(px + 6, py - 10, 1.6, 0, Math.PI*2); ctx.fill();
+            // patas
+            ctx.fillStyle = '#5cc208';
+            ctx.fillRect(px - 9, py + 4, 6, 6);
+            ctx.fillRect(px + 3, py + 4, 6, 6);
+            // líneas de impulso
+            ctx.strokeStyle = 'rgba(255,255,255,0.35)'; ctx.lineWidth = 2;
+            ctx.beginPath(); ctx.moveTo(px - 14, py + 16); ctx.lineTo(px - 14, py + 26); ctx.stroke();
+            ctx.beginPath(); ctx.moveTo(px + 14, py + 16); ctx.lineTo(px + 14, py + 26); ctx.stroke();
+        },
+
+        /* ── BATALLA NAVAL ──────────────────────────────────────────── */
+        batallanaval: function (ctx) {
+            background(ctx, '#071527');
+            var n = 8, s = (W - 44) / n, ox = 22, oy = 22;
+            // agua
+            ctx.fillStyle = '#0d2c4f';
+            ctx.fillRect(ox, oy, n * s, n * s);
+            ctx.strokeStyle = 'rgba(143,211,244,0.25)';
+            for (var i = 0; i <= n; i++) {
+                ctx.beginPath(); ctx.moveTo(ox + i * s, oy); ctx.lineTo(ox + i * s, oy + n * s); ctx.stroke();
+                ctx.beginPath(); ctx.moveTo(ox, oy + i * s); ctx.lineTo(ox + n * s, oy + i * s); ctx.stroke();
+            }
+            // barco hundido revelado
+            ctx.fillStyle = '#546e7a';
+            roundRect(ctx, ox + 1 * s + 4, oy + 2 * s + 5, s * 3 - 8, s - 10, 6, '#546e7a');
+            // impactos (X rojas)
+            ctx.strokeStyle = '#ff512f'; ctx.lineWidth = 3;
+            [[1,2],[2,2],[3,2],[5,5]].forEach(function (p) {
+                var x = ox + p[0]*s + s/2, y = oy + p[1]*s + s/2;
+                ctx.beginPath();
+                ctx.moveTo(x - 6, y - 6); ctx.lineTo(x + 6, y + 6);
+                ctx.moveTo(x + 6, y - 6); ctx.lineTo(x - 6, y + 6);
+                ctx.stroke();
+            });
+            // fallos (puntos blancos)
+            ctx.fillStyle = 'rgba(255,255,255,0.6)';
+            [[4,1],[6,3],[2,5],[0,6]].forEach(function (p) {
+                ctx.beginPath();
+                ctx.arc(ox + p[0]*s + s/2, oy + p[1]*s + s/2, 4, 0, Math.PI*2);
+                ctx.fill();
+            });
+            // mira sobre celda objetivo
+            var tx = ox + 6 * s + s/2, ty = oy + 6 * s + s/2;
+            ctx.strokeStyle = '#ffe082'; ctx.lineWidth = 2;
+            ctx.beginPath(); ctx.arc(tx, ty, 9, 0, Math.PI*2); ctx.stroke();
+            ctx.beginPath(); ctx.moveTo(tx - 13, ty); ctx.lineTo(tx + 13, ty); ctx.stroke();
+            ctx.beginPath(); ctx.moveTo(tx, ty - 13); ctx.lineTo(tx, ty + 13); ctx.stroke();
+            ctx.lineWidth = 1;
+        },
+
+        /* ── BLACKJACK ──────────────────────────────────────────────── */
+        blackjack: function (ctx) {
+            // tapete
+            var bg = ctx.createRadialGradient(W/2, H/2, 20, W/2, H/2, 160);
+            bg.addColorStop(0, '#1b6b3a');
+            bg.addColorStop(1, '#0d3d20');
+            ctx.fillStyle = bg; ctx.fillRect(0, 0, W, H);
+            ctx.strokeStyle = 'rgba(255,224,130,0.35)';
+            ctx.lineWidth = 2;
+            ctx.beginPath(); ctx.arc(W/2, -40, 180, 0.35 * Math.PI, 0.65 * Math.PI); ctx.stroke();
+            // carta: as de picas
+            function card(x, y, rot, draw) {
+                ctx.save();
+                ctx.translate(x, y); ctx.rotate(rot);
+                roundRect(ctx, -28, -40, 56, 80, 6, '#f7f7f2', 'rgba(0,0,0,0.35)');
+                draw();
+                ctx.restore();
+            }
+            function spade(x, y, sc) {
+                ctx.fillStyle = '#222';
+                ctx.beginPath();
+                ctx.moveTo(x, y - 9 * sc);
+                ctx.bezierCurveTo(x + 9*sc, y - 1*sc, x + 8*sc, y + 6*sc, x + 1.5*sc, y + 5*sc);
+                ctx.bezierCurveTo(x + 2*sc, y + 8*sc, x + 4*sc, y + 10*sc, x + 5*sc, y + 11*sc);
+                ctx.lineTo(x - 5*sc, y + 11*sc);
+                ctx.bezierCurveTo(x - 4*sc, y + 10*sc, x - 2*sc, y + 8*sc, x - 1.5*sc, y + 5*sc);
+                ctx.bezierCurveTo(x - 8*sc, y + 6*sc, x - 9*sc, y - 1*sc, x, y - 9*sc);
+                ctx.fill();
+            }
+            function heart(x, y, sc) {
+                ctx.fillStyle = '#d32f2f';
+                ctx.beginPath();
+                ctx.moveTo(x, y + 9 * sc);
+                ctx.bezierCurveTo(x - 11*sc, y - 1*sc, x - 6*sc, y - 10*sc, x, y - 4*sc);
+                ctx.bezierCurveTo(x + 6*sc, y - 10*sc, x + 11*sc, y - 1*sc, x, y + 9*sc);
+                ctx.fill();
+            }
+            card(85, 105, -0.12, function () {
+                ctx.fillStyle = '#222';
+                ctx.font = 'bold 14px monospace';
+                ctx.fillText('A', -23, -24);
+                spade(0, 0, 1.4);
+            });
+            card(135, 112, 0.1, function () {
+                ctx.fillStyle = '#d32f2f';
+                ctx.font = 'bold 14px monospace';
+                ctx.fillText('K', -23, -24);
+                heart(0, 0, 1.4);
+            });
+            // fichas
+            function chip(x, y, color) {
+                ctx.fillStyle = color;
+                ctx.beginPath(); ctx.arc(x, y, 14, 0, Math.PI*2); ctx.fill();
+                ctx.strokeStyle = '#fff'; ctx.lineWidth = 2;
+                ctx.setLineDash([4, 3]);
+                ctx.beginPath(); ctx.arc(x, y, 10, 0, Math.PI*2); ctx.stroke();
+                ctx.setLineDash([]);
+            }
+            chip(48, 185, '#e53935');
+            chip(78, 190, '#1e88e5');
+            chip(63, 172, '#fdd835');
+            // 21
+            ctx.fillStyle = '#ffe082';
+            ctx.font = 'bold 26px monospace';
+            ctx.textAlign = 'center';
+            ctx.fillText('21', 170, 190);
+            ctx.textAlign = 'left';
+            ctx.lineWidth = 1;
+        },
+
+        /* ── SOPA DE LETRAS ─────────────────────────────────────────── */
+        sopaletras: function (ctx) {
+            background(ctx, '#101a30');
+            var letters = [
+                'GATOSRPM',
+                'XEOLUNAC',
+                'PERROEQB',
+                'QSWKAZTR',
+                'LFLORHEI',
+                'MNDJUYPS',
+                'CIELOVQA',
+                'RHTBXGOL'
+            ];
+            var n = 8, s = (W - 40) / n, ox = 20, oy = 20;
+            // resaltado de palabra encontrada (PERRO, fila 2)
+            ctx.fillStyle = 'rgba(118,255,3,0.25)';
+            roundRect(ctx, ox + 2, oy + 2 * s + 2, s * 5 - 4, s - 4, 8, 'rgba(118,255,3,0.25)');
+            // resaltado diagonal en curso
+            ctx.strokeStyle = 'rgba(255,224,130,0.8)'; ctx.lineWidth = 3;
+            ctx.beginPath();
+            ctx.moveTo(ox + 0.5 * s, oy + 0.5 * s);
+            ctx.lineTo(ox + 3.5 * s, oy + 3.5 * s);
+            ctx.stroke();
+            ctx.lineWidth = 1;
+            // letras
+            ctx.font = 'bold 15px monospace';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            for (var r = 0; r < n; r++) {
+                for (var c = 0; c < n; c++) {
+                    var ch = letters[r][c];
+                    ctx.fillStyle = (r === 2 && c < 5) ? '#76ff03' : '#cfe8ff';
+                    ctx.fillText(ch, ox + c * s + s/2, oy + r * s + s/2);
+                }
+            }
+            ctx.textAlign = 'left';
+            ctx.textBaseline = 'alphabetic';
+        },
+
+        /* ── TORRES DE HANÓI ────────────────────────────────────────── */
+        hanoi: function (ctx) {
+            var bg = ctx.createLinearGradient(0, 0, 0, H);
+            bg.addColorStop(0, '#1a1035');
+            bg.addColorStop(1, '#0d081e');
+            ctx.fillStyle = bg; ctx.fillRect(0, 0, W, H);
+            // base
+            roundRect(ctx, 14, 168, W - 28, 14, 5, '#5d3a1a');
+            // varillas
+            var pegs = [50, 110, 170];
+            ctx.fillStyle = '#8a5a2a';
+            pegs.forEach(function (px) { ctx.fillRect(px - 3, 80, 6, 90); });
+            // discos torre origen (3 discos restantes)
+            var discCols = ['#e53935', '#fb8c00', '#fdd835', '#43a047', '#1e88e5'];
+            function disc(px, y, w, color) {
+                var g = ctx.createLinearGradient(px - w/2, 0, px + w/2, 0);
+                g.addColorStop(0, color);
+                g.addColorStop(0.5, '#fff2');
+                g.addColorStop(1, color);
+                roundRect(ctx, px - w/2, y, w, 14, 7, color);
+                ctx.fillStyle = 'rgba(255,255,255,0.25)';
+                ctx.fillRect(px - w/2 + 4, y + 2, w - 8, 3);
+            }
+            disc(pegs[0], 152, 64, discCols[4]);
+            disc(pegs[0], 136, 52, discCols[3]);
+            disc(pegs[0], 120, 40, discCols[2]);
+            // torre destino (1 disco)
+            disc(pegs[2], 152, 30, discCols[0]);
+            // disco en vuelo
+            disc(pegs[1], 52, 38, discCols[1]);
+            ctx.strokeStyle = 'rgba(255,224,130,0.5)';
+            ctx.setLineDash([4, 4]);
+            ctx.beginPath();
+            ctx.moveTo(pegs[1] + 22, 60);
+            ctx.quadraticCurveTo(pegs[2] - 20, 60, pegs[2], 140);
+            ctx.stroke();
+            ctx.setLineDash([]);
+            // contador
+            ctx.fillStyle = '#8fd3f4';
+            ctx.font = 'bold 12px monospace';
+            ctx.textAlign = 'center';
+            ctx.fillText('MOV 12 / 31', W/2, 28);
+            ctx.textAlign = 'left';
+        },
     };
 
     /* ── render all thumbnails on DOMContentLoaded ── */

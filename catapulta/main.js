@@ -211,9 +211,9 @@ canvas.addEventListener('touchmove',  onPointerMove, { passive: false });
 canvas.addEventListener('touchend',   onPointerUp,   { passive: false });
 canvas.addEventListener('touchcancel',onPointerUp,   { passive: false });
 
-startBtn.addEventListener('click', function () { startGame(); });
-restartBtn.addEventListener('click', function () { startGame(); });
-playAgainBtn.addEventListener('click', function () { startGame(); });
+startBtn.addEventListener('click', function () { GameAudio.click(); startGame(); });
+restartBtn.addEventListener('click', function () { GameAudio.click(); startGame(); });
+playAgainBtn.addEventListener('click', function () { GameAudio.click(); startGame(); });
 
 /* ───────── Collision & hits ───────── */
 function hitTarget(p) {
@@ -729,8 +729,9 @@ function drawIdle() {
 function render() {
     ctx.save();
     if (shake > 0) {
-        var sx = (Math.random() - 0.5) * shake;
-        var sy = (Math.random() - 0.5) * shake;
+        // Deterministic jitter from the shake counter (no Math.random in render)
+        var sx = Math.sin(shake * 12.9898) * shake * 0.5;
+        var sy = Math.cos(shake * 78.233) * shake * 0.5;
         ctx.translate(sx, sy);
     }
     drawBackground();

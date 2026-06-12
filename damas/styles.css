@@ -1,0 +1,73 @@
+@import url('../styles.css');
+
+body { background: var(--grad-bg); color: #fff; min-height: 100vh; margin: 0; }
+
+.info-side h1 {
+    font-size: 2.2rem;
+    margin-bottom: 1rem;
+    background: var(--grad-primary);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+}
+.info-side p { font-size: 1.1rem; margin-bottom: 1.5rem; color: var(--text-muted); }
+.buttons-panel { display: flex; gap: 1rem; margin-top: 1.5rem; }
+.score-panel { display: flex; gap: 1.5rem; font-size: 1.1rem; margin-bottom: 1.5rem; color: var(--text-muted); flex-wrap: wrap; }
+
+.buttons-panel button, .damas-mobile-btns button {
+    background: var(--grad-primary);
+    color: #222;
+    border: none;
+    border-radius: 8px;
+    padding: 0.9rem 2rem;
+    font-size: 1.05rem;
+    font-weight: bold;
+    cursor: pointer;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+    transition: opacity 0.2s, transform 0.2s;
+}
+.buttons-panel button:hover, .damas-mobile-btns button:hover {
+    opacity: 0.9;
+    transform: scale(1.05);
+}
+
+@media (max-width: 900px) {
+    .responsive-layout { flex-direction: column; align-items: center; gap: 1.5rem; padding: 1rem 0.5rem; }
+    .info-side { max-width: 100vw; width: 100%; align-items: center; text-align: center; }
+    .info-side h1 { font-size: 1.7rem; }
+    .game-side { width: 100%; justify-content: center; }
+}
+
+#damasCanvas {
+    display: block;
+    cursor: pointer;
+    background: #0e1424;
+    border: 3px solid var(--accent-color);
+    border-radius: 14px;
+    box-shadow: 0 4px 24px rgba(0,0,0,0.35);
+    touch-action: manipulation;
+}
+
+.damas-mobile-btns {
+    display: none;
+    gap: 0.7rem;
+    padding: 0.55rem 1rem;
+    background: #1c1c1c;
+    justify-content: center;
+    width: 100%;
+    box-sizing: border-box;
+    border-bottom: 1px solid #333;
+}
+
+.popup {
+    position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
+    background: rgba(24,24,24,0.95); display: flex;
+    align-items: center; justify-content: center; z-index: 1000;
+}
+.popup-content {
+    background: #242424; padding: 2.5rem 3rem; border-radius: 20px;
+    box-shadow: 0 4px 24px rgba(0,0,0,0.4); text-align: center;
+    min-width: 280px; max-width: 90vw;
+}
+.popup-content h2 { margin-top: 0; color: #8fd3f4; font-size: 2rem; }
+.popup-content p { font-size: 1.4rem; margin: 1rem 0; }

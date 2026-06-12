@@ -301,9 +301,9 @@ canvas.addEventListener('click', function () {
     if (!isPlaying) startGame();
 });
 
-startBtn.addEventListener('click', startGame);
-restartBtn.addEventListener('click', startGame);
-playAgainBtn.addEventListener('click', startGame);
+startBtn.addEventListener('click', function () { GameAudio.click(); startGame(); });
+restartBtn.addEventListener('click', function () { GameAudio.click(); startGame(); });
+playAgainBtn.addEventListener('click', function () { GameAudio.click(); startGame(); });
 
 /* ─────────────────────── Partículas ─────────────────────── */
 function spawnBounce(x, y) {

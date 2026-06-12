@@ -199,10 +199,13 @@ function animateFall(col, toRow, player, onDone) {
     var fp = { col: col, toRow: toRow, currentY: startY, player: player, done: false };
     fallingPieces.push(fp);
 
-    var gravity = 0;
     var velocity = 0;
+    var lastStepTs = 0;
 
-    function step() {
+    function step(ts) {
+        // Throttle to ~60fps so the fall speed doesn't depend on refresh rate
+        if (ts - lastStepTs < 15) { requestAnimationFrame(step); return; }
+        lastStepTs = ts;
         velocity += 0.8; // gravity acceleration
         fp.currentY += velocity;
 

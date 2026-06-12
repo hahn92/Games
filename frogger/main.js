@@ -80,6 +80,21 @@ function updateLanes() {
             objs[i].x += lane.speed * lane.dir;
             if (lane.dir > 0 && objs[i].x > W) objs[i].x = -objs[i].w;
             if (lane.dir < 0 && objs[i].x + objs[i].w < 0) objs[i].x = W;
+            // Exhaust puff spawn for fast cars (rows 6-10)
+            if (r >= 6 && Math.abs(lane.speed) > 2.0 && frame % 4 === 0) {
+                var o = objs[i];
+                var oy = r * CELL + 4;
+                var exX = lane.dir > 0 ? o.x : o.x + o.w;
+                exhaustParticles.push({
+                    x: exX + (Math.random() - 0.5) * 4,
+                    y: oy + o.h / 2 + (Math.random() - 0.5) * o.h * 0.5,
+                    vx: -lane.dir * (0.3 + Math.random() * 0.4),
+                    vy: (Math.random() - 0.5) * 0.3,
+                    r: 2 + Math.random() * 2,
+                    life: 12 + Math.random() * 8 | 0,
+                    maxLife: 20
+                });
+            }
         }
     }
 }
@@ -529,20 +544,6 @@ function drawCars() {
                     ctx.stroke();
                 }
                 ctx.restore();
-
-                // Exhaust puff spawn
-                if (frame % 4 === 0) {
-                    var exX = dir > 0 ? o.x : o.x + ow;
-                    exhaustParticles.push({
-                        x: exX + (Math.random() - 0.5) * 4,
-                        y: oy + oh/2 + (Math.random() - 0.5) * oh * 0.5,
-                        vx: -dir * (0.3 + Math.random() * 0.4),
-                        vy: (Math.random() - 0.5) * 0.3,
-                        r: 2 + Math.random() * 2,
-                        life: 12 + Math.random() * 8 | 0,
-                        maxLife: 20
-                    });
-                }
             }
         }
     }
@@ -1012,8 +1013,12 @@ function speedUpLanes() {
 var frame = 0;
 var dying = false;
 
-function gameLoop() {
+var lastFrameTs = 0;
+function gameLoop(ts) {
     if (!isPlaying) return;
+    // Throttle to ~60fps on high-refresh screens
+    if (ts - lastFrameTs < 15) { animFrameId = requestAnimationFrame(gameLoop); return; }
+    lastFrameTs = ts;
     frame++;
 
     updateLanes();

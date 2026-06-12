@@ -313,7 +313,8 @@ function render() {
     ctx.save();
     // shake
     if (shake > 0) {
-        ctx.translate((Math.random() - 0.5) * shake, (Math.random() - 0.5) * shake);
+        // Deterministic jitter from the shake counter (no Math.random in render)
+        ctx.translate(Math.sin(shake * 12.9898) * shake * 0.5, Math.cos(shake * 78.233) * shake * 0.5);
     }
 
     drawBackground();
@@ -426,12 +427,14 @@ canvas.addEventListener('mousedown', function (e) { handleInput(e); });
 canvas.addEventListener('touchstart', function (e) { e.preventDefault(); handleInput(e); }, { passive: false });
 document.addEventListener('keydown', handleInput);
 
-startBtn.addEventListener('click', function () { startGame(); });
+startBtn.addEventListener('click', function () { GameAudio.click(); startGame(); });
 restartBtn.addEventListener('click', function () {
+    GameAudio.click();
     popup.style.display = 'none';
     startGame();
 });
 playAgainBtn.addEventListener('click', function () {
+    GameAudio.click();
     popup.style.display = 'none';
     startGame();
 });

@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Overview
 
-A collection of 20 classic browser-based games built with vanilla JavaScript, HTML5 Canvas, and CSS. No build system or dependencies — open any `index.html` directly in a browser to run.
+A collection of 49 classic browser-based games built with vanilla JavaScript, HTML5 Canvas, and CSS. No build system or dependencies — open any `index.html` directly in a browser to run.
 
 ## Running the project
 
@@ -24,8 +24,9 @@ Or open `index.html` (root or per-game) directly in a browser.
 | File | Purpose |
 |------|---------|
 | `index.html` | Game catalog/landing page |
-| `styles.css` | Shared design system (CSS variables, card layout, global rules) |
+| `styles.css` | Shared design system (CSS variables, card layout, global rules) **and the shared game-page layout**: `.responsive-layout`, `.game-side`, `.info-side`, `.mobile-score` are defined here once — per-game `styles.css` must NOT redefine them (only override if a game truly needs a variant) |
 | `audio.js` | Shared Web Audio API sound system — `GameAudio.*()` calls |
+| `game-utils.js` | Shared JS utilities: `rafInterval(fn, ms)` / `rafClear(handle)` — a `setInterval`-compatible fixed-tick loop built on `requestAnimationFrame`. Include it before `main.js` only in games that use it |
 | `fullscreen-btn.js` | Inter-game navigation bar (all devices) + fullscreen/landscape button (mobile only) |
 | `main.js` | Placeholder for future catalog-level JS |
 
@@ -33,7 +34,7 @@ Or open `index.html` (root or per-game) directly in a browser.
 Each game lives in its own folder with:
 - `index.html` — game page; inline mobile layout script + script tags for `audio.js`, `main.js`, `fullscreen-btn.js`
 - `main.js` — all game logic (canvas rendering loop, input handling, game state, `GameAudio` calls)
-- `styles.css` — game-specific styles; must include the full standard layout block (see below)
+- `styles.css` — game-specific styles; starts with `@import url('../styles.css')`. The shared layout (`.responsive-layout`, `.game-side`, `.info-side`, `.mobile-score`) comes from the root stylesheet — do not duplicate it here
 - Thumbnails are drawn via canvas in `thumbnails.js` — no `image.png` needed
 
 ### Shared CSS variables (defined in `styles.css`)
@@ -89,6 +90,16 @@ Each game lives in its own folder with:
 | `laberinto/` | Laberinto Neón | Laberinto | Canvas |
 | `sokoban/` | Empuja Cajas | Lógica | Canvas |
 | `pinball/` | Pinball Neón | Arcade | Canvas |
+| `billar/` | Billar | Física | Canvas |
+| `airhockey/` | Air Hockey | Arcade | Canvas |
+| `damas/` | Damas | Estrategia | Canvas |
+| `reversi/` | Reversi | Estrategia | Canvas |
+| `misiles/` | Comando Misil | Shooter | Canvas |
+| `saltador/` | Saltador | Arcade | Canvas |
+| `batallanaval/` | Batalla Naval | Estrategia | Canvas |
+| `blackjack/` | Blackjack | Cartas | Canvas |
+| `sopaletras/` | Sopa de Letras | Palabras | Canvas |
+| `hanoi/` | Torres de Hanói | Lógica | Canvas |
 
 ## Sound system (`audio.js`)
 
@@ -261,10 +272,8 @@ Located in `.claude/agents/`:
    <script src="../fullscreen-btn.js"></script>
    ```
 4. In `adjustMobileLayout()`: use `window.innerWidth + 'px'` for width, `≤ 50px` height offset
-5. **`styles.css` must include the full standard layout block** — copy from `minero/styles.css` and replace `minero-canvas` with your canvas class. Required sections:
-   - `@import url('../styles.css')` at the top
-   - `.mobile-score` overlay (absolute-positioned score over canvas on mobile)
-   - `.responsive-layout`, `.game-side`, `.info-side` layout classes
+5. **`styles.css`** — copy from `minero/styles.css` and replace `minero-canvas` with your canvas class. Required sections:
+   - `@import url('../styles.css')` at the top — this brings in the shared layout (`.responsive-layout`, `.game-side`, `.info-side`, `.mobile-score`); **do NOT redefine those blocks locally**
    - `@media (max-width: 900px)` responsive rules
    - `body { background: var(--grad-bg); ... }`
    - `#startBtn, #restartBtn` button styles
@@ -286,5 +295,5 @@ Located in `.claude/agents/`:
    </div>
    ```
 9. Add a thumbnail drawing function to `thumbnails.js` under the game's folder name key
-10. Use `requestAnimationFrame` for the game loop, not `setInterval`
+10. Use `requestAnimationFrame` for the game loop, not `setInterval` — either a rAF loop throttled with `if (ts - lastFrameTs < 15) return;` (see `pinball/main.js`) or, for fixed-tick games, `rafInterval()` from `../game-utils.js` (include its script tag before `main.js`)
 11. Run `/validate-game [name]` after finishing to confirm all criteria pass

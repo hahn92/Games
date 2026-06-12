@@ -47,6 +47,20 @@ var gs = {
     aiColor: 'b', lastMove: null, aiThinking: false
 };
 
+/* ── Persistent stats (vs IA) & mobile overlay ── */
+var mobileScoreEl = document.getElementById('mobileScore');
+var stats = JSON.parse(localStorage.getItem('chessStats') || '{"w":0,"l":0,"d":0}');
+function saveStats() { localStorage.setItem('chessStats', JSON.stringify(stats)); }
+function updateMobileScore() {
+    if (!mobileScoreEl) return;
+    var st = gs.status==='checkmate' ? (gs.turn==='w'?'Ganan Negras':'Ganan Blancas')
+           : gs.status==='stalemate' ? 'Tablas'
+           : gs.status==='check'     ? (gs.turn==='w'?'Jaque a Blancas':'Jaque a Negras')
+           : gs.status==='idle'      ? 'Pulsa Nueva Partida'
+           : (gs.turn==='w'?'Turno: Blancas':'Turno: Negras');
+    mobileScoreEl.textContent = st + ' · G:' + stats.w + ' P:' + stats.l + ' E:' + stats.d;
+}
+
 /* ── Board init ── */
 function makeBoard() {
     var b = [], back = ['R','N','B','Q','K','B','N','R'];
@@ -70,6 +84,7 @@ function newGame() {
     gs.ep = null; gs.lastMove = null; gs.aiThinking = false;
     gs.status = 'playing';
     updateModeLabel();
+    updateMobileScore();
     GameAudio.start();
     if (gs.mode === 'ai' && gs.aiColor === 'w') { gs.aiThinking = true; setTimeout(doAiMove, 300); }
 }
@@ -208,6 +223,16 @@ function executeMove(mv) {
     var opp=gs.turn,oppAll=getAllLegal(gs.board,opp,gs.ep,gs.castle);
     if (!oppAll.length) gs.status=isInCheck(gs.board,opp)?'checkmate':'stalemate';
     else gs.status=isInCheck(gs.board,opp)?'check':'playing';
+    // Record vs-IA results in persistent stats
+    if (gs.mode==='ai') {
+        if (gs.status==='checkmate') {
+            if (gs.turn===gs.aiColor) stats.w++; else stats.l++;
+            saveStats();
+        } else if (gs.status==='stalemate') {
+            stats.d++; saveStats();
+        }
+    }
+    updateMobileScore();
     return captured;
 }
 
@@ -925,6 +950,12 @@ document.querySelectorAll('.btn-mode').forEach(function(b){
 
 /* ── Init ── */
 gs.board=makeBoard(); gs.castle=freshCastle(); gs.status='idle';
-requestAnimationFrame(function loop(){ render(); requestAnimationFrame(loop); });
+updateMobileScore();
+// Throttle to ~60fps on high-refresh screens
+var lastRenderTs = 0;
+requestAnimationFrame(function loop(ts){
+    if (ts - lastRenderTs >= 15) { lastRenderTs = ts; render(); }
+    requestAnimationFrame(loop);
+});
 
 }());

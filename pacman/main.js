@@ -87,7 +87,7 @@
 
     // ── Estado ───────────────────────────────────────────────
     var maze = [], pellets = [], totalPellets = 0;
-    var score = 0, highScore = 0, lives = 3, level = 1;
+    var score = 0, highScore = parseInt(localStorage.getItem('pacmanHighScore') || '0', 10), lives = 3, level = 1;
     var gameState = 'idle';  // idle | playing | dying | levelclear | gameover
     var pulseT = 0, rafId = null, lastTime = 0;
     var scorePopups = [];
@@ -452,7 +452,10 @@
     // ── Fin ──────────────────────────────────────────────────
     function endGame() {
         gameState='gameover';
-        if (score>highScore) highScore=score;
+        if (score>highScore) {
+            highScore=score;
+            localStorage.setItem('pacmanHighScore', highScore);
+        }
         popupTitle.textContent = 'Game Over';
         finalScoreEl.textContent = 'Puntaje: '+score;
         finalHighEl.textContent  = 'Mejor: '+highScore;
@@ -681,7 +684,7 @@
     // ── Inicio en idle ───────────────────────────────────────
     (function(){
         buildMaze(); snapPacman();
-        gameState='idle'; draw();
+        gameState='idle'; updateUI(); draw();
     })();
 
 })();

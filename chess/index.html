@@ -15,7 +15,7 @@
                     <button class="btn-new">Nueva Partida</button>
                     <button class="btn-mode">vs IA</button>
                 </div>
-                <div id="mobileScore" class="mobile-score" style="display:none;"></div>
+                <div id="mobileScore" class="mobile-score"></div>
             </div>
             <div class="info-side" id="infoSide">
                 <h1>Ajedrez</h1>
@@ -47,6 +47,7 @@
         var gameSide   = document.getElementById('gameSide');
         var infoSide   = document.getElementById('infoSide');
         var mobileBtns = document.getElementById('chessMobileBtns');
+        var mobileScore = document.getElementById('mobileScore');
         var canvas     = document.getElementById('chessCanvas');
         var vHeight    = window.visualViewport ? window.visualViewport.height : window.innerHeight;
         if (isMobile() || window.innerWidth < 900) {
@@ -60,6 +61,7 @@
                 gameSide.style.background = 'var(--grad-bg)';
                 infoSide.style.display    = 'none';
                 mobileBtns.style.display  = 'flex';
+                mobileScore.style.display = 'block';
             }
             var ratio  = 360 / 432;
             var availW = window.innerWidth;
@@ -74,6 +76,7 @@
             gameSide.style.cssText    = '';
             infoSide.style.display    = '';
             mobileBtns.style.display  = 'none';
+            mobileScore.style.display = 'none';
             canvas.style.width        = '';
             canvas.style.height       = '';
         }
