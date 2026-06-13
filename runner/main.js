@@ -32,6 +32,7 @@ var keys = {};
 
 // Animation state
 var animTick    = 0;
+var gaitPhase   = 0;    // fase continua del ciclo de zancada
 var blinkTimer  = 100;
 var squishX     = 1;
 var squishY     = 1;
@@ -90,7 +91,12 @@ var clouds = [
 function makeCactus(xOff, tall) {
     var w = tall ? (18 + Math.random() * 12) : (12 + Math.random() * 8);
     var h = tall ? (34 + Math.random() * 28) : (14 + Math.random() * 14);
-    return { x: WIDTH + xOff, width: w, height: h, type: tall ? 0 : 1 };
+    // Detalles visuales precomputados al spawn (nunca Math.random en render)
+    return {
+        x: WIDTH + xOff, width: w, height: h, type: tall ? 0 : 1,
+        flower: Math.random() < 0.35,
+        flowerCol: Math.random() < 0.5 ? '#f06292' : '#ffb74d'
+    };
 }
 function makeBird(xOff) {
     return { x: WIDTH + xOff, width: 38, height: 22, type: 2, flapTick: 0, flyY: GROUND_Y - 3 };
@@ -172,7 +178,7 @@ function updatePlayer() {
         if (!player.onGround) {
             squishX = 1.4;
             squishY = 0.6;
-            spawnDustBurst();
+            spawnDustBurst(true);
         }
         player.y = GROUND_Y;
         player.vy = 0;
@@ -182,12 +188,17 @@ function updatePlayer() {
     squishX += (1 - squishX) * 0.18;
     squishY += (1 - squishY) * 0.18;
 
+    // Avance del ciclo de zancada — más rápido cuanto mayor es SPEED
+    if (player.onGround && !isDying) {
+        gaitPhase += (isCrouching ? 0.34 : 0.16) + SPEED * 0.022;
+    }
+
     blinkTimer--;
     if (blinkTimer < 0) blinkTimer = 90 + Math.floor(Math.random() * 140);
 }
 
 // ─── DUST PARTICLES ────────────────────────────────────────
-function spawnDustBurst() {
+function spawnDustBurst(land) {
     for (var i = 0; i < 5; i++) {
         dustParticles.push({
             x: player.x + 10 + Math.random() * 16,
@@ -197,6 +208,16 @@ function spawnDustBurst() {
             life: 18 + Math.random() * 10,
             maxLife: 28,
             r: 3 + Math.random() * 3
+        });
+    }
+    // Onda expansiva en el suelo al aterrizar
+    if (land) {
+        dustParticles.push({
+            ring: true,
+            x: player.x + 18,
+            y: GROUND_Y + PLAYER_SIZE - 2,
+            r: 6, vr: 2.4,
+            life: 11, maxLife: 11
         });
     }
 }
@@ -218,9 +239,13 @@ function spawnRunDust() {
 function updateDust() {
     for (var i = dustParticles.length - 1; i >= 0; i--) {
         var d = dustParticles[i];
-        d.x += d.vx;
-        d.y += d.vy;
-        d.vy += 0.05;
+        if (d.ring) {
+            d.r += d.vr;
+        } else {
+            d.x += d.vx;
+            d.y += d.vy;
+            d.vy += 0.05;
+        }
         d.life--;
         if (d.life <= 0) dustParticles.splice(i, 1);
     }
@@ -230,10 +255,18 @@ function drawDust() {
     for (var i = 0; i < dustParticles.length; i++) {
         var d = dustParticles[i];
         var alpha = (d.life / d.maxLife) * 0.5;
-        ctx.fillStyle = 'rgba(180,160,100,' + alpha + ')';
-        ctx.beginPath();
-        ctx.arc(d.x, d.y, d.r, 0, Math.PI * 2);
-        ctx.fill();
+        if (d.ring) {
+            ctx.strokeStyle = 'rgba(180,160,100,' + alpha + ')';
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            ctx.ellipse(d.x, d.y, d.r, d.r * 0.3, 0, 0, Math.PI * 2);
+            ctx.stroke();
+        } else {
+            ctx.fillStyle = 'rgba(180,160,100,' + alpha + ')';
+            ctx.beginPath();
+            ctx.arc(d.x, d.y, d.r, 0, Math.PI * 2);
+            ctx.fill();
+        }
     }
 }
 
@@ -296,6 +329,12 @@ function drawCactus(o) {
         cactusSegment(w - 2, armY + h * 0.1 - armH * 0.7, w * 0.8, armH * 0.7 + w * 0.8, true);
     }
 
+    // Costillas verticales (relieve del tronco)
+    ctx.strokeStyle = 'rgba(0,0,0,0.16)';
+    ctx.lineWidth = 1;
+    ctx.beginPath(); ctx.moveTo(w * 0.35, 3); ctx.lineTo(w * 0.35, h - 3); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(w * 0.62, 4); ctx.lineTo(w * 0.62, h - 3); ctx.stroke();
+
     // Spines (small dots of light)
     ctx.fillStyle = 'rgba(255,255,255,0.35)';
     for (var si = 0; si < 4; si++) {
@@ -303,20 +342,48 @@ function drawCactus(o) {
         ctx.beginPath(); ctx.arc(w * 0.82, h * 0.25 + si * h * 0.18, 1.2, 0, Math.PI*2); ctx.fill();
     }
 
+    // Flor en la corona (decidida al spawn)
+    if (o.flower) {
+        var fx = w * 0.5, fy = -2;
+        ctx.fillStyle = o.flowerCol;
+        for (var pi = 0; pi < 5; pi++) {
+            var pa = (pi / 5) * Math.PI * 2;
+            ctx.beginPath();
+            ctx.ellipse(fx + Math.cos(pa) * 3, fy + Math.sin(pa) * 3, 2.4, 1.7, pa, 0, Math.PI * 2);
+            ctx.fill();
+        }
+        ctx.fillStyle = '#fff59d';
+        ctx.beginPath(); ctx.arc(fx, fy, 2, 0, Math.PI * 2); ctx.fill();
+    }
+
     ctx.restore();
 }
 
 function drawBird(o) {
     var bx = o.x + o.width / 2;
-    var by = o.flyY;
+    var by = o.flyY + Math.sin(o.flapTick * 0.1) * 2.5;   // vaivén de vuelo
     var flapAngle = Math.sin(o.flapTick * 0.35) * 0.55; // smooth continuous flap
+    var bodyTilt  = Math.sin(o.flapTick * 0.35 + Math.PI * 0.5) * 0.06; // el cuerpo responde al aleteo
 
     ctx.save();
     ctx.translate(bx, by);
+    ctx.rotate(bodyTilt);
 
     // Shadow
     ctx.fillStyle = 'rgba(0,0,0,0.15)';
     ctx.beginPath(); ctx.ellipse(0, 18, 18, 4, 0, 0, Math.PI*2); ctx.fill();
+
+    // Ala lejana (contrafase, más oscura, detrás del cuerpo)
+    ctx.save();
+    ctx.rotate(-flapAngle * 0.85);
+    ctx.fillStyle = '#4a332c';
+    ctx.beginPath();
+    ctx.moveTo(-2, 2);
+    ctx.bezierCurveTo(-7, 5, -14, 4, -17, 0);
+    ctx.bezierCurveTo(-15, -3, -9, -4, -3, -3);
+    ctx.bezierCurveTo(-2, -2, -1, 0, -2, 2);
+    ctx.closePath(); ctx.fill();
+    ctx.restore();
 
     // Wing (animated with rotation)
     ctx.save();
@@ -330,6 +397,11 @@ function drawBird(o) {
     ctx.bezierCurveTo(-18, 6, -10, 7, -4, 5);
     ctx.bezierCurveTo(-2, 4, -1, 2, -2, -2);
     ctx.closePath(); ctx.fill();
+    // plumas en la punta del ala
+    ctx.strokeStyle = '#4a332c'; ctx.lineWidth = 1; ctx.lineCap = 'round';
+    ctx.beginPath(); ctx.moveTo(-13, 1.5); ctx.lineTo(-19, 1); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(-12, 3.5); ctx.lineTo(-17, 4.5); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(-10, 5);   ctx.lineTo(-14, 7); ctx.stroke();
     ctx.restore();
 
     // Body
@@ -591,7 +663,6 @@ function drawBackground() {
 
 // ─── DRAW DINO ─────────────────────────────────────────────
 function drawDino(x, y, running, dead, deathAng) {
-    var lp      = (running && player.onGround && !isCrouching) ? Math.floor(animTick / 5) % 4 : 0;
     var isJump  = !player.onGround && !dead;
     var isBlink = blinkTimer < 3;
     var crouch  = isCrouching && !dead;
@@ -659,28 +730,49 @@ function drawDino(x, y, running, dead, deathAng) {
             ctx.fillStyle = '#fff'; ctx.beginPath(); ctx.arc(ex+1.8, ey-0.8, 1.1, 0, Math.PI*2); ctx.fill();
         }
 
-        // legs bent
+        // legs bent — correteo: las patas se alternan rápidamente
+        var sh = Math.sin(gaitPhase) * 2.2;
         ctx.fillStyle = LEG;
-        ctx.beginPath(); ctx.roundRect(6, -7, 9, 7, 3); ctx.fill();
-        ctx.beginPath(); ctx.roundRect(17, -7, 9, 7, 3); ctx.fill();
-        ctx.beginPath(); ctx.ellipse(10, 0, 8, 3, 0, 0, Math.PI*2); ctx.fill();
-        ctx.beginPath(); ctx.ellipse(21, 0, 8, 3, 0, 0, Math.PI*2); ctx.fill();
+        ctx.beginPath(); ctx.roundRect(6 + sh, -7, 9, 7, 3); ctx.fill();
+        ctx.beginPath(); ctx.roundRect(17 - sh, -7, 9, 7, 3); ctx.fill();
+        ctx.beginPath(); ctx.ellipse(10 + sh, 0, 8, 3, 0, 0, Math.PI*2); ctx.fill();
+        ctx.beginPath(); ctx.ellipse(21 - sh, 0, 8, 3, 0, 0, Math.PI*2); ctx.fill();
 
         ctx.restore();
         return;
     }
 
     /* ── NORMAL / JUMP / DEAD ──────────────────────────────── */
+    // Sombra en el suelo — se encoge y aclara con la altura del salto
+    if (!dead) {
+        var airH    = Math.max(0, GROUND_Y - y);
+        var shScale = Math.max(0.35, 1 - airH / 130);
+        ctx.fillStyle = 'rgba(0,0,0,' + (0.15 * shScale).toFixed(3) + ')';
+        ctx.beginPath();
+        ctx.ellipse(x + 18, GROUND_Y + PLAYER_SIZE - 1, 20 * shScale, 3.5 * shScale, 0, 0, Math.PI * 2);
+        ctx.fill();
+    }
+
     ctx.save();
     var pivotX = x + 18, pivotY = y + PLAYER_SIZE;
+    var onGroundRun = running && player.onGround && !dead;
+
+    // Rebote del cuerpo al correr + inclinación según velocidad / fase aérea
+    var bob  = onGroundRun ? Math.abs(Math.sin(gaitPhase)) * 1.7 : 0;
+    var lean = onGroundRun ? Math.min(0.13, 0.03 + (SPEED - 4) * 0.012) : 0;
+    if (isJump) lean = Math.max(-0.18, Math.min(0.22, player.vy * 0.022));
+
     if (dead) {
         ctx.translate(pivotX, pivotY); ctx.rotate(deathAng); ctx.translate(-18, -PLAYER_SIZE);
     } else {
-        ctx.translate(pivotX, pivotY); ctx.scale(sx, sy); ctx.translate(-18, -PLAYER_SIZE);
+        ctx.translate(pivotX, pivotY - bob); ctx.scale(sx, sy); ctx.rotate(lean); ctx.translate(-18, -PLAYER_SIZE);
     }
 
-    var hl = (running && player.onGround && !dead) ? 1.5 : 0;
-    var tw = running && !dead ? Math.sin(animTick * 0.22) * 3.5 : 0;
+    // Cabeza adelantada al correr (con micro-oscilación) y cola viva
+    var hl = onGroundRun ? 1.5 + Math.sin(gaitPhase * 0.5) * 0.8 : 0;
+    var tw = dead   ? 2 :
+             isJump ? -4 :
+             onGroundRun ? Math.sin(gaitPhase + Math.PI * 0.5) * (2.2 + SPEED * 0.22) : 0;
 
     /* TAIL */
     ctx.fillStyle = DRK;
@@ -737,69 +829,105 @@ function drawDino(x, y, running, dead, deathAng) {
     ctx.fillStyle = 'rgba(0,0,0,0.3)';
     ctx.beginPath(); ctx.arc(38 + hl, 4, 1.4, 0, Math.PI*2); ctx.fill();
 
+    // Jadeo a alta velocidad: boca abierta con lengua que botea
+    if (onGroundRun && SPEED > 8.5) {
+        ctx.fillStyle = '#7a1f1f';
+        ctx.beginPath(); ctx.roundRect(33 + hl, 11.5, 7, 3.5, 2); ctx.fill();
+        ctx.fillStyle = '#e57373';
+        ctx.beginPath(); ctx.roundRect(35 + hl, 12.5, 6, 3 + Math.sin(gaitPhase * 2) * 0.8, 2); ctx.fill();
+    }
+
     /* EYE — grande y expresivo */
     var ex = 22 + hl, ey = 6;
-    // socket highlight
-    ctx.fillStyle = 'rgba(255,255,255,0.18)';
-    ctx.beginPath(); ctx.arc(ex, ey, 6, 0, Math.PI*2); ctx.fill();
-    // sclera
-    ctx.fillStyle = '#fff';
-    if (isBlink) {
-        ctx.beginPath(); ctx.ellipse(ex, ey, 5, 1.3, 0, 0, Math.PI*2); ctx.fill();
+    if (dead) {
+        // Ojos en X + lengua colgando
+        ctx.strokeStyle = '#1a1a2e'; ctx.lineWidth = 1.7; ctx.lineCap = 'round';
+        ctx.beginPath(); ctx.moveTo(ex - 3.2, ey - 3.2); ctx.lineTo(ex + 3.2, ey + 3.2); ctx.stroke();
+        ctx.beginPath(); ctx.moveTo(ex + 3.2, ey - 3.2); ctx.lineTo(ex - 3.2, ey + 3.2); ctx.stroke();
+        ctx.fillStyle = '#e57373';
+        ctx.beginPath(); ctx.roundRect(34 + hl, 12, 4, 8, 2); ctx.fill();
     } else {
-        ctx.beginPath(); ctx.arc(ex, ey, 5, 0, Math.PI*2); ctx.fill();
-    }
-    if (!isBlink) {
-        // iris
-        ctx.fillStyle = '#2a7a28';
-        ctx.beginPath(); ctx.arc(ex + 0.8, ey + 0.5, 3.2, 0, Math.PI*2); ctx.fill();
-        // pupil
-        ctx.fillStyle = '#1a1a2e';
-        ctx.beginPath(); ctx.arc(ex + 0.8, ey + 0.5, 1.9, 0, Math.PI*2); ctx.fill();
-        // highlight
+        // socket highlight
+        ctx.fillStyle = 'rgba(255,255,255,0.18)';
+        ctx.beginPath(); ctx.arc(ex, ey, 6, 0, Math.PI*2); ctx.fill();
+        // sclera
         ctx.fillStyle = '#fff';
-        ctx.beginPath(); ctx.arc(ex + 2, ey - 1, 1.2, 0, Math.PI*2); ctx.fill();
+        if (isBlink) {
+            ctx.beginPath(); ctx.ellipse(ex, ey, 5, 1.3, 0, 0, Math.PI*2); ctx.fill();
+        } else {
+            ctx.beginPath(); ctx.arc(ex, ey, 5, 0, Math.PI*2); ctx.fill();
+        }
+        if (!isBlink) {
+            // La mirada sigue la acción: al frente al correr, abajo al caer
+            var lookX = isJump ? 1.6 : 0.8 + Math.min(1.2, (SPEED - 4) * 0.12);
+            var lookY = isJump ? (player.vy > 2 ? 1.5 : -0.6) : 0.5;
+            // iris
+            ctx.fillStyle = '#2a7a28';
+            ctx.beginPath(); ctx.arc(ex + lookX, ey + lookY, 3.2, 0, Math.PI*2); ctx.fill();
+            // pupil
+            ctx.fillStyle = '#1a1a2e';
+            ctx.beginPath(); ctx.arc(ex + lookX, ey + lookY, 1.9, 0, Math.PI*2); ctx.fill();
+            // highlight
+            ctx.fillStyle = '#fff';
+            ctx.beginPath(); ctx.arc(ex + lookX + 1.2, ey + lookY - 1.5, 1.2, 0, Math.PI*2); ctx.fill();
+        }
+        // eye outline
+        ctx.strokeStyle = DRK; ctx.lineWidth = 0.7;
+        ctx.beginPath(); ctx.arc(ex, ey, 5, 0, Math.PI*2); ctx.stroke();
     }
-    // eye outline
-    ctx.strokeStyle = DRK; ctx.lineWidth = 0.7;
-    ctx.beginPath(); ctx.arc(ex, ey, 5, 0, Math.PI*2); ctx.stroke();
 
-    /* ARM (tiny T-Rex) */
+    /* ARM (tiny T-Rex) — se balancea con la zancada, se adelanta al saltar */
+    var armAng = dead ? 0.5 :
+                 isJump ? -0.6 :
+                 onGroundRun ? Math.sin(gaitPhase + Math.PI) * 0.25 : 0;
+    ctx.save();
+    ctx.translate(24, 21);
+    ctx.rotate(armAng);
     ctx.fillStyle = LEG;
-    ctx.beginPath(); ctx.roundRect(22, 20, 5, 4, 2); ctx.fill();
-    ctx.beginPath(); ctx.roundRect(25, 22, 5, 3, 1); ctx.fill();
+    ctx.beginPath(); ctx.roundRect(-2, -1, 5, 4, 2); ctx.fill();
+    ctx.beginPath(); ctx.roundRect(1, 1, 5, 3, 1); ctx.fill();
     ctx.strokeStyle = DRK; ctx.lineWidth = 0.8;
-    ctx.beginPath(); ctx.moveTo(29, 24); ctx.lineTo(32, 27); ctx.stroke();
-    ctx.beginPath(); ctx.moveTo(29, 25); ctx.lineTo(31, 28); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(5, 3); ctx.lineTo(8, 6); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(5, 4); ctx.lineTo(7, 7); ctx.stroke();
+    ctx.restore();
 
-    /* LEGS — 4-frame con muslo + espinilla + pie */
-    // leg positions per frame: [frontThighY, frontShinH, rearThighY, rearShinH]
-    var lfs = [
-        [25, 11, 27, 7],
-        [26, 9,  26, 9],
-        [27, 7,  25, 11],
-        [26, 9,  26, 9]
-    ];
-    var lf = isJump  ? [25, 6, 25, 6]  :
-             dead     ? [26, 9, 26, 9]  :
-             lfs[lp];
+    /* LEGS — zancada articulada: muslo + espinilla + pie rotados en cadena.
+       El balanceo es sinusoidal continuo (gaitPhase) y la espinilla se
+       recoge al avanzar la pata, como una carrera real. */
+    function drawLeg(hipX, hipY, phase, behind) {
+        var col = behind ? '#338231' : LEG;
+        var swing, fold;
+        if (isJump)            { swing = behind ? 0.9 : 0.55;   fold = 1.25; }   // patas recogidas
+        else if (dead)         { swing = behind ? 0.35 : -0.25; fold = 0.7;  }
+        else if (onGroundRun)  {
+            swing = Math.sin(phase) * 0.6;
+            fold  = 0.3 + Math.max(0, Math.sin(phase + Math.PI * 0.45)) * 0.9;
+        }
+        else                   { swing = 0; fold = 0.3; }
 
-    ctx.fillStyle = LEG;
-    // rear leg (behind body)
-    ctx.beginPath(); ctx.roundRect(5, lf[2], 8, lf[3] + 2, 3); ctx.fill();
-    ctx.strokeStyle = DRK; ctx.lineWidth = 0.7; ctx.stroke();
-    // rear foot
-    ctx.fillStyle = LEG;
-    ctx.beginPath(); ctx.ellipse(9, lf[2] + lf[3] + 3, 7, 3, isJump ? -0.25 : 0, 0, Math.PI*2); ctx.fill();
-    ctx.strokeStyle = DRK; ctx.lineWidth = 0.5; ctx.stroke();
-    // front leg
-    ctx.fillStyle = LEG;
-    ctx.beginPath(); ctx.roundRect(15, lf[0], 8, lf[1] + 2, 3); ctx.fill();
-    ctx.strokeStyle = DRK; ctx.lineWidth = 0.7; ctx.stroke();
-    // front foot
-    ctx.fillStyle = LEG;
-    ctx.beginPath(); ctx.ellipse(19, lf[0] + lf[1] + 3, 7, 3, isJump ? -0.25 : 0, 0, Math.PI*2); ctx.fill();
-    ctx.strokeStyle = DRK; ctx.lineWidth = 0.5; ctx.stroke();
+        ctx.save();
+        ctx.translate(hipX, hipY);
+        ctx.rotate(swing);
+        // muslo
+        ctx.fillStyle = col;
+        ctx.beginPath(); ctx.roundRect(-3.2, -2.5, 6.4, 8.5, 3.2); ctx.fill();
+        ctx.strokeStyle = DRK; ctx.lineWidth = 0.7; ctx.stroke();
+        // espinilla (plegada hacia atrás según la fase)
+        ctx.translate(0, 5.2);
+        ctx.rotate(-swing - fold * 0.55 + 0.3);
+        ctx.fillStyle = col;
+        ctx.beginPath(); ctx.roundRect(-2.6, 0, 5.2, 6.4, 2.6); ctx.fill();
+        ctx.stroke();
+        // pie
+        ctx.translate(0.6, 6);
+        ctx.rotate(swing * 0.4 + fold * 0.25 - 0.2);
+        ctx.fillStyle = col;
+        ctx.beginPath(); ctx.ellipse(1.6, 1, 5.4, 2.6, 0, 0, Math.PI * 2); ctx.fill();
+        ctx.strokeStyle = DRK; ctx.lineWidth = 0.5; ctx.stroke();
+        ctx.restore();
+    }
+    drawLeg(9, 24, gaitPhase + Math.PI, true);   // pata trasera (contrafase)
+    drawLeg(19, 24, gaitPhase, false);           // pata delantera
 
     ctx.restore();
 }
@@ -845,7 +973,12 @@ function updateScore() {
 }
 
 // ─── DEATH ANIMATION ───────────────────────────────────────
-function runDeathAnim() {
+var lastDeathTs = 0;
+function runDeathAnim(ts) {
+    // Throttle a ~60fps para que la caída no dependa del refresco
+    if (ts - lastDeathTs < 15) { animFrameId = requestAnimationFrame(runDeathAnim); return; }
+    lastDeathTs = ts;
+
     deathAngle += 0.15;
     deathVY += GRAVITY * 0.8;
     player.y += deathVY;
@@ -858,7 +991,8 @@ function runDeathAnim() {
 
     ctx.save();
     if (screenShake > 0) {
-        ctx.translate((Math.random() - 0.5) * 6, (Math.random() - 0.5) * 4);
+        // Jitter determinista a partir del contador (sin Math.random en render)
+        ctx.translate(Math.sin(screenShake * 12.9898) * 3, Math.cos(screenShake * 78.233) * 2);
     }
     drawDino(player.x, player.y, false, true, deathAngle);
     drawScore();

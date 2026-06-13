@@ -40,10 +40,10 @@ var lanes;
 function initLanes() {
     lanes = [
         null, // row 0 goal
-        { dir: 1,  speed: 1.2, objects: makeObjects(1, 3, 90, 28) },
-        { dir: -1, speed: 1.5, objects: makeObjects(2, 3, 100, 28) },
-        { dir: 1,  speed: 1.0, objects: makeObjects(3, 2, 120, 36) },
-        { dir: -1, speed: 1.8, objects: makeObjects(4, 3, 80, 28) },
+        { dir: 1,  speed: 1.2, objects: makeObjects(1, 3, 60, 100) },  // troncos medianos
+        { dir: -1, speed: 1.5, objects: makeTurtles(2, 3, 2) },        // grupos de 2 tortugas
+        { dir: 1,  speed: 1.0, objects: makeObjects(3, 2, 90, 150) },  // troncos largos
+        { dir: -1, speed: 1.8, objects: makeTurtles(4, 3, 3) },        // grupos de 3 tortugas
         null, // row 5 median
         { dir: -1, speed: 2.2, objects: makeCars(6, 3, '#ef5350') },
         { dir: 1,  speed: 1.8, objects: makeCars(7, 4, '#ff9800') },
@@ -57,9 +57,31 @@ function initLanes() {
 function makeObjects(row, count, gap, w) {
     var objs = [];
     for (var i = 0; i < count; i++) {
-        objs.push({ x: i * (W / count + gap), w: w, h: CELL - 4 });
+        objs.push({ x: i * (W / count + gap), w: w, h: CELL - 8, bob: 0 });
     }
     return objs;
+}
+
+// Grupos de tortugas que se sumergen periódicamente (ciclo con fase propia)
+function makeTurtles(row, count, perGroup) {
+    var objs = [];
+    var w = perGroup * 30;
+    for (var i = 0; i < count; i++) {
+        objs.push({
+            x: i * (W / count + 40), w: w, h: CELL - 8, bob: 0,
+            turtle: true, n: perGroup,
+            cycle: 420, phase: Math.floor(Math.random() * 420)
+        });
+    }
+    return objs;
+}
+
+// Estado del ciclo de inmersión: up → warn (parpadeo) → down (sumergida)
+function turtleState(o) {
+    var t = (frame + o.phase) % o.cycle;
+    if (t >= o.cycle - 80)  return 'down';
+    if (t >= o.cycle - 140) return 'warn';
+    return 'up';
 }
 
 function makeCars(row, count, color) {
@@ -80,6 +102,21 @@ function updateLanes() {
             objs[i].x += lane.speed * lane.dir;
             if (lane.dir > 0 && objs[i].x > W) objs[i].x = -objs[i].w;
             if (lane.dir < 0 && objs[i].x + objs[i].w < 0) objs[i].x = W;
+            // Balanceo del agua (compartido con la rana cuando va montada)
+            if (r <= 4) {
+                objs[i].bob = Math.sin(frame * 0.04 + i * 1.7 + r * 2.3) * (objs[i].turtle ? 1.2 : 2.5);
+                // Burbujas mientras la tortuga está sumergida
+                if (objs[i].turtle && turtleState(objs[i]) === 'down' && frame % 12 === 0) {
+                    jumpParticles.push({
+                        x: objs[i].x + Math.random() * objs[i].w,
+                        y: r * CELL + CELL * 0.5 + Math.random() * 8,
+                        vx: 0, vy: -0.5 - Math.random() * 0.4,
+                        r: 1.5 + Math.random() * 2,
+                        life: 14 + Math.random() * 8 | 0, maxLife: 22,
+                        color: '#bbdefb'
+                    });
+                }
+            }
             // Exhaust puff spawn for fast cars (rows 6-10)
             if (r >= 6 && Math.abs(lane.speed) > 2.0 && frame % 4 === 0) {
                 var o = objs[i];
@@ -300,9 +337,10 @@ function drawLogs() {
         if (!lane) continue;
         for (var i = 0; i < lane.objects.length; i++) {
             var o = lane.objects[i];
-            // Gentle bobbing per log (each log has its own phase)
-            var bob = Math.sin(frame * 0.04 + i * 1.7 + r * 2.3) * 2.5;
-            var oy = r * CELL + 2 + bob;
+            if (o.turtle) { drawTurtleGroup(o, r); continue; }
+            // Gentle bobbing per log (phase computed in updateLanes)
+            var bob = o.bob || 0;
+            var oy = r * CELL + 4 + bob;
             var oh = o.h;
             var ow = o.w;
 
@@ -397,6 +435,60 @@ function drawLogs() {
     }
 }
 
+// Grupo de tortugas: caparazón con patrón, aletas remando, cabeza según
+// dirección. Parpadean antes de sumergirse y se ven tenues bajo el agua.
+function drawTurtleGroup(o, r) {
+    var st = turtleState(o);
+    var lane = lanes[r];
+    var oy = r * CELL + CELL / 2 + (o.bob || 0);
+    var unit = o.w / o.n;
+    var alpha = st === 'down' ? 0.22
+              : st === 'warn' ? 0.55 + 0.4 * Math.sin(frame * 0.45)
+              : 1;
+
+    ctx.save();
+    ctx.globalAlpha = alpha;
+    for (var k = 0; k < o.n; k++) {
+        var cx = o.x + unit * (k + 0.5), cy = oy;
+        var paddle = Math.sin(frame * 0.18 + k * 1.1) * 2.2;
+        var hd = lane.dir;
+
+        // aletas (reman alternándose)
+        ctx.fillStyle = '#5d8b46';
+        ctx.beginPath(); ctx.ellipse(cx - 9, cy - 9 + paddle * 0.4, 5, 2.6, -0.5, 0, Math.PI * 2); ctx.fill();
+        ctx.beginPath(); ctx.ellipse(cx - 9, cy + 9 - paddle * 0.4, 5, 2.6,  0.5, 0, Math.PI * 2); ctx.fill();
+        ctx.beginPath(); ctx.ellipse(cx + 9, cy - 9 - paddle * 0.4, 5, 2.6,  0.5, 0, Math.PI * 2); ctx.fill();
+        ctx.beginPath(); ctx.ellipse(cx + 9, cy + 9 + paddle * 0.4, 5, 2.6, -0.5, 0, Math.PI * 2); ctx.fill();
+
+        // cabeza (hacia la dirección del carril)
+        ctx.fillStyle = '#6da653';
+        ctx.beginPath(); ctx.arc(cx + hd * 13, cy, 4.5, 0, Math.PI * 2); ctx.fill();
+        ctx.fillStyle = '#111';
+        ctx.beginPath(); ctx.arc(cx + hd * 15, cy - 1.8, 1, 0, Math.PI * 2); ctx.fill();
+
+        // caparazón
+        var shg = ctx.createRadialGradient(cx - 3, cy - 3, 1, cx, cy, 12);
+        shg.addColorStop(0, '#8bc34a');
+        shg.addColorStop(0.7, '#558b2f');
+        shg.addColorStop(1, '#33691e');
+        ctx.fillStyle = shg;
+        ctx.beginPath(); ctx.ellipse(cx, cy, 12, 10, 0, 0, Math.PI * 2); ctx.fill();
+        ctx.strokeStyle = 'rgba(20,50,10,0.5)'; ctx.lineWidth = 1; ctx.stroke();
+
+        // patrón de placas
+        ctx.strokeStyle = 'rgba(20,50,10,0.4)';
+        ctx.beginPath(); ctx.moveTo(cx - 8, cy - 4); ctx.lineTo(cx + 8, cy - 4); ctx.stroke();
+        ctx.beginPath(); ctx.moveTo(cx - 9, cy + 2); ctx.lineTo(cx + 9, cy + 2); ctx.stroke();
+        ctx.beginPath(); ctx.moveTo(cx - 4, cy - 9); ctx.lineTo(cx - 4, cy + 8); ctx.stroke();
+        ctx.beginPath(); ctx.moveTo(cx + 4, cy - 9); ctx.lineTo(cx + 4, cy + 8); ctx.stroke();
+
+        // brillo húmedo
+        ctx.fillStyle = 'rgba(255,255,255,0.18)';
+        ctx.beginPath(); ctx.ellipse(cx - 3, cy - 4, 4, 2.5, -0.4, 0, Math.PI * 2); ctx.fill();
+    }
+    ctx.restore();
+}
+
 // Helper: parse hex color to rgb
 function hexToRgb(hex) {
     var r = parseInt(hex.slice(1,3), 16);
@@ -415,6 +507,18 @@ function drawCars() {
             var ow = o.w, oh = o.h;
             var dir = lane.dir;
             var rgb = hexToRgb(o.color);
+
+            // Wheels first — peek out from UNDER the body (top & bottom edges)
+            var wPairX = [o.x + ow * 0.20, o.x + ow * 0.74];
+            ctx.fillStyle = '#1a1a1a';
+            for (var w = 0; w < 2; w++) {
+                ctx.beginPath();
+                ctx.ellipse(wPairX[w], oy + 1, oh * 0.20, oh * 0.16, 0, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.beginPath();
+                ctx.ellipse(wPairX[w], oy + oh - 1, oh * 0.20, oh * 0.16, 0, 0, Math.PI * 2);
+                ctx.fill();
+            }
 
             // Car body: more rounded at front, squared at back
             var carGrad = ctx.createLinearGradient(o.x, oy, o.x, oy + oh);
@@ -475,31 +579,6 @@ function drawCars() {
             ctx.beginPath();
             ctx.roundRect(mirrorX, oy + oh - 1, ow * 0.12, 4, 1);
             ctx.fill();
-
-            // Wheels (4 visible, top and bottom edges)
-            var wPairX = [o.x + ow * 0.20, o.x + ow * 0.74];
-            var wheelRx = oh * 0.26;
-            var wheelRy = oh * 0.17;
-            for (var w = 0; w < 2; w++) {
-                // Top wheel
-                ctx.fillStyle = '#1a1a1a';
-                ctx.beginPath();
-                ctx.ellipse(wPairX[w], oy + 2, wheelRx, wheelRy, 0, 0, Math.PI * 2);
-                ctx.fill();
-                ctx.fillStyle = '#555';
-                ctx.beginPath();
-                ctx.ellipse(wPairX[w], oy + 2, wheelRx * 0.45, wheelRy * 0.55, 0, 0, Math.PI * 2);
-                ctx.fill();
-                // Bottom wheel
-                ctx.fillStyle = '#1a1a1a';
-                ctx.beginPath();
-                ctx.ellipse(wPairX[w], oy + oh - 2, wheelRx, wheelRy, 0, 0, Math.PI * 2);
-                ctx.fill();
-                ctx.fillStyle = '#555';
-                ctx.beginPath();
-                ctx.ellipse(wPairX[w], oy + oh - 2, wheelRx * 0.45, wheelRy * 0.55, 0, 0, Math.PI * 2);
-                ctx.fill();
-            }
 
             // Headlights (bright circles at front)
             var frontEdge = dir > 0 ? o.x + ow - 3 : o.x + 3;
@@ -764,6 +843,14 @@ function drawFrogShape(cx, cy, r, moving) {
 var frogMoveFlash = 0;
 var frogHop = null; // { fromX, fromY, t, duration }
 
+// Orientación de la rana (0 = arriba) con giro suavizado al moverse
+var frogAngle = 0;
+var frogTargetAngle = 0;
+var frogUprightTimer = 0; // frames antes de volver a mirar al frente
+
+// Buffer de input: guarda el siguiente salto si llega al final del tween
+var queuedMove = null;
+
 function drawFrog() {
     if (deathAnim && !deathAnim.done) return; // hide frog during death
 
@@ -821,29 +908,141 @@ function drawFrog() {
         frogCy = logY;
         if (frogHop) { landSquash = 8; } // just landed
         frogHop = null;
+        // Ejecutar el salto en cola (encadena saltos con fluidez)
+        if (queuedMove && !deathAnim) {
+            var qm = queuedMove; queuedMove = null;
+            moveFrog(qm[0], qm[1]);
+        }
+        // Montada en tronco/tortuga: hereda el balanceo del agua
+        if (frog.row >= 1 && frog.row <= 4) {
+            var riding = getFrogOnLog();
+            if (riding) frogCy += riding.log.bob || 0;
+        }
+        // Quieta un momento: vuelve a mirar al frente (no se queda de lado)
+        if (frogUprightTimer > 0) frogUprightTimer--;
+        else frogTargetAngle = 0;
     }
     if (landSquash > 0) landSquash--;
 
     if (frogMoveFlash > 0) frogMoveFlash--;
-    drawFrogShape(frogCx, frogCy, frogR, true);
+
+    // Giro suavizado hacia la dirección del último salto (camino más corto)
+    var dAng = frogTargetAngle - frogAngle;
+    while (dAng >  Math.PI) dAng -= Math.PI * 2;
+    while (dAng < -Math.PI) dAng += Math.PI * 2;
+    frogAngle += dAng * 0.45;
+    if (Math.abs(dAng) < 0.02) frogAngle = frogTargetAngle;
+
+    ctx.save();
+    ctx.translate(frogCx, frogCy);
+    ctx.rotate(frogAngle);
+    drawFrogShape(0, 0, frogR, true);
+
+    // Lengüetazo ocasional en reposo (en zonas seguras, mirando al frente)
+    var safeRow = (frog.row === 5 || frog.row === 11);
+    var tCyc = frame % 300;
+    if (safeRow && !frogHop && tCyc < 16) {
+        var tLen = Math.sin((tCyc / 16) * Math.PI) * frogR * 1.1;
+        ctx.strokeStyle = '#ef6c8f';
+        ctx.lineWidth = 2.5;
+        ctx.lineCap = 'round';
+        ctx.beginPath();
+        ctx.moveTo(0, -frogR * 0.15);
+        ctx.lineTo(0, -frogR * 0.3 - tLen);
+        ctx.stroke();
+        ctx.fillStyle = '#f48fb1';
+        ctx.beginPath();
+        ctx.ellipse(0, -frogR * 0.3 - tLen, 2.6, 1.8, 0, 0, Math.PI * 2);
+        ctx.fill();
+    }
+    ctx.restore();
 }
 
 function drawDeathAnim() {
     if (!deathAnim) return;
     deathAnim.timer++;
 
-    var progress = deathAnim.timer / 30;
+    var isWater = deathAnim.cause === 'river';
 
     if (deathAnim.timer <= 8) {
-        // White flash
+        // Flash inicial (blanco en carretera, espuma azulada en agua)
         var flashAlpha = 1 - (deathAnim.timer / 8);
         ctx.save();
         ctx.globalAlpha = flashAlpha * 0.85;
-        ctx.fillStyle = '#ffffff';
+        ctx.fillStyle = isWater ? '#bbdefb' : '#ffffff';
         ctx.beginPath();
         ctx.arc(deathAnim.x, deathAnim.y, CELL * 0.6 * (1 + deathAnim.timer * 0.15), 0, Math.PI * 2);
         ctx.fill();
         ctx.restore();
+    }
+
+    if (isWater) {
+        // Anillos concéntricos que se expanden en la superficie
+        ctx.save();
+        for (var ring = 0; ring < 2; ring++) {
+            var rt = deathAnim.timer - ring * 6;
+            if (rt > 0 && rt < 28) {
+                ctx.globalAlpha = (1 - rt / 28) * 0.55;
+                ctx.strokeStyle = '#e3f2fd';
+                ctx.lineWidth = 2;
+                ctx.beginPath();
+                ctx.ellipse(deathAnim.x, deathAnim.y, CELL * 0.15 + rt * 1.4, (CELL * 0.15 + rt * 1.4) * 0.4, 0, 0, Math.PI * 2);
+                ctx.stroke();
+            }
+        }
+        // Burbujas subiendo (precomputadas al morir)
+        for (var bi = 0; bi < deathAnim.bubbles.length; bi++) {
+            var bb = deathAnim.bubbles[bi];
+            var bt = deathAnim.timer - bb.delay;
+            if (bt <= 0 || bt > 26) continue;
+            ctx.globalAlpha = (1 - bt / 26) * 0.7;
+            ctx.strokeStyle = '#e3f2fd';
+            ctx.lineWidth = 1;
+            ctx.beginPath();
+            ctx.arc(deathAnim.x + bb.dx, deathAnim.y - bt * bb.rise, bb.r, 0, Math.PI * 2);
+            ctx.stroke();
+        }
+        ctx.restore();
+    } else {
+        // Atropello: rana aplastada que se desvanece + estrellitas orbitando
+        var sq = Math.max(0, 1 - deathAnim.timer / 34);
+        if (sq > 0) {
+            ctx.save();
+            ctx.globalAlpha = sq * 0.9;
+            // cuerpo aplastado
+            ctx.fillStyle = '#46a843';
+            ctx.beginPath();
+            ctx.ellipse(deathAnim.x, deathAnim.y + CELL * 0.18, CELL * 0.42, CELL * 0.13, 0, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.strokeStyle = '#2d5a27'; ctx.lineWidth = 1; ctx.stroke();
+            // patas desparramadas
+            ctx.strokeStyle = '#2d5a27'; ctx.lineWidth = 2.5; ctx.lineCap = 'round';
+            ctx.beginPath(); ctx.moveTo(deathAnim.x - CELL * 0.3, deathAnim.y + CELL * 0.16); ctx.lineTo(deathAnim.x - CELL * 0.52, deathAnim.y + CELL * 0.3); ctx.stroke();
+            ctx.beginPath(); ctx.moveTo(deathAnim.x + CELL * 0.3, deathAnim.y + CELL * 0.16); ctx.lineTo(deathAnim.x + CELL * 0.52, deathAnim.y + CELL * 0.3); ctx.stroke();
+            // ojos en X
+            ctx.lineWidth = 1.6;
+            for (var xe = -1; xe <= 1; xe += 2) {
+                var exX = deathAnim.x + xe * CELL * 0.14, exY = deathAnim.y + CELL * 0.1;
+                ctx.beginPath(); ctx.moveTo(exX - 2.5, exY - 2.5); ctx.lineTo(exX + 2.5, exY + 2.5); ctx.stroke();
+                ctx.beginPath(); ctx.moveTo(exX + 2.5, exY - 2.5); ctx.lineTo(exX - 2.5, exY + 2.5); ctx.stroke();
+            }
+            // estrellitas dando vueltas sobre la cabeza
+            ctx.fillStyle = '#ffd54f';
+            for (var st = 0; st < 3; st++) {
+                var sa = deathAnim.timer * 0.18 + st * (Math.PI * 2 / 3);
+                var sx = deathAnim.x + Math.cos(sa) * CELL * 0.32;
+                var sy = deathAnim.y - CELL * 0.18 + Math.sin(sa) * CELL * 0.1;
+                ctx.beginPath();
+                for (var sp = 0; sp < 10; sp++) {
+                    var spA = sa + (sp / 10) * Math.PI * 2;
+                    var spR = sp % 2 === 0 ? 3 : 1.4;
+                    var px2 = sx + Math.cos(spA) * spR, py2 = sy + Math.sin(spA) * spR;
+                    if (sp === 0) ctx.moveTo(px2, py2); else ctx.lineTo(px2, py2);
+                }
+                ctx.closePath(); ctx.fill();
+            }
+            ctx.restore();
+        }
     }
 
     // Update and draw particles
@@ -909,6 +1108,7 @@ function getFrogOnLog() {
     else fx = (frog.col - 1) * CELL + 2;
     for (var i = 0; i < lane.objects.length; i++) {
         var o = lane.objects[i];
+        if (o.turtle && turtleState(o) === 'down') continue; // sumergida: no sostiene
         if (fx < o.x + o.w && fx + CELL - 4 > o.x) return { log: o, lane: lane };
     }
     return null;
@@ -933,7 +1133,7 @@ function checkDeath() {
     return null;
 }
 
-function triggerDeathAnim(callback) {
+function triggerDeathAnim(cause, callback) {
     var fx, fy;
     if (frog.row >= 1 && frog.row <= 4 && frogRidingX !== null) {
         fx = frogRidingX;
@@ -942,15 +1142,19 @@ function triggerDeathAnim(callback) {
     }
     fy = frog.row * CELL + CELL / 2;
 
+    var isWater = cause === 'river';
     var parts = [];
-    var colors = ['#56ab2f', '#a8e063', '#2d5a27', '#8bc34a', '#cddc39'];
-    for (var i = 0; i < 6; i++) {
-        var angle = (i / 6) * Math.PI * 2 + Math.random() * 0.4;
+    var colors = isWater
+        ? ['#64b5f6', '#90caf9', '#bbdefb', '#e3f2fd', '#42a5f5']
+        : ['#56ab2f', '#a8e063', '#2d5a27', '#8bc34a', '#cddc39'];
+    var nParts = isWater ? 10 : 6;
+    for (var i = 0; i < nParts; i++) {
+        var angle = (i / nParts) * Math.PI * 2 + Math.random() * 0.4;
         var speed = 2.5 + Math.random() * 3;
         parts.push({
             x: fx, y: fy,
-            vx: Math.cos(angle) * speed,
-            vy: Math.sin(angle) * speed - 1.5,
+            vx: Math.cos(angle) * speed * (isWater ? 0.8 : 1),
+            vy: Math.sin(angle) * speed - (isWater ? 2.6 : 1.5),
             color: colors[i % colors.length],
             size: 3 + Math.random() * 4,
             life: 20 + Math.random() * 12,
@@ -958,24 +1162,43 @@ function triggerDeathAnim(callback) {
         });
     }
 
-    deathAnim = { x: fx, y: fy, particles: parts, timer: 0, done: false };
+    // Burbujas que suben tras la zambullida (precomputadas, sin random en render)
+    var bubbles = [];
+    if (isWater) {
+        for (var b = 0; b < 6; b++) {
+            bubbles.push({
+                dx: (Math.random() - 0.5) * CELL * 0.6,
+                r: 1.5 + Math.random() * 2.5,
+                rise: 0.6 + Math.random() * 0.5,
+                delay: 4 + b * 4
+            });
+        }
+    }
+
+    deathAnim = { x: fx, y: fy, cause: cause, particles: parts, bubbles: bubbles, timer: 0, done: false };
 
     setTimeout(function() {
         if (callback) callback();
     }, 500);
 }
 
-function die() {
+function respawnFrog() {
+    frog.col = 5; frog.row = 11; frogRidingX = null;
+    frogAngle = 0; frogTargetAngle = 0; frogUprightTimer = 0; queuedMove = null; frogHop = null;
+}
+
+function die(cause) {
     lives--;
     updateHUD();
+    queuedMove = null;
     if (lives <= 0) {
         // Still show anim then game over
-        triggerDeathAnim(function() { gameOver(); });
-        frog.col = 5; frog.row = 11; frogRidingX = null;
+        triggerDeathAnim(cause, function() { gameOver(); });
+        respawnFrog();
         return;
     }
-    triggerDeathAnim(function() {
-        frog.col = 5; frog.row = 11; frogRidingX = null;
+    triggerDeathAnim(cause, function() {
+        respawnFrog();
     });
 }
 
@@ -990,7 +1213,7 @@ function checkGoal() {
             score += 50;
             updateHUD();
             GameAudio.goal();
-            frog.col = 5; frog.row = 11; frogRidingX = null;
+            respawnFrog();
             if (filledGoals.length >= GOAL_SLOTS.length) {
                 score += 200;
                 updateHUD();
@@ -1023,8 +1246,11 @@ function gameLoop(ts) {
 
     updateLanes();
 
+    // En el aire (salto en curso) no hay deriva ni muerte: se resuelve al aterrizar
+    var hopping = frogHop && frogHop.t < frogHop.duration;
+
     // Move frog with log
-    if (frog.row >= 1 && frog.row <= 4) {
+    if (!hopping && frog.row >= 1 && frog.row <= 4) {
         var lane = lanes[frog.row];
         if (lane) {
             if (frogRidingX === null) frogRidingX = (frog.col - 0.5) * CELL;
@@ -1033,17 +1259,17 @@ function gameLoop(ts) {
     }
 
     // Check death (only if not already in death anim)
-    if (!deathAnim) {
+    if (!deathAnim && !hopping) {
         var cause = checkDeath();
         if (cause) {
             if (cause === 'river') GameAudio.splash();
             else GameAudio.hit();
-            die();
+            die(cause);
         }
     }
 
     // Check goal
-    if (!deathAnim && frog.row === 0) checkGoal();
+    if (!deathAnim && !hopping && frog.row === 0) checkGoal();
 
     // Draw
     ctx.clearRect(0, 0, W, H);
@@ -1061,14 +1287,31 @@ function gameLoop(ts) {
 function moveFrog(dr, dc) {
     if (!isPlaying) return;
     if (deathAnim) return; // can't move during death
-    if (frogHop && frogHop.t < frogHop.duration) return; // wait for hop to finish
+    if (frogHop && frogHop.t < frogHop.duration) {
+        // Buffer del siguiente salto en la recta final del tween
+        if (frogHop.duration - frogHop.t <= 6) queuedMove = [dr, dc];
+        return;
+    }
+
+    // Orientar la rana hacia el movimiento (vuelve al frente al quedarse quieta)
+    if (dr === -1)     frogTargetAngle = 0;
+    else if (dr === 1) frogTargetAngle = Math.PI;
+    else if (dc === 1) frogTargetAngle = Math.PI / 2;
+    else if (dc === -1) frogTargetAngle = -Math.PI / 2;
+    frogUprightTimer = 16;
 
     var curRow = frog.row;
     var onRiver = (curRow >= 1 && curRow <= 4);
     var lateralOnRiver = (dr === 0 && dc !== 0 && onRiver);
 
+    // Montada en tronco/tortuga frog.col queda desfasado: derivar de la X real en píxeles
+    var baseCol = frog.col;
+    if (onRiver && frogRidingX !== null) {
+        baseCol = Math.max(1, Math.min(COLS, Math.round(frogRidingX / CELL + 0.5)));
+    }
+
     var nr = curRow + dr;
-    var nc = frog.col + dc;
+    var nc = baseCol + dc;
     if (nr < 0 || nr > 11) return;
     // For lateral river moves, skip column bounds — pixel clamp handles limits
     if (!lateralOnRiver && (nc < 1 || nc > COLS)) return;
@@ -1090,6 +1333,9 @@ function moveFrog(dr, dc) {
             newRX = Math.max(CELL * 0.25, Math.min(W - CELL * 0.25, newRX));
             frogRidingX = newRX;
             frog.col = Math.max(1, Math.min(COLS, Math.round(newRX / CELL + 0.5)));
+        } else if (onRiver && frogRidingX !== null) {
+            // Salto vertical dentro del río: conserva la X exacta (salto recto)
+            frogRidingX = Math.max(CELL * 0.25, Math.min(W - CELL * 0.25, fromX));
         } else {
             frogRidingX = (nc - 0.5) * CELL;
         }
@@ -1133,12 +1379,11 @@ function updateHUD() {
 
 function startGame() {
     GameAudio.start();
-    frog.col = 5; frog.row = 11; frogRidingX = null;
+    respawnFrog();
     score = 0; lives = 3; frame = 0;
     filledGoals = [];
     deathAnim = null;
     frogMoveFlash = 0;
-    frogHop = null;
     exhaustParticles = [];
     jumpParticles = [];
     landSquash = 0;

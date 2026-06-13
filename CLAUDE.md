@@ -237,9 +237,15 @@ Located in `.claude/agents/`:
 ### Frogger (`frogger/`)
 - Frog is canvas-drawn with `drawFrogShape()`. No emoji.
 - Log riding: `frogRidingX` tracks world X position as a float, updated each frame by `lane.speed * lane.dir`
+- Turtles (rows 2 & 4): groups created by `makeTurtles()`; `turtleState(o)` cycles up → warn (blink) → down using `(frame + o.phase) % o.cycle`. Submerged turtles don't hold the frog (`getFrogOnLog` skips state `'down'`)
+- Frog rotation: `frogAngle` lerps (shortest path) toward `frogTargetAngle` set per move direction; after `frogUprightTimer` idle frames it returns to face up (never stays tipped sideways)
+- River jumps are straight: while mid-hop (`frogHop.t < duration`) there is NO log drift, death check, or goal check — all resolve on landing. Vertical river jumps preserve the exact pixel X; `frog.col` is re-derived from `frogRidingX` at jump time (it goes stale while riding)
+- Input buffering: a key pressed in the last 6 frames of a hop is stored in `queuedMove` and executed when the hop ends
+- Cars: wheels are drawn BEFORE the body so they peek out from under it (never on top)
 - 5 lily-pad goal slots; all must be filled to advance wave
-- Death animation: white flash circle + green particles via `triggerDeathAnim()`
-- Hop animation: `frogHop` tween with parabolic arc; blocks new input during animation
+- Death animations via `triggerDeathAnim(cause)`: water = blue flash + expanding ripple rings + rising bubbles; car = squashed frog with splayed legs, X eyes and orbiting stars
+- Hop animation: `frogHop` tween with parabolic arc; logs/turtles bob (`o.bob`) and the frog inherits the bob while riding
+- Idle tongue flick on safe rows (5, 11) every ~300 frames
 
 ### Asteroids (`asteroids/`)
 - Thrust fire particles: orange/yellow particles spawned at ship tail when thrusting
