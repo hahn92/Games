@@ -2193,102 +2193,123 @@
             ctx.fillStyle = gg; ctx.fillRect(0, 175, W, H - 175);
             ctx.fillStyle = '#3fa250'; ctx.fillRect(0, 172, W, 4);
 
-            // catapulta
-            var SX = 46, SY = 152;
-            ctx.fillStyle = '#4e3218'; ctx.fillRect(SX - 22, 164, 44, 8);
-            ctx.fillStyle = '#714922'; ctx.fillRect(SX - 22, 162, 44, 3);
-            ctx.fillStyle = '#1a1a1a';
-            ctx.beginPath(); ctx.arc(SX - 14, 176, 7, 0, Math.PI * 2); ctx.fill();
-            ctx.beginPath(); ctx.arc(SX + 14, 176, 7, 0, Math.PI * 2); ctx.fill();
-            ctx.strokeStyle = '#7a4e22'; ctx.lineWidth = 5;
-            ctx.beginPath(); ctx.moveTo(SX - 8, 164); ctx.lineTo(SX, SY); ctx.stroke();
-            ctx.beginPath(); ctx.moveTo(SX + 8, 164); ctx.lineTo(SX, SY); ctx.stroke();
-            ctx.fillStyle = '#9c6a30';
-            ctx.beginPath(); ctx.ellipse(SX, SY, 10, 5, 0, 0, Math.PI * 2); ctx.fill();
+            // luna
+            ctx.fillStyle = '#f3eecf';
+            ctx.beginPath(); ctx.arc(180, 44, 16, 0, Math.PI * 2); ctx.fill();
+            ctx.fillStyle = 'rgba(190,184,150,0.5)';
+            ctx.beginPath(); ctx.arc(174, 40, 3.5, 0, Math.PI * 2); ctx.fill();
+            ctx.beginPath(); ctx.arc(184, 50, 2.5, 0, Math.PI * 2); ctx.fill();
 
-            // proyectil (roca)
-            var PX = 62, PY = 138;
-            var prg = ctx.createRadialGradient(PX - 3, PY - 3, 1, PX, PY, 9);
-            prg.addColorStop(0, '#e0d4b5');
-            prg.addColorStop(0.5, '#867563');
-            prg.addColorStop(1, '#3b322a');
-            ctx.fillStyle = prg;
-            ctx.beginPath(); ctx.arc(PX, PY, 9, 0, Math.PI * 2); ctx.fill();
-            ctx.strokeStyle = '#2a2018'; ctx.lineWidth = 1; ctx.stroke();
+            // ── torres de bloques apilados en el suelo ──
+            var groundY = 172, bh = 22;
+            function thumbBlock(bx, by, bw, type) {
+                if (type === 'tnt') {
+                    ctx.fillStyle = '#b8342a'; ctx.fillRect(bx, by, bw, bh);
+                    ctx.strokeStyle = '#5e1812'; ctx.lineWidth = 1.5;
+                    ctx.beginPath();
+                    ctx.moveTo(bx, by); ctx.lineTo(bx + bw, by + bh);
+                    ctx.moveTo(bx + bw, by); ctx.lineTo(bx, by + bh); ctx.stroke();
+                    ctx.fillStyle = '#ffe08a'; ctx.fillRect(bx + 2, by + bh / 2 - 3, bw - 4, 6);
+                    ctx.fillStyle = '#7a1f17'; ctx.font = 'bold 6px monospace';
+                    ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+                    ctx.fillText('TNT', bx + bw / 2, by + bh / 2 + 0.5);
+                    ctx.textAlign = 'left'; ctx.textBaseline = 'alphabetic';
+                } else if (type === 'wood') {
+                    var wg = ctx.createLinearGradient(bx, by, bx, by + bh);
+                    wg.addColorStop(0, '#a87a44'); wg.addColorStop(1, '#7a5128');
+                    ctx.fillStyle = wg; ctx.fillRect(bx, by, bw, bh);
+                    ctx.strokeStyle = 'rgba(60,38,18,0.5)'; ctx.lineWidth = 1;
+                    ctx.beginPath(); ctx.moveTo(bx, by + bh / 2); ctx.lineTo(bx + bw, by + bh / 2); ctx.stroke();
+                    ctx.fillStyle = 'rgba(255,255,255,0.12)'; ctx.fillRect(bx, by, bw, 2);
+                } else {
+                    var sg = ctx.createLinearGradient(bx, by, bx, by + bh);
+                    sg.addColorStop(0, '#9aa6ad'); sg.addColorStop(1, '#5b6970');
+                    ctx.fillStyle = sg; ctx.fillRect(bx, by, bw, bh);
+                    ctx.fillStyle = 'rgba(255,255,255,0.14)'; ctx.fillRect(bx, by, bw, 2);
+                    ctx.strokeStyle = 'rgba(40,52,60,0.55)'; ctx.lineWidth = 1;
+                    ctx.beginPath();
+                    ctx.moveTo(bx, by + bh / 2); ctx.lineTo(bx + bw, by + bh / 2);
+                    ctx.moveTo(bx + bw / 2, by); ctx.lineTo(bx + bw / 2, by + bh / 2); ctx.stroke();
+                }
+                ctx.strokeStyle = 'rgba(0,0,0,0.3)'; ctx.lineWidth = 1;
+                ctx.strokeRect(bx + 0.5, by + 0.5, bw - 1, bh - 1);
+            }
+            // torre A (x≈116): piedra + madera
+            thumbBlock(112, groundY - bh, 26, 'stone');
+            thumbBlock(112, groundY - bh * 2, 26, 'wood');
+            // torre B (x≈150): piedra + TNT + madera (objetivo del impacto)
+            thumbBlock(148, groundY - bh, 26, 'stone');
+            thumbBlock(148, groundY - bh * 2, 26, 'tnt');
+            // torre C (x≈186): piedra + piedra
+            thumbBlock(184, groundY - bh, 28, 'stone');
+            thumbBlock(184, groundY - bh * 2, 28, 'stone');
 
-            // gomas del tirachinas
-            ctx.strokeStyle = '#c96c3c'; ctx.lineWidth = 2;
-            ctx.beginPath(); ctx.moveTo(SX - 8, SY - 3); ctx.lineTo(PX - 2, PY + 2); ctx.stroke();
-            ctx.beginPath(); ctx.moveTo(SX + 8, SY - 3); ctx.lineTo(PX + 2, PY + 2); ctx.stroke();
+            // ── catapulta de madera (armazón en A + brazo) ──
+            var PVX = 44, PVY = 150;
+            // ruedas
+            ctx.fillStyle = '#2a2018';
+            ctx.beginPath(); ctx.arc(PVX - 13, 174, 7, 0, Math.PI * 2); ctx.fill();
+            ctx.beginPath(); ctx.arc(PVX + 13, 174, 7, 0, Math.PI * 2); ctx.fill();
+            ctx.fillStyle = '#5a4326';
+            ctx.beginPath(); ctx.arc(PVX - 13, 174, 3, 0, Math.PI * 2); ctx.fill();
+            ctx.beginPath(); ctx.arc(PVX + 13, 174, 3, 0, Math.PI * 2); ctx.fill();
+            // base
+            ctx.fillStyle = '#6b4a26'; ctx.fillRect(PVX - 22, 164, 44, 7);
+            ctx.fillStyle = '#855e30'; ctx.fillRect(PVX - 22, 164, 44, 2);
+            // armazón en A
+            ctx.strokeStyle = '#7a4e22'; ctx.lineWidth = 5; ctx.lineCap = 'round';
+            ctx.beginPath();
+            ctx.moveTo(PVX - 11, 165); ctx.lineTo(PVX, PVY);
+            ctx.moveTo(PVX + 11, 165); ctx.lineTo(PVX, PVY); ctx.stroke();
+            // brazo lanzador tensado hacia atrás-abajo (con la roca en la cuchara)
+            var cupX = PVX - 18, cupY = PVY + 14;
+            ctx.strokeStyle = '#8a5a28'; ctx.lineWidth = 5;
+            ctx.beginPath(); ctx.moveTo(PVX, PVY); ctx.lineTo(cupX, cupY); ctx.stroke();
+            ctx.lineCap = 'butt';
 
-            // trayectoria punteada (parábola)
-            ctx.fillStyle = 'rgba(255,255,255,0.85)';
-            var arcPts = [
-                [82, 125], [100, 110], [118, 98],
-                [136, 90], [154, 85], [172, 85],
-                [190, 92]
-            ];
-            arcPts.forEach(function (p, idx) {
-                var s = idx % 2 === 0 ? 2 : 2;
-                ctx.fillRect(p[0] - 1, p[1] - 1, s, s);
+            // ── roca en vuelo impactando la torre B + estela ──
+            ctx.strokeStyle = 'rgba(255,200,90,0.55)'; ctx.lineWidth = 3;
+            ctx.beginPath(); ctx.moveTo(96, 118); ctx.lineTo(132, 128); ctx.stroke();
+            function boulder(bx2, by2, r) {
+                var prg = ctx.createRadialGradient(bx2 - r * 0.35, by2 - r * 0.35, 1, bx2, by2, r);
+                prg.addColorStop(0, '#cfc3a4'); prg.addColorStop(0.55, '#8a7a66'); prg.addColorStop(1, '#41382e');
+                ctx.fillStyle = prg; ctx.beginPath(); ctx.arc(bx2, by2, r, 0, Math.PI * 2); ctx.fill();
+                ctx.strokeStyle = '#2a2018'; ctx.lineWidth = 1; ctx.stroke();
+            }
+            boulder(cupX, cupY - 4, 8);   // roca lista en la cuchara
+            boulder(140, 130, 8);          // roca en vuelo
+
+            // ── trayectoria punteada hacia las torres ──
+            ctx.fillStyle = 'rgba(255,255,255,0.8)';
+            var arcPts = [[60, 132], [80, 116], [102, 106], [124, 104], [146, 112]];
+            arcPts.forEach(function (p) {
+                ctx.beginPath(); ctx.arc(p[0], p[1], 2, 0, Math.PI * 2); ctx.fill();
             });
 
-            // castillo objetivo 1 (grande con bandera)
-            function drawCastle(tx, ty, tw, th, hue) {
-                var cg = ctx.createLinearGradient(tx, ty, tx, ty + th);
-                cg.addColorStop(0, 'hsl(' + hue + ',55%,72%)');
-                cg.addColorStop(1, 'hsl(' + hue + ',60%,40%)');
-                ctx.fillStyle = cg; ctx.fillRect(tx, ty, tw, th);
-                ctx.fillStyle = 'hsl(' + hue + ',60%,30%)';
-                ctx.fillRect(tx, ty + th - 3, tw, 3);
-                var mW = 5, gap = 3, step = mW + gap;
-                for (var m = 0; m < Math.floor(tw / step); m++) {
-                    ctx.fillStyle = 'hsl(' + hue + ',55%,55%)';
-                    ctx.fillRect(tx + 1 + m * step, ty - 5, mW, 5);
-                }
-                // ventana
-                var wW = Math.min(9, tw * 0.35), wH = Math.min(12, th * 0.4);
-                var wx = tx + (tw - wW) / 2, wy = ty + 6;
-                ctx.fillStyle = '#231a14'; ctx.fillRect(wx, wy, wW, wH);
-                ctx.fillStyle = 'hsl(42,90%,65%)';
-                ctx.fillRect(wx + 1, wy + 1, wW - 2, wH - 6);
-                // bandera
-                ctx.strokeStyle = '#2a2a2a'; ctx.lineWidth = 1;
-                ctx.beginPath(); ctx.moveTo(tx + tw / 2, ty - 5); ctx.lineTo(tx + tw / 2, ty - 16); ctx.stroke();
-                ctx.fillStyle = 'hsl(' + ((hue + 180) % 360) + ',80%,58%)';
-                ctx.beginPath();
-                ctx.moveTo(tx + tw / 2, ty - 16);
-                ctx.lineTo(tx + tw / 2 + 7, ty - 13);
-                ctx.lineTo(tx + tw / 2, ty - 10);
-                ctx.closePath(); ctx.fill();
-            }
-            drawCastle(192, 118, 40, 48, 200);
-            drawCastle(152, 140, 28, 26, 340);
-
-            // explosión en castillo derribado
-            var EX = 162, EY = 135;
+            // ── explosión / escombros en el impacto ──
+            var EX = 150, EY = 130;
             for (var p = 0; p < 14; p++) {
                 var ang = p * (Math.PI * 2 / 14);
-                var rr  = 10 + (p % 3) * 4;
+                var rr  = 9 + (p % 3) * 4;
                 ctx.fillStyle = (p % 2 === 0) ? '#ffd866' : '#ff6b4a';
                 ctx.fillRect(EX + Math.cos(ang) * rr - 1, EY + Math.sin(ang) * rr - 1, 2, 2);
             }
 
-            // viento (flecha) top-right
-            ctx.strokeStyle = '#8fd3f4'; ctx.lineWidth = 2;
-            ctx.beginPath(); ctx.moveTo(158, 18); ctx.lineTo(188, 18); ctx.stroke();
-            ctx.fillStyle = '#8fd3f4';
-            ctx.beginPath();
-            ctx.moveTo(188, 18); ctx.lineTo(183, 14); ctx.lineTo(183, 22);
-            ctx.closePath(); ctx.fill();
-
-            // HUD
-            ctx.fillStyle = 'rgba(0,0,0,0.55)'; ctx.fillRect(0, 0, W, 22);
+            // ── HUD: nivel, munición y viento ──
+            ctx.fillStyle = 'rgba(0,0,0,0.5)'; ctx.fillRect(0, 0, W, 22);
             ctx.fillStyle = '#fff'; ctx.font = 'bold 11px monospace';
             ctx.textAlign = 'left'; ctx.textBaseline = 'middle';
-            ctx.fillText('Nivel 2   Tiros:3', 6, 11);
-            ctx.textAlign = 'right';
-            ctx.fillText('Viento', 150, 11);
+            ctx.fillText('Nv 2  Pts 340', 6, 11);
+            // munición (puntos de roca)
+            for (var a = 0; a < 4; a++) {
+                ctx.fillStyle = a < 3 ? '#cdbb98' : 'rgba(255,255,255,0.2)';
+                ctx.beginPath(); ctx.arc(116 + a * 11, 11, 3.5, 0, Math.PI * 2); ctx.fill();
+            }
+            // flecha de viento
+            ctx.strokeStyle = '#8fd3f4'; ctx.lineWidth = 2;
+            ctx.beginPath(); ctx.moveTo(170, 11); ctx.lineTo(196, 11); ctx.stroke();
+            ctx.fillStyle = '#8fd3f4';
+            ctx.beginPath(); ctx.moveTo(196, 11); ctx.lineTo(191, 7); ctx.lineTo(191, 15); ctx.closePath(); ctx.fill();
             ctx.textBaseline = 'alphabetic'; ctx.textAlign = 'left';
         },
 
