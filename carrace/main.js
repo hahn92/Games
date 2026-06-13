@@ -43,7 +43,7 @@
     const SHIELD_H        = 30;
     const INVINCIBLE_TIME = 5000;   // ms after shield pickup
     const HIT_INVINCIBLE  = 2000;   // ms after collision
-    const LANE_ANIM_TIME  = 200;    // ms for lane-switch animation
+    const LANE_ANIM_TIME  = 150;    // ms for lane-switch animation
     // Vehicle type configs — w/h are hitbox AND visual dimensions
     const VEHICLE_DEFS = [
         { w: 38, h: 68  },   // 0: Blue sedan
@@ -56,6 +56,18 @@
         { w: 44, h: 86  },   // 7: Van / Minivan
     ];
     const NUM_VEHICLE_TYPES = VEHICLE_DEFS.length;
+    // Per-type speed offset over roadSpeed [min, max] — trucks crawl, bikes fly
+    const SPEED_RANGE = [
+        [0.9, 1.3],   // sedan
+        [1.4, 1.9],   // sports
+        [0.7, 1.1],   // SUV
+        [1.2, 1.7],   // police
+        [1.7, 2.3],   // motorcycle
+        [0.35, 0.6],  // truck
+        [0.9, 1.4],   // compact
+        [0.6, 1.0],   // van
+    ];
+    const HITBOX_PAD = 5;   // shrink hitboxes for fair collisions (rounded corners)
 
     // Dash line state
     const DASH_H     = 40;
@@ -66,6 +78,7 @@
     let gameRunning   = false;
     let gameOver      = false;
     let score         = 0;
+    let scoreFloat    = 0;   // fractional distance-score accumulator
     let highScore     = parseInt(localStorage.getItem('carrace_hs') || '0', 10);
     let level         = 1;
     let lives         = 3;
@@ -102,6 +115,13 @@
 
     // Speed lines (visual effect at high speed)
     let speedLines = [];
+
+    // Floating score texts (+20, +15 near miss...)
+    let floatTexts = [];
+
+    // Exhaust smoke behind player
+    let exhaust = [];
+    let exhaustTimer = 0;
 
     // Plants (trees and bushes on grass sides)
     let plants = [];
@@ -146,6 +166,8 @@
         if (newLevel > oldLevel && oldLevel < MAX_LEVEL) {
             level = clamp(newLevel, 1, MAX_LEVEL);
             roadSpeed = computeRoadSpeed();
+            // Re-base existing enemies on the new road speed, keeping their per-type offset
+            for (const e of enemies) e.speed = roadSpeed + e.spdOff;
             levelEl.textContent = level;
             GameAudio.scoreHigh();
         }
@@ -171,31 +193,53 @@
         const vtype = randInt(0, NUM_VEHICLE_TYPES - 1);
         const def   = VEHICLE_DEFS[vtype];
         // Avoid stacking on an existing enemy near the top
-        const tooClose = enemies.some(e => e.lane === lane && e.y < 90);
+        const tooClose = enemies.some(e => e.lane === lane && e.y < 150);
         if (tooClose) return;
 
+        // Guaranteed escape lane: never let the top band block all 3 lanes
+        const blocked = new Set();
+        for (const e of enemies) {
+            if (e.y < 220) blocked.add(e.lane);
+        }
+        blocked.add(lane);
+        if (blocked.size >= 3) return;
+
+        const range  = SPEED_RANGE[vtype];
+        const spdOff = rand(range[0], range[1]);
         enemies.push({
             lane,
             x: laneCenter(lane),
             y: -def.h - 10,
             type: vtype,
             w: def.w, h: def.h,
-            speed: roadSpeed + rand(0.5, 1.5)
+            spdOff,
+            speed: roadSpeed + spdOff,
+            passed: false
         });
+    }
+
+    // Lanes without an enemy near the top, so pickups never spawn under a car
+    function freeLane() {
+        const free = [0, 1, 2].filter(l => !enemies.some(e => e.lane === l && e.y < 160));
+        return free.length ? free[randInt(0, free.length - 1)] : randInt(0, 2);
     }
 
     function spawnCoin() {
-        const lane = randInt(0, 2);
-        coins.push({
-            lane,
-            x: laneCenter(lane),
-            y: -COIN_R - 5,
-            collected: false
-        });
+        const lane = freeLane();
+        // Column of 3 coins — rewarding to chase
+        for (let i = 0; i < 3; i++) {
+            coins.push({
+                lane,
+                x: laneCenter(lane),
+                y: -COIN_R - 5 - i * 32,
+                collected: false,
+                phase: Math.random() * Math.PI * 2
+            });
+        }
     }
 
     function spawnShield() {
-        const lane = randInt(0, 2);
+        const lane = freeLane();
         shields.push({
             lane,
             x: laneCenter(lane),
@@ -250,6 +294,17 @@
         ctx.beginPath();
         ctx.roundRect(x, y, w, h, 7);
         ctx.fill();
+
+        if (isPlayer) {
+            // Racing stripes down the hood and trunk (the roof covers the middle)
+            ctx.fillStyle = 'rgba(255,255,255,0.85)';
+            ctx.fillRect(cx - 6, y + 3, 4, h - 6);
+            ctx.fillRect(cx + 2, y + 3, 4, h - 6);
+            // Front splitter & rear spoiler
+            ctx.fillStyle = '#3a0808';
+            ctx.beginPath(); ctx.roundRect(x + 2, y - 2, w - 4, 4, 2); ctx.fill();
+            ctx.beginPath(); ctx.roundRect(x - 2, y + h - 3, w + 4, 5, 2); ctx.fill();
+        }
 
         // Roof / cabin
         const roofW = w * 0.7;
@@ -538,23 +593,30 @@
         ctx.fill();
     }
 
-    // Draw a coin at cx, cy
-    function drawCoin(cx, cy) {
-        // Outer circle gold
+    // Draw a spinning coin at cx, cy (phase precomputed at spawn)
+    function drawCoin(cx, cy, ts, phase) {
+        const spin   = Math.sin(ts * 0.004 + phase);
+        const scaleX = Math.max(Math.abs(spin), 0.22);
+        // Edge (visible when the coin is sideways)
+        ctx.fillStyle = '#a07800';
+        ctx.beginPath();
+        ctx.ellipse(cx, cy, COIN_R * scaleX + 1.5, COIN_R + 1, 0, 0, Math.PI * 2);
+        ctx.fill();
+        // Face
         ctx.fillStyle = '#f5c518';
         ctx.beginPath();
-        ctx.arc(cx, cy, COIN_R, 0, Math.PI * 2);
+        ctx.ellipse(cx, cy, COIN_R * scaleX, COIN_R, 0, 0, Math.PI * 2);
         ctx.fill();
-        // Inner circle darker gold
+        // Inner ring
         ctx.fillStyle = '#c9a000';
         ctx.beginPath();
-        ctx.arc(cx, cy, COIN_R * 0.55, 0, Math.PI * 2);
+        ctx.ellipse(cx, cy, COIN_R * 0.55 * scaleX, COIN_R * 0.55, 0, 0, Math.PI * 2);
         ctx.fill();
-        // Dollar sign replaced by a small highlight arc (no text/emoji)
+        // Highlight arc
         ctx.strokeStyle = 'rgba(255,255,180,0.7)';
         ctx.lineWidth = 1.5;
         ctx.beginPath();
-        ctx.arc(cx - 2, cy - 2, COIN_R * 0.38, Math.PI * 1.1, Math.PI * 1.7);
+        ctx.ellipse(cx - 1.5 * scaleX, cy - 2, COIN_R * 0.38 * scaleX, COIN_R * 0.38, 0, Math.PI * 1.1, Math.PI * 1.7);
         ctx.stroke();
         ctx.lineWidth = 1;
     }
@@ -595,10 +657,27 @@
         ctx.fillStyle = '#2d5a1b';
         ctx.fillRect(0, 0, ROAD_X, CH);
         ctx.fillRect(ROAD_X_END, 0, CW - ROAD_X_END, CH);
-        // Shoulder strips (gravel edge between grass and road)
-        ctx.fillStyle = '#5a5a50';
-        ctx.fillRect(ROAD_X - 5, 0, 5, CH);
-        ctx.fillRect(ROAD_X_END, 0, 5, CH);
+
+        // Scrolling lighter mowing bands — strong motion cue on the sides
+        const bandStep = 96;
+        const bo = (roadOffset * 0.7) % bandStep;
+        ctx.fillStyle = 'rgba(140,210,90,0.10)';
+        for (let by = -bandStep + bo; by < CH; by += bandStep) {
+            ctx.fillRect(0, by, ROAD_X - 6, 48);
+            ctx.fillRect(ROAD_X_END + 6, by, CW - ROAD_X_END - 6, 48);
+        }
+
+        // Race kerbs: red base with scrolling white segments
+        ctx.fillStyle = '#c03030';
+        ctx.fillRect(ROAD_X - 6, 0, 6, CH);
+        ctx.fillRect(ROAD_X_END, 0, 6, CH);
+        const kerbStep = 26;
+        const ko = roadOffset % (kerbStep * 2);
+        ctx.fillStyle = '#e8e8e8';
+        for (let ky = -kerbStep * 2 + ko; ky < CH; ky += kerbStep * 2) {
+            ctx.fillRect(ROAD_X - 6, ky, 6, kerbStep);
+            ctx.fillRect(ROAD_X_END, ky, 6, kerbStep);
+        }
         // Scrolling dashed reference lines on grass edges — gives peripheral vision a
         // motion anchor that matches road speed, greatly reducing optical dizziness
         ctx.strokeStyle = 'rgba(255,255,255,0.07)';
@@ -728,10 +807,33 @@
         ctx.globalAlpha = 1;
     }
 
-    function drawCoins() {
+    function drawCoins(ts) {
         for (const c of coins) {
-            if (!c.collected) drawCoin(c.x, c.y);
+            if (!c.collected) drawCoin(c.x, c.y, ts, c.phase || 0);
         }
+    }
+
+    function drawExhaust() {
+        ctx.fillStyle = '#999';
+        for (const p of exhaust) {
+            ctx.globalAlpha = p.alpha;
+            ctx.beginPath();
+            ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
+            ctx.fill();
+        }
+        ctx.globalAlpha = 1;
+    }
+
+    function drawFloatTexts() {
+        ctx.font = 'bold 14px monospace';
+        ctx.textAlign = 'center';
+        for (const f of floatTexts) {
+            ctx.globalAlpha = Math.max(0, f.life / f.maxLife);
+            ctx.fillStyle = f.color;
+            ctx.fillText(f.txt, f.x, f.y);
+        }
+        ctx.globalAlpha = 1;
+        ctx.textAlign = 'left';
     }
 
     function drawShields() {
@@ -741,6 +843,13 @@
     }
 
     function drawEnemies() {
+        // Drop shadows first (batched: one fillStyle/alpha change for all)
+        ctx.fillStyle = 'rgba(0,0,0,0.28)';
+        for (const e of enemies) {
+            ctx.beginPath();
+            ctx.ellipse(e.x + 3, e.y + 4, e.w / 2 + 2, e.h / 2, 0, 0, Math.PI * 2);
+            ctx.fill();
+        }
         for (const e of enemies) {
             drawEnemyVehicle(e.x, e.y, e.type, 1);
         }
@@ -759,6 +868,12 @@
         }
 
         const alpha = isShielded ? (0.75 + 0.25 * Math.sin(ts / 120)) : 1;
+
+        // Drop shadow
+        ctx.fillStyle = 'rgba(0,0,0,0.28)';
+        ctx.beginPath();
+        ctx.ellipse(playerAnimX + 3, CH - 80 + 4, PLAYER_W / 2 + 2, PLAYER_H / 2, 0, 0, Math.PI * 2);
+        ctx.fill();
 
         // Shield glow (drawn before car, outside loop constraint — one shadow call)
         if (isShielded) {
@@ -820,6 +935,7 @@
         ctx.font = '16px sans-serif';
         ctx.fillText('Presiona Iniciar para jugar', CW / 2, CH / 2 + 10);
         ctx.fillText('Flechas ← → para cambiar carril', CW / 2, CH / 2 + 36);
+        ctx.fillText('Móvil: toca o desliza a los lados', CW / 2, CH / 2 + 60);
 
         ctx.textAlign = 'left';
     }
@@ -842,12 +958,58 @@
     }
 
     function updateEnemies(dt) {
+        const playerBottom = CH - 80 + PLAYER_H / 2;
         for (let i = enemies.length - 1; i >= 0; i--) {
             const e = enemies[i];
             e.y += e.speed * (dt / 16.67);
+
+            // Near-miss bonus: enemy passed very close without hitting (weaving reward)
+            if (!e.passed && e.y - e.h / 2 > playerBottom) {
+                e.passed = true;
+                if (!hitInvincible && Math.abs(e.x - playerAnimX) < 62) {
+                    const oldScore = score;
+                    score += 15;
+                    floatTexts.push({ x: e.x, y: CH - 120, txt: '+15', color: '#7fe0ff', life: 700, maxLife: 700 });
+                    checkLevelUp(oldScore, score);
+                    updateUI();
+                    GameAudio.score();
+                }
+            }
+
             if (e.y > CH + e.h + 10) {
                 enemies.splice(i, 1);
             }
+        }
+    }
+
+    function updateFloatTexts(dt) {
+        for (let i = floatTexts.length - 1; i >= 0; i--) {
+            const f = floatTexts[i];
+            f.y    -= 0.7 * (dt / 16.67);
+            f.life -= dt;
+            if (f.life <= 0) floatTexts.splice(i, 1);
+        }
+    }
+
+    function updateExhaust(dt) {
+        exhaustTimer += dt;
+        if (exhaustTimer >= 90) {
+            exhaustTimer = 0;
+            exhaust.push({
+                x: playerAnimX + rand(-4, 4),
+                y: CH - 80 + PLAYER_H / 2 + 4,
+                r: rand(2, 4),
+                alpha: 0.4,
+                vx: rand(-0.25, 0.25),
+            });
+        }
+        for (let i = exhaust.length - 1; i >= 0; i--) {
+            const p = exhaust[i];
+            p.y     += roadSpeed * 0.9 * (dt / 16.67);
+            p.x     += p.vx * (dt / 16.67);
+            p.r     += 0.06 * (dt / 16.67);
+            p.alpha -= 0.012 * (dt / 16.67);
+            if (p.alpha <= 0 || p.y > CH + 10) exhaust.splice(i, 1);
         }
     }
 
@@ -933,26 +1095,31 @@
     }
 
     function updateScore(dt) {
+        // Accumulate fractionally — flooring per frame gave ZERO score at low speeds
         const oldScore = score;
-        score += Math.floor(roadSpeed * dt / 80);
-        checkLevelUp(oldScore, score);
-        // Update enemy speeds for new level
-        for (const e of enemies) {
-            e.speed = roadSpeed + rand(0.5, 1.5);
+        scoreFloat += roadSpeed * dt / 80;
+        if (scoreFloat >= 1) {
+            const whole = Math.floor(scoreFloat);
+            score += whole;
+            scoreFloat -= whole;
+            checkLevelUp(oldScore, score);
+            updateUI();
         }
-        updateUI();
     }
 
     function updateCollisions() {
-        const px = playerAnimX - PLAYER_W / 2;
-        const py = CH - 80 - PLAYER_H / 2;
+        // Shrunken hitboxes: fair collisions on rounded car corners
+        const px = playerAnimX - PLAYER_W / 2 + HITBOX_PAD;
+        const py = CH - 80 - PLAYER_H / 2 + HITBOX_PAD;
+        const pw = PLAYER_W - HITBOX_PAD * 2;
+        const ph = PLAYER_H - HITBOX_PAD * 2;
 
         // Enemy collisions
         if (!hitInvincible && !invincible) {
             for (const e of enemies) {
-                const ex = e.x - e.w / 2;
-                const ey = e.y - e.h / 2;
-                if (rectOverlap(px, py, PLAYER_W, PLAYER_H, ex, ey, e.w, e.h)) {
+                const ex = e.x - e.w / 2 + 4;
+                const ey = e.y - e.h / 2 + 4;
+                if (rectOverlap(px, py, pw, ph, ex, ey, e.w - 8, e.h - 8)) {
                     handleCollision();
                     break;
                 }
@@ -968,6 +1135,7 @@
                     c.collected = true;
                     const oldScore = score;
                     score += 20;
+                    floatTexts.push({ x: c.x, y: c.y - 14, txt: '+20', color: '#ffd95e', life: 600, maxLife: 600 });
                     checkLevelUp(oldScore, score);
                     updateUI();
                     GameAudio.score();
@@ -1072,6 +1240,8 @@
         updateScore(dt);
         updateCollisions();
         updateInvincible(dt);
+        updateFloatTexts(dt);
+        updateExhaust(dt);
         updateShake();
 
         // Draw
@@ -1082,10 +1252,12 @@
         drawPlants();
         drawRoad();
         drawTireTracks();
-        drawCoins();
+        drawExhaust();
+        drawCoins(ts);
         drawShields();
         drawEnemies();
         drawPlayer(ts);
+        drawFloatTexts();
         drawHUD(ts);
 
         ctx.restore();
@@ -1123,6 +1295,10 @@
         tireTracks.length = 0;
         speedLines.length = 0;
         plants.length = 0;
+        floatTexts.length = 0;
+        exhaust.length = 0;
+        exhaustTimer   = 0;
+        scoreFloat     = 0;
         enemyTimer     = 0;
         coinTimer      = 0;
         shieldTimer    = 0;
@@ -1201,12 +1377,17 @@
     }, { passive: true });
 
     canvas.addEventListener('touchend', function (e) {
-        if (touchStartX === null || !gameRunning) return;
+        if (!gameRunning) { touchStartX = null; return; }
         const endX  = e.changedTouches[0].clientX;
-        const deltaX = endX - touchStartX;
+        const deltaX = touchStartX !== null ? endX - touchStartX : 0;
         touchStartX = null;
         if (Math.abs(deltaX) > 30) {
+            // Swipe: move toward the swipe direction
             changeLane(deltaX < 0 ? -1 : 1);
+        } else {
+            // Tap: left half = lane left, right half = lane right
+            const rect = canvas.getBoundingClientRect();
+            changeLane(endX - rect.left < rect.width / 2 ? -1 : 1);
         }
     }, { passive: true });
 
