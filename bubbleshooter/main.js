@@ -15,7 +15,7 @@ const GRID_TOP   = 30;        // y where first row starts (center of row 0)
 const ROW_H      = R * Math.sqrt(3); // vertical spacing between row centers (~34.6)
 const SHOOTER_Y  = H - 55;   // cannon center y
 const SHOOTER_X  = W / 2;
-const BUBBLE_SPD = 8;
+const BUBBLE_SPD = 14;      // px per ~16ms frame
 const POP_DURATION  = 220;   // ms for pop animation
 const DROP_DURATION = 300;   // ms for drop animation
 
@@ -32,9 +32,11 @@ const COLORS = [
 // ─── State ───────────────────────────────────────────────────────────────────
 let grid        = [];       // grid[row][col] = colorIndex | null
 let gridRows    = 0;
+let parityBase  = 0;        // flips on addNewRow so existing rows keep their hex offset
 
 let currentBubble = null;   // { x, y, vx, vy, color }
-let nextColor     = 0;
+let currentColor  = 0;      // color loaded in the cannon
+let nextColor     = 0;      // color shown in the NEXT preview
 
 let shootAngle = -Math.PI / 2;  // radians, -π/2 = straight up
 let canShoot   = true;
@@ -48,18 +50,20 @@ let gameState = 'idle';     // 'idle' | 'playing' | 'over' | 'win'
 let popParticles  = [];     // { x, y, color, r, alpha, vx, vy }
 let dropBubbles   = [];     // { x, y, color, vy, alpha }
 
-// Cache for radial gradients per color
-const gradCache = {};
-
 let lastTime = 0;
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 function clamp(v, lo, hi) { return Math.max(lo, Math.min(hi, v)); }
 
+// Effective parity: addNewRow flips parityBase so visual offsets stay stable
+function effParity(row) {
+    return (row + parityBase) % 2;
+}
+
 function rowOffset(row) {
-    // even rows: leftmost bubble center at x = R
-    // odd rows: offset right by R (half DIAM)
-    return (row % 2 === 0) ? R : R + R;
+    // even-parity rows: leftmost bubble center at x = R
+    // odd-parity rows: offset right by R (half DIAM), last col unused
+    return (effParity(row) === 0) ? R : R + R;
 }
 
 function bubbleCenterX(row, col) {
@@ -87,16 +91,60 @@ function dist2(ax, ay, bx, by) {
     return dx*dx + dy*dy;
 }
 
-// Get or build a radial gradient for a color index at cx,cy,radius
-function getBubbleGradient(colorIdx, cx, cy, radius) {
-    // Gradients are position-specific; we recreate them per draw.
-    // To avoid heavy caching logic, we build them inline but keep it outside loops.
-    const [dark, light] = COLORS[colorIdx];
-    const g = ctx.createRadialGradient(cx - radius*0.35, cy - radius*0.35, radius*0.05, cx, cy, radius);
-    g.addColorStop(0, light);
-    g.addColorStop(1, dark);
-    return g;
+function shadeColor(hex, f) {
+    const n = parseInt(hex.slice(1), 16);
+    const r = Math.round(((n >> 16) & 255) * f);
+    const g = Math.round(((n >> 8) & 255) * f);
+    const b = Math.round((n & 255) * f);
+    return 'rgb(' + r + ',' + g + ',' + b + ')';
 }
+
+function rgbaFromHex(hex, a) {
+    const n = parseInt(hex.slice(1), 16);
+    return 'rgba(' + ((n >> 16) & 255) + ',' + ((n >> 8) & 255) + ',' + (n & 255) + ',' + a + ')';
+}
+
+// Pre-rendered glossy bubble sprites (one offscreen canvas per color) —
+// avoids creating a radial gradient per bubble per frame
+const SPRITE_PAD = 3;
+const bubbleSprites = [];
+function buildBubbleSprites() {
+    for (let i = 0; i < COLORS.length; i++) {
+        const size = DIAM + SPRITE_PAD * 2;
+        const oc = document.createElement('canvas');
+        oc.width = size; oc.height = size;
+        const o = oc.getContext('2d');
+        const c = size / 2;
+        const [dark, light] = COLORS[i];
+
+        // Spherical body
+        const g = o.createRadialGradient(c - R * 0.38, c - R * 0.42, R * 0.08, c, c, R);
+        g.addColorStop(0, light);
+        g.addColorStop(0.55, dark);
+        g.addColorStop(1, shadeColor(dark, 0.55));
+        o.fillStyle = g;
+        o.beginPath(); o.arc(c, c, R - 1, 0, Math.PI * 2); o.fill();
+        o.strokeStyle = 'rgba(255,255,255,0.25)';
+        o.lineWidth = 1.2;
+        o.stroke();
+
+        // Bottom rim light (bounce light)
+        o.strokeStyle = 'rgba(255,255,255,0.16)';
+        o.lineWidth = 2;
+        o.beginPath(); o.arc(c, c, R - 3.5, Math.PI * 0.18, Math.PI * 0.82); o.stroke();
+
+        // Specular highlight + small glint
+        o.fillStyle = 'rgba(255,255,255,0.8)';
+        o.beginPath();
+        o.ellipse(c - R * 0.36, c - R * 0.44, R * 0.28, R * 0.16, -Math.PI / 4, 0, Math.PI * 2);
+        o.fill();
+        o.fillStyle = 'rgba(255,255,255,0.5)';
+        o.beginPath(); o.arc(c + R * 0.28, c - R * 0.5, R * 0.08, 0, Math.PI * 2); o.fill();
+
+        bubbleSprites[i] = oc;
+    }
+}
+buildBubbleSprites();
 
 // Random integer [lo, hi]
 function rndInt(lo, hi) { return lo + Math.floor(Math.random() * (hi - lo + 1)); }
@@ -121,12 +169,13 @@ function randomColorFromGrid() {
 function initGrid() {
     grid    = [];
     gridRows = 8;
+    parityBase = 0;
     const maxColor = Math.min(level + 1, COLORS.length - 1);
     for (let r = 0; r < gridRows; r++) {
         grid[r] = [];
         for (let c = 0; c < COLS; c++) {
-            // Odd rows have one fewer bubble for the hex offset look; leave last col null
-            if (r % 2 === 1 && c === COLS - 1) {
+            // Odd-parity rows have one fewer bubble for the hex offset; leave last col null
+            if (effParity(r) === 1 && c === COLS - 1) {
                 grid[r][c] = null;
             } else {
                 grid[r][c] = rndInt(0, maxColor);
@@ -136,13 +185,14 @@ function initGrid() {
 }
 
 function addNewRow() {
-    // Shift all rows down by inserting a new row at top
+    // Shift all rows down by inserting a new row at top.
+    // Flipping parityBase keeps every existing row at its same visual offset
+    // (otherwise all bubbles would jump sideways and even rows would overflow the canvas).
     const maxColor = Math.min(level + 1, COLORS.length - 1);
+    parityBase = 1 - parityBase;
     const newRow = [];
-    // The "new top" row index becomes 0, so parity flips for all
     for (let c = 0; c < COLS; c++) {
-        // Row 0 is even: all COLS bubbles
-        newRow[c] = rndInt(0, maxColor);
+        newRow[c] = (effParity(0) === 1 && c === COLS - 1) ? null : rndInt(0, maxColor);
     }
     grid.unshift(newRow);
     gridRows++;
@@ -209,7 +259,7 @@ function findConnectedToTop() {
 
 // Hex grid neighbors (6 directions, accounting for row offset)
 function getNeighbors(r, c) {
-    const isEven = (r % 2 === 0);
+    const isEven = (effParity(r) === 0);
     // Horizontal neighbors
     const neighbors = [
         [r,   c - 1],
@@ -243,11 +293,13 @@ function fireCurrentBubble() {
         y: SHOOTER_Y,
         vx,
         vy,
-        color: nextColor,
+        color: currentColor,
         bounced: false,
     };
 
-    nextColor = randomColorFromGrid();
+    // The preview bubble moves into the cannon; a new one is drawn for the preview
+    currentColor = nextColor;
+    nextColor    = randomColorFromGrid();
     canShoot  = false;
     shots++;
 
@@ -260,12 +312,16 @@ function fireCurrentBubble() {
 function moveBubble(dt) {
     if (!currentBubble) return;
 
-    const b  = currentBubble;
-    const steps = Math.ceil((BUBBLE_SPD * dt) / 16);
+    const b = currentBubble;
+    // Distance this frame (BUBBLE_SPD px per ~16ms), split into short substeps
+    // so the bubble can't tunnel through grid bubbles
+    let remaining = (BUBBLE_SPD * Math.min(dt, 50)) / 16;
 
-    for (let s = 0; s < steps; s++) {
-        b.x += b.vx;
-        b.y += b.vy;
+    while (remaining > 0) {
+        const step = Math.min(6, remaining);
+        remaining -= step;
+        b.x += (b.vx / BUBBLE_SPD) * step;
+        b.y += (b.vy / BUBBLE_SPD) * step;
 
         // Wall bounces (left / right)
         if (b.x - R < 0) {
@@ -353,8 +409,8 @@ function findBestCell(px, py, nearRow) {
     for (let r = rowStart; r <= rowEnd; r++) {
         ensureGridRow(r);
         for (let c = 0; c < COLS; c++) {
-            // Skip last col for odd rows (hex offset layout)
-            if (r % 2 === 1 && c === COLS - 1) continue;
+            // Skip last col for odd-parity rows (hex offset layout)
+            if (effParity(r) === 1 && c === COLS - 1) continue;
             if (grid[r] && grid[r][c] !== null) continue;
             const cx = bubbleCenterX(r, c);
             const cy = bubbleCenterY(r);
@@ -502,7 +558,7 @@ function checkGameOver() {
     }
 
     // Also check level up
-    if (score >= level * 200) {
+    if (score >= level * 350) {
         level++;
         updateUI();
         // Optionally add a dense row on level up
@@ -579,9 +635,9 @@ function computeAimPath() {
     const points = [{ x: SHOOTER_X, y: SHOOTER_Y }];
     let x  = SHOOTER_X;
     let y  = SHOOTER_Y;
-    let vx = Math.cos(shootAngle) * BUBBLE_SPD;
-    let vy = Math.sin(shootAngle) * BUBBLE_SPD;
-    let bounced = false;
+    let vx = Math.cos(shootAngle) * 8;
+    let vy = Math.sin(shootAngle) * 8;
+    let ghost = null;
 
     // Simulate up to 200 steps
     for (let i = 0; i < 200; i++) {
@@ -591,11 +647,9 @@ function computeAimPath() {
         if (x - R < 0) {
             x  = R;
             vx = Math.abs(vx);
-            bounced = true;
         } else if (x + R > W) {
             x  = W - R;
             vx = -Math.abs(vx);
-            bounced = true;
         }
 
         if ((i % 5) === 0) points.push({ x, y });
@@ -603,6 +657,7 @@ function computeAimPath() {
         // Stop at ceiling
         if (y - R <= GRID_TOP) {
             points.push({ x, y: GRID_TOP + R });
+            ghost = findBestCell(x, GRID_TOP + R, 0);
             break;
         }
 
@@ -617,30 +672,26 @@ function computeAimPath() {
                 if (grid[r][c] === null) continue;
                 const cx = bubbleCenterX(r, c);
                 const cy = bubbleCenterY(r);
-                if (dist2(x, y, cx, cy) < DIAM * DIAM) {
+                if (dist2(x, y, cx, cy) < (DIAM - 2) * (DIAM - 2)) {
                     hit = true;
                     break;
                 }
             }
             if (hit) break;
         }
-        if (hit) break;
+        if (hit) {
+            points.push({ x, y });
+            ghost = findBestCell(x, y, Math.max(0, approxRow));
+            break;
+        }
     }
-    return points;
+    return { points, ghost };
 }
 
 // ─── Drawing ─────────────────────────────────────────────────────────────────
 function drawBubble(cx, cy, colorIdx, alpha) {
     if (alpha !== undefined) ctx.globalAlpha = alpha;
-    const g = getBubbleGradient(colorIdx, cx, cy, R);
-    ctx.beginPath();
-    ctx.arc(cx, cy, R - 1, 0, Math.PI * 2);
-    ctx.fillStyle = g;
-    ctx.fill();
-    // Subtle border
-    ctx.strokeStyle = 'rgba(255,255,255,0.25)';
-    ctx.lineWidth   = 1.2;
-    ctx.stroke();
+    ctx.drawImage(bubbleSprites[colorIdx], cx - R - SPRITE_PAD, cy - R - SPRITE_PAD);
     if (alpha !== undefined) ctx.globalAlpha = 1;
 }
 
@@ -655,14 +706,13 @@ function drawGrid() {
     }
 }
 
+// Cannon gradients are in local (translated) coords, so they can be cached
+let barrelGrad = null;
+let baseGrad   = null;
+
 function drawShooter() {
     const cx = SHOOTER_X;
     const cy = SHOOTER_Y;
-
-    // Draw current bubble in the barrel
-    if (gameState === 'playing' && canShoot) {
-        drawBubble(cx, cy, nextColor !== undefined ? nextColor : 0);
-    }
 
     // Barrel / cannon body
     ctx.save();
@@ -672,31 +722,35 @@ function drawShooter() {
     const barrelLen = 36;
     const barrelW   = 14;
 
-    const barrelGrad = ctx.createLinearGradient(-barrelW / 2, 0, barrelW / 2, 0);
-    barrelGrad.addColorStop(0,   '#888');
-    barrelGrad.addColorStop(0.4, '#ddd');
-    barrelGrad.addColorStop(1,   '#666');
+    if (!barrelGrad) {
+        barrelGrad = ctx.createLinearGradient(-barrelW / 2, 0, barrelW / 2, 0);
+        barrelGrad.addColorStop(0,   '#888');
+        barrelGrad.addColorStop(0.4, '#ddd');
+        barrelGrad.addColorStop(1,   '#666');
+        baseGrad = ctx.createRadialGradient(-5, -5, 2, 0, 0, 18);
+        baseGrad.addColorStop(0, '#ccc');
+        baseGrad.addColorStop(1, '#555');
+    }
 
     ctx.fillStyle   = barrelGrad;
     ctx.strokeStyle = '#444';
     ctx.lineWidth   = 1.5;
 
     // Rounded rect for barrel
-    const bx = -barrelW / 2;
-    const by = -barrelLen;
-    const bw = barrelW;
-    const bh = barrelLen;
     ctx.beginPath();
-    ctx.roundRect(bx, by, bw, bh, 4);
+    ctx.roundRect(-barrelW / 2, -barrelLen, barrelW, barrelLen, 4);
     ctx.fill();
     ctx.stroke();
+
+    // Muzzle band
+    ctx.fillStyle = '#555';
+    ctx.beginPath();
+    ctx.roundRect(-barrelW / 2 - 2, -barrelLen, barrelW + 4, 6, 2);
+    ctx.fill();
 
     // Base circle
     ctx.beginPath();
     ctx.arc(0, 0, 18, 0, Math.PI * 2);
-    const baseGrad = ctx.createRadialGradient(-5, -5, 2, 0, 0, 18);
-    baseGrad.addColorStop(0, '#ccc');
-    baseGrad.addColorStop(1, '#555');
     ctx.fillStyle = baseGrad;
     ctx.fill();
     ctx.strokeStyle = '#444';
@@ -704,6 +758,16 @@ function drawShooter() {
     ctx.stroke();
 
     ctx.restore();
+
+    // Loaded bubble ON TOP of the cannon so its color is always visible
+    if (gameState === 'playing' && canShoot) {
+        ctx.strokeStyle = rgbaFromHex(COLORS[currentColor][1], 0.45);
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.arc(cx, cy, R + 3, 0, Math.PI * 2);
+        ctx.stroke();
+        drawBubble(cx, cy, currentColor);
+    }
 }
 
 function drawNextPreview() {
@@ -721,17 +785,19 @@ function drawNextPreview() {
     ctx.font        = '10px Arial';
     ctx.fillStyle   = 'rgba(255,255,255,0.6)';
     ctx.textAlign   = 'center';
-    ctx.fillText('NEXT', px, py + R + 13);
+    ctx.fillText('SIGUIENTE', px, py + R + 13);
 }
 
 function drawAimLine() {
     if (!canShoot || gameState !== 'playing') return;
-    const pts = computeAimPath();
+    const { points: pts, ghost } = computeAimPath();
     if (pts.length < 2) return;
 
+    const [dark, light] = COLORS[currentColor];
+
     ctx.setLineDash([6, 8]);
-    ctx.lineWidth   = 1.5;
-    ctx.strokeStyle = 'rgba(255,255,255,0.4)';
+    ctx.lineWidth   = 2;
+    ctx.strokeStyle = rgbaFromHex(light, 0.45);
     ctx.beginPath();
     ctx.moveTo(pts[0].x, pts[0].y);
     for (let i = 1; i < pts.length; i++) {
@@ -739,12 +805,28 @@ function drawAimLine() {
     }
     ctx.stroke();
     ctx.setLineDash([]);
+
+    // Ghost: where the bubble will snap into the grid
+    if (ghost) {
+        const gx = bubbleCenterX(ghost[0], ghost[1]);
+        const gy = bubbleCenterY(ghost[0]);
+        ctx.fillStyle = rgbaFromHex(dark, 0.22);
+        ctx.beginPath();
+        ctx.arc(gx, gy, R - 2, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.setLineDash([4, 5]);
+        ctx.strokeStyle = rgbaFromHex(light, 0.7);
+        ctx.lineWidth = 1.5;
+        ctx.stroke();
+        ctx.setLineDash([]);
+    }
 }
 
-function drawDangerLine() {
+function drawDangerLine(now) {
     const dangerY = SHOOTER_Y - R * 2;
+    const pulse = 0.35 + 0.18 * Math.sin((now || 0) * 0.004);
     ctx.setLineDash([4, 6]);
-    ctx.strokeStyle = 'rgba(255,80,80,0.45)';
+    ctx.strokeStyle = 'rgba(255,80,80,' + pulse.toFixed(2) + ')';
     ctx.lineWidth   = 1.5;
     ctx.beginPath();
     ctx.moveTo(0, dangerY);
@@ -787,17 +869,56 @@ function drawCurrentBubble() {
     drawBubble(currentBubble.x, currentBubble.y, currentBubble.color);
 }
 
-function drawBackground() {
-    // Deep space gradient
-    const bg = ctx.createLinearGradient(0, 0, 0, H);
-    bg.addColorStop(0, '#0d1b3e');
-    bg.addColorStop(1, '#1a2c5a');
-    ctx.fillStyle = bg;
+// Background: cached gradient + precomputed twinkling stars + ceiling bar
+let bgGrad = null;
+let ceilGrad = null;
+let stars = null;
+
+function buildStars() {
+    stars = [];
+    for (let i = 0; i < 55; i++) {
+        stars.push({
+            x: Math.random() * W,
+            y: Math.random() * H,
+            s: Math.random() < 0.25 ? 2 : 1,
+            a: 0.2 + Math.random() * 0.45,
+            ph: Math.random() * Math.PI * 2,
+        });
+    }
+}
+buildStars();
+
+function drawBackground(now) {
+    if (!bgGrad) {
+        bgGrad = ctx.createLinearGradient(0, 0, 0, H);
+        bgGrad.addColorStop(0, '#0d1b3e');
+        bgGrad.addColorStop(1, '#1a2c5a');
+        ceilGrad = ctx.createLinearGradient(0, 0, 0, 12);
+        ceilGrad.addColorStop(0, '#3a4d7a');
+        ceilGrad.addColorStop(1, '#22335c');
+    }
+    ctx.fillStyle = bgGrad;
     ctx.fillRect(0, 0, W, H);
+
+    // Twinkling stars (precomputed positions; fillRect is cheap)
+    const t = (now || 0) * 0.0015;
+    ctx.fillStyle = '#fff';
+    for (let i = 0; i < stars.length; i++) {
+        const st = stars[i];
+        ctx.globalAlpha = st.a * (0.6 + 0.4 * Math.sin(t + st.ph));
+        ctx.fillRect(st.x, st.y, st.s, st.s);
+    }
+    ctx.globalAlpha = 1;
+
+    // Ceiling bar the bubbles hang from
+    ctx.fillStyle = ceilGrad;
+    ctx.fillRect(0, 0, W, 12);
+    ctx.fillStyle = 'rgba(255,255,255,0.12)';
+    for (let x = 10; x < W; x += 25) ctx.fillRect(x, 4, 4, 4);
 }
 
-function drawIdleScreen() {
-    drawBackground();
+function drawIdleScreen(now) {
+    drawBackground(now);
     ctx.font      = 'bold 32px Arial';
     ctx.fillStyle = '#8fd3f4';
     ctx.textAlign = 'center';
@@ -826,7 +947,7 @@ function gameLoop(timestamp) {
     lastTime = timestamp;
 
     if (gameState === 'idle') {
-        drawIdleScreen();
+        drawIdleScreen(timestamp);
         return;
     }
 
@@ -843,8 +964,8 @@ function gameLoop(timestamp) {
 }
 
 function draw(now) {
-    drawBackground();
-    drawDangerLine();
+    drawBackground(now);
+    drawDangerLine(now);
     drawGrid();
     drawAimLine();
     drawCurrentBubble();
@@ -879,7 +1000,8 @@ function startGame() {
     currentBubble = null;
 
     initGrid();
-    nextColor = randomColorFromGrid();
+    currentColor = randomColorFromGrid();
+    nextColor    = randomColorFromGrid();
     gameState = 'playing';
 
     document.getElementById('startBtn').disabled   = true;
@@ -908,6 +1030,14 @@ canvas.addEventListener('click', (e) => {
     updateAngle(pt.x, pt.y);
     fireCurrentBubble();
 });
+
+canvas.addEventListener('touchstart', (e) => {
+    e.preventDefault();
+    if (gameState !== 'playing') return;
+    // Aim at the tap point so a quick tap (without moving) shoots there
+    const pt = getCanvasPoint(e);
+    updateAngle(pt.x, pt.y);
+}, { passive: false });
 
 canvas.addEventListener('touchmove', (e) => {
     e.preventDefault();
