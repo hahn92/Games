@@ -27,7 +27,7 @@ Or open `index.html` (root or per-game) directly in a browser.
 | `styles.css` | Shared design system (CSS variables, card layout, global rules) **and the shared game-page layout**: `.responsive-layout`, `.game-side`, `.info-side`, `.mobile-score` are defined here once — per-game `styles.css` must NOT redefine them (only override if a game truly needs a variant) |
 | `audio.js` | Shared Web Audio API sound system — `GameAudio.*()` calls |
 | `game-utils.js` | Shared JS utilities: `rafInterval(fn, ms)` / `rafClear(handle)` — a `setInterval`-compatible fixed-tick loop built on `requestAnimationFrame`. Include it before `main.js` only in games that use it |
-| `fullscreen-btn.js` | Inter-game navigation bar (all devices) + fullscreen/landscape button (mobile only) |
+| `fullscreen-btn.js` | Inter-game navigation bar (all devices) + fullscreen/landscape button (mobile only). **Required in every game** — see "Navigation bar" below |
 | `main.js` | Placeholder for future catalog-level JS |
 
 ### Per-game structure
@@ -100,6 +100,20 @@ Each game lives in its own folder with:
 | `blackjack/` | Blackjack | Cartas | Canvas |
 | `sopaletras/` | Sopa de Letras | Palabras | Canvas |
 | `hanoi/` | Torres de Hanói | Lógica | Canvas |
+
+## Navigation bar (`fullscreen-btn.js`)
+
+**Every game MUST include the inter-game navigation bar.** It is provided by `fullscreen-btn.js`, which renders the navigation bar on all devices (and the fullscreen/landscape button on mobile). There are no exceptions — any new or existing game without it is considered incomplete.
+
+To include it, add the script tag **last**, after `audio.js` and `main.js`:
+
+```html
+<script src="../audio.js"></script>
+<script src="./main.js"></script>
+<script src="../fullscreen-btn.js"></script>
+```
+
+When adding or reviewing a game, verify this script tag is present in `index.html`. `/validate-game` should be run to confirm.
 
 ## Sound system (`audio.js`)
 
