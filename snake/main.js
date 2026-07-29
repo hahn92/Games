@@ -86,10 +86,7 @@ let eatParticles = [];
 // --- Mensaje de combo/multiplicador en canvas ---
 let hudMessages = []; // { text, x, y, life, color }
 
-// Sonidos
-const eatSound = new Audio('eat.mp3');
-const gameOverSound = new Audio('gameover.mp3');
-const moveSound = new Audio('move.mp3');
+// Sonidos: se usa el sistema compartido GameAudio (audio.js), sin archivos.
 
 function updateScore() {
     document.getElementById('score').textContent = score;
@@ -486,7 +483,6 @@ function moveSnake() {
         if (mult > 1) addHudMessage(`+${pts}`, fruit.x + box / 2, fruit.y, '#ffe082');
         updateLevel();
         fruit = randomPositionFree();
-        eatSound.currentTime = 0; eatSound.play();
         GameAudio.score();
 
         // Cada 10 frutas, spawn de fruta especial
@@ -507,7 +503,6 @@ function moveSnake() {
         addHudMessage(`¡+${pts}!`, specialFruit.x + box / 2, specialFruit.y, '#ffd700');
         specialFruit = null;
         specialFruitTimer = 0;
-        eatSound.currentTime = 0; eatSound.play();
         GameAudio.score();
     }
 
@@ -559,10 +554,10 @@ window.addEventListener('keydown', e => {
     if (["ArrowLeft", "ArrowUp", "ArrowRight", "ArrowDown"].includes(e.key)) {
         e.preventDefault();
     }
-    if (e.key === 'ArrowLeft' && direction !== 'RIGHT') { direction = 'LEFT'; moveSound.currentTime = 0; moveSound.play(); }
-    if (e.key === 'ArrowUp' && direction !== 'DOWN') { direction = 'UP'; moveSound.currentTime = 0; moveSound.play(); }
-    if (e.key === 'ArrowRight' && direction !== 'LEFT') { direction = 'RIGHT'; moveSound.currentTime = 0; moveSound.play(); }
-    if (e.key === 'ArrowDown' && direction !== 'UP') { direction = 'DOWN'; moveSound.currentTime = 0; moveSound.play(); }
+    if (e.key === 'ArrowLeft' && direction !== 'RIGHT') { direction = 'LEFT'; GameAudio.slide(); }
+    if (e.key === 'ArrowUp' && direction !== 'DOWN') { direction = 'UP'; GameAudio.slide(); }
+    if (e.key === 'ArrowRight' && direction !== 'LEFT') { direction = 'RIGHT'; GameAudio.slide(); }
+    if (e.key === 'ArrowDown' && direction !== 'UP') { direction = 'DOWN'; GameAudio.slide(); }
 });
 
 // Swipe gestures en el canvas
@@ -588,11 +583,11 @@ window.addEventListener('keydown', e => {
             // TAP: iniciar si no ha empezado, reiniciar si hay game over
             if (!isPlaying) { startGame(); }
         } else if (absDx > absDy) {
-            if (dx > 0) { if (direction !== 'LEFT') { direction = 'RIGHT'; moveSound.currentTime = 0; moveSound.play(); } }
-            else        { if (direction !== 'RIGHT') { direction = 'LEFT';  moveSound.currentTime = 0; moveSound.play(); } }
+            if (dx > 0) { if (direction !== 'LEFT') { direction = 'RIGHT'; GameAudio.slide(); } }
+            else        { if (direction !== 'RIGHT') { direction = 'LEFT';  GameAudio.slide(); } }
         } else {
-            if (dy > 0) { if (direction !== 'UP')   { direction = 'DOWN';  moveSound.currentTime = 0; moveSound.play(); } }
-            else        { if (direction !== 'DOWN')  { direction = 'UP';    moveSound.currentTime = 0; moveSound.play(); } }
+            if (dy > 0) { if (direction !== 'UP')   { direction = 'DOWN';  GameAudio.slide(); } }
+            else        { if (direction !== 'DOWN')  { direction = 'UP';    GameAudio.slide(); } }
         }
     }, { passive: false });
 })();
@@ -657,7 +652,6 @@ function gameOver() {
         localStorage.setItem('snakeHighScore', highScore);
         GameAudio.scoreHigh();
     }
-    gameOverSound.currentTime = 0; gameOverSound.play();
     GameAudio.gameOver();
     const popup = document.getElementById('gameOverPopup');
     const finalScore = document.getElementById('finalScore');

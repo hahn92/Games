@@ -4,6 +4,19 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
     <title>Flappy Bird</title>
+    <meta name="description" content="Haz que el pájaro vuele entre los tubos sin chocar. ¡Consigue la mayor distancia posible!">
+    <meta name="theme-color" content="#181818">
+    <link rel="canonical" href="https://games.hahndev.com/flappybird/">
+    <link rel="icon" type="image/svg+xml" href="../favicon.svg">
+    <meta property="og:type" content="website">
+    <meta property="og:site_name" content="Juegos Web JS/CSS">
+    <meta property="og:title" content="Flappy Bird — Arcade">
+    <meta property="og:description" content="Haz que el pájaro vuele entre los tubos sin chocar. ¡Consigue la mayor distancia posible!">
+    <meta property="og:url" content="https://games.hahndev.com/flappybird/">
+    <meta property="og:image" content="https://games.hahndev.com/favicon.svg">
+    <meta name="twitter:card" content="summary">
+    <meta name="twitter:title" content="Flappy Bird — Arcade">
+    <meta name="twitter:description" content="Haz que el pájaro vuele entre los tubos sin chocar. ¡Consigue la mayor distancia posible!">
     <link rel="stylesheet" href="./styles.css">
 </head>
 <body>
@@ -35,71 +48,26 @@
             </div>
         </div>
     </main>
+    <script src="../mobile-layout.js"></script>
     <script>
-    function isMobile() {
-        return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
-    }
-    function adjustMobileLayout() {
-        var gameSide = document.getElementById('gameSide');
-        var infoSide = document.getElementById('infoSide');
-        var mobileStartBtn = document.getElementById('mobileStartBtn');
-        var canvas = document.getElementById('flappyCanvas');
-        var mobileScore = document.getElementById('mobileScore');
-
-        var vHeight = window.visualViewport ? window.visualViewport.height : window.innerHeight;
-
-        if (isMobile() || window.innerWidth < 900) {
-            if (isMobile()) {
-                gameSide.style.position = 'fixed';
-                gameSide.style.top = '0';
-                gameSide.style.left = '0';
-                gameSide.style.width = window.innerWidth + 'px';
-                gameSide.style.height = vHeight + 'px';
-                gameSide.style.zIndex = '999';
-                gameSide.style.background = 'var(--grad-bg)';
-                infoSide.style.display = 'none';
-                mobileStartBtn.style.display = 'block';
-                mobileScore.style.display = 'block';
-            }
-
+    MobileLayout({
+        stopPropagation: true,
+        show: { mobileScore: 'block' },
+        fit: function (vHeight) {
+            var canvas = document.getElementById('flappyCanvas');
             var availableHeight = vHeight - (isMobile() ? 50 : 0);
             var availableWidth = window.innerWidth - 16;
             var ratio = 320 / 480;
-            
             var newHeight = Math.min(availableHeight, availableWidth / ratio);
             var newWidth = newHeight * ratio;
-            
             canvas.style.width = newWidth + 'px';
             canvas.style.height = newHeight + 'px';
-        } else {
-            gameSide.style.position = '';
-            gameSide.style.top = '';
-            gameSide.style.left = '';
-            gameSide.style.width = '';
-            gameSide.style.height = '';
-            gameSide.style.zIndex = '';
-            gameSide.style.background = '';
-            infoSide.style.display = '';
-            mobileStartBtn.style.display = 'none';
-            mobileScore.style.display = 'none';
+        },
+        reset: function () {
+            var canvas = document.getElementById('flappyCanvas');
             canvas.style.width = '';
             canvas.style.height = '';
-        }
-    }
-    window.addEventListener('resize', adjustMobileLayout);
-    if (window.visualViewport) window.visualViewport.addEventListener('resize', adjustMobileLayout);
-    document.addEventListener('DOMContentLoaded', adjustMobileLayout);
-
-    document.addEventListener('DOMContentLoaded', function() {
-        var mobileStartBtn = document.getElementById('mobileStartBtn');
-        var startBtn = document.getElementById('startBtn');
-        if (mobileStartBtn) {
-            mobileStartBtn.addEventListener('click', function(e) {
-                e.stopPropagation(); // Evitar que el primer click cause un salto
-                if (startBtn) startBtn.click();
-                mobileStartBtn.style.display = 'none';
-            });
-        }
+        },
     });
     </script>
     <script src="../audio.js"></script>

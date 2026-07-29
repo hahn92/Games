@@ -4,6 +4,19 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
     <title>Snake Clásico</title>
+    <meta name="description" content="Controla la serpiente, come frutas y evita chocar contra las paredes o tu propio cuerpo. ¡Compite por la mejor puntuación!">
+    <meta name="theme-color" content="#181818">
+    <link rel="canonical" href="https://games.hahndev.com/snake/">
+    <link rel="icon" type="image/svg+xml" href="../favicon.svg">
+    <meta property="og:type" content="website">
+    <meta property="og:site_name" content="Juegos Web JS/CSS">
+    <meta property="og:title" content="Snake Clásico — Arcade">
+    <meta property="og:description" content="Controla la serpiente, come frutas y evita chocar contra las paredes o tu propio cuerpo. ¡Compite por la mejor puntuación!">
+    <meta property="og:url" content="https://games.hahndev.com/snake/">
+    <meta property="og:image" content="https://games.hahndev.com/favicon.svg">
+    <meta name="twitter:card" content="summary">
+    <meta name="twitter:title" content="Snake Clásico — Arcade">
+    <meta name="twitter:description" content="Controla la serpiente, come frutas y evita chocar contra las paredes o tu propio cuerpo. ¡Compite por la mejor puntuación!">
     <link rel="stylesheet" href="./styles.css">
 </head>
 <body>
@@ -35,65 +48,28 @@
                 </div>
             </div>
         </div>
-        <script>
-        function isMobile() {
-            return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
-        }
-        function adjustMobileLayout() {
-            var gameSide = document.getElementById('gameSide');
-            var infoSide = document.getElementById('infoSide');
-            var mobileStartBtn = document.getElementById('mobileStartBtn');
+    <script src="../mobile-layout.js"></script>
+    <script>
+    MobileLayout({
+        mobileOnly: true,
+        onMobile: function (gameSide, vHeight) {
             var canvas = document.getElementById('gameCanvas');
-            // Altura real visible (excluye barras del navegador en Safari)
-            var vHeight = window.visualViewport ? window.visualViewport.height : window.innerHeight;
-            if (isMobile()) {
-                gameSide.style.position = 'fixed';
-                gameSide.style.top = '0';
-                gameSide.style.left = '0';
-                gameSide.style.width = window.innerWidth + 'px';
-                gameSide.style.height = vHeight + 'px';
-                gameSide.style.zIndex = '999';
-                gameSide.style.background = 'linear-gradient(135deg, #1a2980 0%, #26d0ce 100%)';
-                infoSide.style.display = 'none';
-                mobileStartBtn.style.display = 'block';
-                // Ajustar canvas al tamaño de pantalla
-                var minDim = Math.min(window.innerWidth, vHeight - 50);
-                var size = Math.max(240, minDim - 8);
-                canvas.width = size;
-                canvas.height = size;
-                canvas.style.maxWidth = '100%';
-                canvas.style.maxHeight = (vHeight - 50) + 'px';
-            } else {
-                gameSide.style.position = '';
-                gameSide.style.top = '';
-                gameSide.style.left = '';
-                gameSide.style.width = '';
-                gameSide.style.height = '';
-                gameSide.style.zIndex = '';
-                gameSide.style.background = '';
-                infoSide.style.display = '';
-                mobileStartBtn.style.display = 'none';
-                canvas.width = 600;
-                canvas.height = 600;
-                canvas.style.maxWidth = '';
-                canvas.style.maxHeight = '';
-            }
-        }
-        window.addEventListener('resize', adjustMobileLayout);
-        if (window.visualViewport) window.visualViewport.addEventListener('resize', adjustMobileLayout);
-        document.addEventListener('DOMContentLoaded', adjustMobileLayout);
-        // Botón de inicio móvil
-        document.addEventListener('DOMContentLoaded', function() {
-            var mobileStartBtn = document.getElementById('mobileStartBtn');
-            var startBtn = document.getElementById('startBtn');
-            if (mobileStartBtn) {
-                mobileStartBtn.addEventListener('click', function() {
-                    if (startBtn) startBtn.click();
-                    mobileStartBtn.style.display = 'none';
-                });
-            }
-        });
-        </script>
+            var minDim = Math.min(window.innerWidth, vHeight - 50);
+            var size = Math.max(240, minDim - 8);
+            canvas.width = size;
+            canvas.height = size;
+            canvas.style.maxWidth = '100%';
+            canvas.style.maxHeight = (vHeight - 50) + 'px';
+        },
+        reset: function () {
+            var canvas = document.getElementById('gameCanvas');
+            canvas.width = 600;
+            canvas.height = 600;
+            canvas.style.maxWidth = '';
+            canvas.style.maxHeight = '';
+        },
+    });
+    </script>
         <div id="gameOverPopup" class="popup" style="display:none;">
             <div class="popup-content">
                 <h2>¡Juego terminado!</h2>

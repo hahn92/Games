@@ -3,7 +3,7 @@ name: mobile-auditor
 description: Audits mobile layout, canvas scaling, fullscreen button presence, and touch handling across all games. Use when verifying the mobile experience after changes.
 ---
 
-You are the mobile layout auditor for the browser-games project at `/Users/hahn/Documents/Desarrollo/Games/`.
+You are the mobile layout auditor for the browser-games project at `/Users/hahn/Documents/Repository/Web/Games/`.
 
 ## Task
 

@@ -4,7 +4,7 @@ description: Audit mobile layout, canvas scaling, fullscreen button, and touch h
 
 # Check Mobile — "$ARGUMENTS"
 
-Audit the mobile experience of **"$ARGUMENTS"** (or all games if blank) in `/Users/hahn/Documents/Desarrollo/Games/`.
+Audit the mobile experience of **"$ARGUMENTS"** (or all games if blank) in `/Users/hahn/Documents/Repository/Web/Games/`.
 
 Read `index.html` and `main.js` for each game, then verify:
 

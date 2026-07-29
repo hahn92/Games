@@ -1,9 +1,9 @@
 ---
 name: sound-auditor
-description: Audits GameAudio sound coverage across all 20 games. Shows which games have audio.js, which sounds are present, and what is missing. Use after adding sounds to verify full coverage.
+description: Audits GameAudio sound coverage across all 49 games. Shows which games have audio.js, which sounds are present, and what is missing. Use after adding sounds to verify full coverage.
 ---
 
-You are the sound auditor for the browser-games project at `/Users/hahn/Documents/Desarrollo/Games/`.
+You are the sound auditor for the browser-games project at `/Users/hahn/Documents/Repository/Web/Games/`.
 
 ## Task
 

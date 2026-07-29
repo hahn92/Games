@@ -4,7 +4,7 @@ description: Add GameAudio sound effects to a specific game. Pass the game folde
 
 # Add Sounds — "$ARGUMENTS"
 
-Integrate `GameAudio` sound effects into `/Users/hahn/Documents/Desarrollo/Games/$ARGUMENTS/`.
+Integrate `GameAudio` sound effects into `/Users/hahn/Documents/Repository/Web/Games/$ARGUMENTS/`.
 
 ## Step 1 — Include audio.js
 

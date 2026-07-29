@@ -1,32 +1,36 @@
 ---
-description: Scaffold a new game from the standard template. Pass the folder name (lowercase, no spaces) as the argument.
+description: Scaffold a complete new game from the project template. Pass the folder name in lowercase (e.g. "platformer", "pinball").
 ---
 
 # New Game — "$ARGUMENTS"
 
-Create a new game called **"$ARGUMENTS"** following the project conventions.
+Scaffold a new game called **"$ARGUMENTS"** in `/Users/hahn/Documents/Repository/Web/Games/$ARGUMENTS/` following every project convention.
 
-## Steps
+## 1 — Create files
 
-### 1. Create the folder and files
+Create these three files:
 
-Create `/Users/hahn/Documents/Desarrollo/Games/$ARGUMENTS/` with:
+### `$ARGUMENTS/styles.css`
+Must start with:
+```css
+@import url('../styles.css');
+```
+Then add game-specific styles following the pattern in `runner/styles.css`.
 
-- `styles.css` — starting with `@import url('../styles.css');` then game-specific styles
-- `index.html` — use `runner/index.html` as the base template
-- `main.js` — game logic skeleton
-
-### 2. `index.html` template
-
-Use `runner/index.html` as the base. Key requirements:
-
+### `$ARGUMENTS/index.html`
+Use `runner/index.html` as base template. Required elements:
 - `<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">`
-- `adjustMobileLayout()` with `window.innerWidth + 'px'` for width, ≤ 50px height offset
-- Script order at end of `<body>`: `audio.js` → `main.js` → `fullscreen-btn.js`
-- `#mobileScore`, `#mobileStartBtn`, `#gameSide`, `#infoSide` elements present
-- `#gameOverPopup` with `#playAgainBtn`
+- `#gameSide`, `#infoSide`, `#mobileScore`, `#mobileStartBtn`, `#gameOverPopup`, `#playAgainBtn`
+- `adjustMobileLayout()` using `window.innerWidth + 'px'` (never `'100vw'`) and height offset ≤ 50px
+- Script order at end of `<body>`:
+  ```html
+  <script src="../audio.js"></script>
+  <script src="./main.js"></script>
+  <script src="../fullscreen-btn.js"></script>
+  ```
 
-### 3. `main.js` skeleton
+### `$ARGUMENTS/main.js`
+Game logic with this skeleton:
 
 ```js
 /* ── State ─────────────────────────────── */
@@ -79,46 +83,51 @@ document.getElementById('playAgainBtn').addEventListener('click', function () {
 });
 ```
 
-### 4. Add thumbnail to `thumbnails.js`
+## 2 — Add thumbnail to `thumbnails.js`
 
-Open `/Users/hahn/Documents/Desarrollo/Games/thumbnails.js` and add a drawing function
-for `$ARGUMENTS` inside the `thumbs` object, before the closing `};`. Draw a recognisable
-mini-scene for the game using Canvas 2D primitives — no images, no emoji.
+Open `/Users/hahn/Documents/Repository/Web/Games/thumbnails.js` and add a drawing function
+for `$ARGUMENTS` inside the `thumbs` object, before the closing `};`.
 
-Pattern to follow (add right before the closing `};` of the `thumbs` object):
+Draw a recognisable mini-scene for the game using Canvas 2D API primitives only — no images,
+no emoji on canvas. The canvas is 220×220. Use the shared `C` palette (C.bg, C.blue,
+C.orange, C.green, C.white, etc.) and helper functions (`background`, `gradBg`, `roundRect`).
+
+Insert right before the closing `};` of the `thumbs` object:
 
 ```js
     $ARGUMENTS: function (ctx) {
-        // Draw a recognisable scene for the game.
-        // Use the shared palette in C (C.bg, C.blue, C.orange, C.green, C.white…).
-        // Canvas is 220×220. Keep it simple and iconic.
+        // A recognisable mini-scene for the game.
         background(ctx);
-        // … your drawing code …
+        // … drawing code using ctx.arc, ctx.fillRect, ctx.beginPath, etc. …
     },
 ```
 
-After inserting the function, verify the comma after the previous function's closing `}` is present.
+Ensure the previous entry in `thumbs` has a trailing comma.
 
-### 5. Add to the catalog
+## 3 — Add to catalog
 
-Add a card in `/Users/hahn/Documents/Desarrollo/Games/index.html` inside `.games-grid`:
+Add a card in the root `index.html` inside `.games-grid` (keep alphabetical or by category).
+Use `<canvas data-game="...">` — no `<img>` tags, thumbnails are rendered by `thumbnails.js`:
 
 ```html
 <div class="game-card">
     <canvas data-game="$ARGUMENTS"></canvas>
     <div class="game-info">
-        <div class="game-title">TITLE</div>
-        <div class="game-category">CATEGORY</div>
-        <p class="game-desc">DESCRIPTION</p>
+        <div class="game-title">TITLE_HERE</div>
+        <div class="game-category">CATEGORY_HERE</div>
+        <p class="game-desc">DESCRIPTION_HERE</p>
         <a href="./$ARGUMENTS/" class="game-link">Jugar</a>
     </div>
 </div>
 ```
 
-### 6. Update CLAUDE.md
+## 4 — Update CLAUDE.md
 
 Add the game to the Complete game list table in `CLAUDE.md`.
 
-### 7. Validate
+## 5 — Validate
 
-Run `/validate-game $ARGUMENTS` once the game logic is complete.
+Once the game logic is implemented, run:
+```
+/games:validate-game $ARGUMENTS
+```

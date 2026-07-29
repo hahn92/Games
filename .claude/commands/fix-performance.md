@@ -1,39 +1,43 @@
 ---
-description: Scan a game's main.js for canvas performance issues and fix them. Pass the game folder name.
+description: Scan a game's main.js for canvas performance anti-patterns and fix them. Pass the game folder name.
 ---
 
 # Fix Performance — "$ARGUMENTS"
 
-Scan `/Users/hahn/Documents/Desarrollo/Games/$ARGUMENTS/main.js` for performance problems and fix them.
+Scan `/Users/hahn/Documents/Repository/Web/Games/$ARGUMENTS/main.js` for the performance anti-patterns below and fix each one found.
 
-## What to look for and fix
+## Anti-patterns to find and fix
 
-### shadowBlur in loops
+### 1 — shadowBlur inside a draw loop
 
-Bad:
+Find `ctx.shadowBlur` assignments inside `forEach`, `for`, or `while` loops that iterate over game objects. Move the state set/reset outside the loop:
+
 ```js
-aliens.forEach(function(a) {
-    ctx.shadowBlur = 10;   // ← expensive per element
-    ctx.shadowColor = '#f00';
-    drawAlien(a);
-});
-```
+// Before (bad)
+aliens.forEach(function(a) { ctx.shadowBlur = 10; drawAlien(a); });
 
-Good:
-```js
+// After (good)
 ctx.shadowBlur = 10;
-ctx.shadowColor = '#f00';
 aliens.forEach(function(a) { drawAlien(a); });
 ctx.shadowBlur = 0;
 ```
 
-### Math.random() in render path
+### 2 — Math.random() inside draw/render functions
 
-Move any `Math.random()` call inside draw/render functions to the spawn/init step instead. Store the value on the object.
+Move random value generation to spawn/init time and store on the object:
 
-### setInterval as game loop
+```js
+// Before (bad — called every frame)
+function drawParticle(p) { ctx.globalAlpha = Math.random(); ... }
 
-Replace `setInterval(loop, 16)` with `requestAnimationFrame` + delta-time throttle:
+// After (good — computed once at spawn)
+function spawnParticle() { return { alpha: Math.random(), ... }; }
+function drawParticle(p) { ctx.globalAlpha = p.alpha; ... }
+```
+
+### 3 — setInterval as game loop without rAF
+
+Replace with `requestAnimationFrame` + delta-time throttle:
 
 ```js
 var lastTime = 0;
@@ -48,22 +52,27 @@ function loop(ts) {
 requestAnimationFrame(loop);
 ```
 
-### Gradient recreation every frame
+### 4 — Gradient recreated every frame
 
-Cache gradients and only recreate when dimensions change:
+Cache the gradient object; only rebuild when canvas dimensions change:
 
 ```js
-var cachedGrad = null;
+var _grad = null;
 function getGrad() {
-    if (!cachedGrad) cachedGrad = ctx.createLinearGradient(0, 0, W, 0);
-    return cachedGrad;
+    if (!_grad) {
+        _grad = ctx.createLinearGradient(0, 0, canvas.width, 0);
+        _grad.addColorStop(0, '#8fd3f4');
+        _grad.addColorStop(1, '#ff512f');
+    }
+    return _grad;
 }
 ```
 
-### ctx.save()/ctx.restore() in tight loops
+### 5 — ctx.save()/ctx.restore() inside tight loops
 
-Replace with explicit state save/restore of only the properties that change.
+Only save/restore when you truly need to isolate a transform. For simple color/alpha changes, set and reset the property directly.
 
 ## Output
 
-List every issue found, the line number, and confirm each fix applied. Run `/validate-game $ARGUMENTS` afterward to verify.
+List every issue found with its line number, show the before/after fix, then confirm each change was applied.
+Run `/games:validate-game $ARGUMENTS` at the end to verify no regressions.

@@ -1,30 +1,28 @@
 ---
-description: Add GameAudio sound effects to a game. Pass the game folder name (e.g. snake, tetris, pong).
+description: Add GameAudio sound effects to a specific game. Pass the game folder name (e.g. snake, tetris).
 ---
 
-# Add Sounds to "$ARGUMENTS"
+# Add Sounds — "$ARGUMENTS"
 
-Integrate sound effects into the game at `/Users/hahn/Documents/Desarrollo/Games/$ARGUMENTS/` using the shared `GameAudio` system.
+Integrate `GameAudio` sound effects into `/Users/hahn/Documents/Repository/Web/Games/$ARGUMENTS/`.
 
-## Steps
+## Step 1 — Include audio.js
 
-1. Read `$ARGUMENTS/index.html`. If `audio.js` is not already included, add it **before** `main.js`:
-   ```html
-   <script src="../audio.js"></script>
-   <script src="./main.js"></script>
-   ```
+Check `$ARGUMENTS/index.html`. If `audio.js` is missing, add it **before** `main.js`:
 
-2. Read `$ARGUMENTS/main.js` and locate the key game events listed below.
+```html
+<script src="../audio.js"></script>
+<script src="./main.js"></script>
+```
 
-3. Add `GameAudio.*()` calls at each event trigger point. **Never inside draw/render loops.**
+## Step 2 — Identify trigger points
 
-4. Add `GameAudio.click()` at the start of every `startBtn`, `restartBtn`, and `playAgainBtn` click handler.
+Read `$ARGUMENTS/main.js` and find where each event occurs. Map them using this table:
 
-## Sound mapping reference
-
-| Event | Call |
-|-------|------|
+| Event | GameAudio call |
+|-------|---------------|
 | Game starts | `GameAudio.start()` |
+| Button clicked | `GameAudio.click()` |
 | Point scored | `GameAudio.score()` |
 | Milestone / high score | `GameAudio.scoreHigh()` |
 | Win / level complete | `GameAudio.win()` |
@@ -45,7 +43,7 @@ Integrate sound effects into the game at `/Users/hahn/Documents/Desarrollo/Games
 | Cards no match | `GameAudio.noMatch()` |
 | Tile slides | `GameAudio.slide()` |
 | Tiles merge (2048) | `GameAudio.merge()` |
-| Simon button | `GameAudio.simon(0–3)` |
+| Simon button (0–3) | `GameAudio.simon(index)` |
 | Mole hit | `GameAudio.whack()` |
 | Mole escaped | `GameAudio.miss()` |
 | Mine explodes | `GameAudio.mine()` |
@@ -57,11 +55,11 @@ Integrate sound effects into the game at `/Users/hahn/Documents/Desarrollo/Games
 | Fruit caught | `GameAudio.powerUp()` |
 | Bomb caught | `GameAudio.bomb()` |
 | Timer warning | `GameAudio.tick()` |
-| Any button click | `GameAudio.click()` |
 
-## Rules
+## Step 3 — Apply changes
 
-- One `GameAudio` call per event — no stacking multiple sounds for the same trigger
-- Skip a sound if you cannot find a clear, unambiguous trigger point
-- Do not add sounds inside `draw*`, `render*`, or `paint*` functions
-- After editing, confirm with `/validate-game $ARGUMENTS`
+Add one `GameAudio` call per distinct event. **Never inside draw/render/paint loops.**
+
+## Step 4 — Verify
+
+Run `/games:validate-game $ARGUMENTS` and confirm all Sound criteria pass.

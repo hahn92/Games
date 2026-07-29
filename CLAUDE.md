@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Overview
 
-A collection of 49 classic browser-based games built with vanilla JavaScript, HTML5 Canvas, and CSS. No build system or dependencies — open any `index.html` directly in a browser to run.
+A collection of 49 classic browser-based games built with vanilla JavaScript, HTML5 Canvas, and CSS. No build system or dependencies — open any `index.html` directly in a browser to run. Deployed at https://games.hahndev.com (see `CNAME`).
 
 ## Running the project
 
@@ -24,11 +24,13 @@ Or open `index.html` (root or per-game) directly in a browser.
 | File | Purpose |
 |------|---------|
 | `index.html` | Game catalog/landing page |
-| `styles.css` | Shared design system (CSS variables, card layout, global rules) **and the shared game-page layout**: `.responsive-layout`, `.game-side`, `.info-side`, `.mobile-score` are defined here once — per-game `styles.css` must NOT redefine them (only override if a game truly needs a variant) |
+| `styles.css` | Shared design system (CSS variables, card layout, global rules) **and the shared game-page layout**: `.responsive-layout`, `.game-side`, `.info-side`, `.mobile-score` are defined here once — per-game `styles.css` must NOT redefine them (only override if a game truly needs a variant). Also holds the shared `@media (max-width: 900px)` collapse; games only declare their own deltas |
 | `audio.js` | Shared Web Audio API sound system — `GameAudio.*()` calls |
+| `mobile-layout.js` | Shared mobile-layout bootstrap — `MobileLayout({...})`. **Required in every game**, loaded before `main.js`. See "Mobile support pattern" below |
 | `game-utils.js` | Shared JS utilities: `rafInterval(fn, ms)` / `rafClear(handle)` — a `setInterval`-compatible fixed-tick loop built on `requestAnimationFrame`. Include it before `main.js` only in games that use it |
 | `fullscreen-btn.js` | Inter-game navigation bar (all devices) + fullscreen/landscape button (mobile only). **Required in every game** — see "Navigation bar" below |
-| `main.js` | Placeholder for future catalog-level JS |
+| `favicon.svg` | Shared favicon, referenced relatively (`./favicon.svg` from root, `../favicon.svg` from a game) |
+| `main.js` | Catalog filter, search and pagination with shareable URLs |
 
 ### Per-game structure
 Each game lives in its own folder with:
@@ -84,7 +86,7 @@ Each game lives in its own folder with:
 | `cosecha/` | La Cosecha | Gestión | Canvas |
 | `chess/` | Ajedrez | Estrategia | Canvas |
 | `plinko/` | Plinko | Física | Canvas |
-| `dardos/` | Dardos | Física | Canvas |
+| `dardos/` | Dardos Giratorios | Física | Canvas |
 | `gemas/` | Gemas | Puzzle | Canvas |
 | `minero/` | Minero de Oro | Habilidad | Canvas |
 | `laberinto/` | Laberinto Neón | Laberinto | Canvas |
@@ -108,6 +110,7 @@ Each game lives in its own folder with:
 To include it, add the script tag **last**, after `audio.js` and `main.js`:
 
 ```html
+<script src="../mobile-layout.js"></script>
 <script src="../audio.js"></script>
 <script src="./main.js"></script>
 <script src="../fullscreen-btn.js"></script>
@@ -120,6 +123,7 @@ When adding or reviewing a game, verify this script tag is present in `index.htm
 All games use a shared, file-free sound system built on the Web Audio API. Include it **before** `main.js`:
 
 ```html
+<script src="../mobile-layout.js"></script>
 <script src="../audio.js"></script>
 <script src="./main.js"></script>
 <script src="../fullscreen-btn.js"></script>
@@ -170,13 +174,46 @@ The AudioContext is unlocked automatically on the first `touchstart`, `mousedown
 
 ## Mobile support pattern
 
-Every game uses a consistent mobile pattern in `index.html`:
+The whole pattern lives in **`mobile-layout.js`**. A game declares only what differs:
 
-- `isMobile()` UA detection (inline script)
-- `adjustMobileLayout()` sets `gameSide` to `position: fixed`, fills the screen, hides `infoSide`
-- **Always use `window.innerWidth + 'px'`** (not `'100vw'`) — on iOS Safari `100vw` can exceed the visual viewport
+```html
+<script src="../mobile-layout.js"></script>
+<script>
+MobileLayout({
+    show: { mobileScore: 'block' },          // ids revealed on mobile, hidden on reset
+    fit: function (vHeight) {                 // size the canvas/board
+        var canvas = document.getElementById('myCanvas');
+        var ratio = 400 / 620;
+        var availableWidth  = window.innerWidth - 8;
+        var availableHeight = vHeight - (isMobile() ? 50 : 0);
+        var newHeight = Math.min(availableHeight, availableWidth / ratio);
+        canvas.style.width  = newHeight * ratio + 'px';
+        canvas.style.height = newHeight + 'px';
+    },
+    reset: function () {                      // undo `fit` on desktop
+        var canvas = document.getElementById('myCanvas');
+        canvas.style.width = ''; canvas.style.height = '';
+    },
+});
+</script>
+```
+
+Optional keys: `onMobile(gameSide, vHeight)` / `onReset(gameSide)` for extra `gameSide`
+setup (wordle), `mobileOnly: true` to skip the `innerWidth < 900` branch (snake, hangman),
+`background` for a custom backdrop (pacman uses `'#000'`), `startBtn: false` to never
+reveal `#mobileStartBtn` (hangman), `stopPropagation: true` (flappybird).
+
+The module handles, once, for every game:
+
+- `isMobile()` UA detection — exposed as the `window.isMobile` global (`snake/main.js` uses it)
+- `adjustMobileLayout()` sets `gameSide` to `position: fixed`, fills the screen, hides `infoSide` — exposed as a global (`minesweeper/main.js` uses it)
+- **Always uses `window.innerWidth + 'px'`** (not `'100vw'`) — on iOS Safari `100vw` can exceed the visual viewport
+- Uses `window.visualViewport.height` (not `window.innerHeight`) for true mobile viewport height
+- `resize` + `visualViewport.resize` + `DOMContentLoaded` listeners, and the `#mobileStartBtn` → `#startBtn` wiring
+
+Remaining per-game conventions:
+
 - **Canvas height offset ≤ 50px** — touch button panels are hidden globally via CSS; no large space reservation needed
-- Use `window.visualViewport.height` (not `window.innerHeight`) for true mobile viewport height
 - `#mobileScore` (absolute positioned) shows score overlay; uses `left: 5px; right: 5px` to stretch safely
 - `#mobileStartBtn` overlays the canvas on initial load
 - `fullscreen-btn.js` adds a floating ⛶ button (bottom-right) that triggers `requestFullscreen()` + `screen.orientation.lock('landscape')` (Android) or full-screen without lock (iOS)
@@ -287,14 +324,17 @@ Located in `.claude/agents/`:
 2. Copy `runner/index.html` as template (most complete mobile pattern)
 3. Script tag order in `index.html`:
    ```html
+   <script src="../mobile-layout.js"></script>
    <script src="../audio.js"></script>
    <script src="./main.js"></script>
    <script src="../fullscreen-btn.js"></script>
    ```
-4. In `adjustMobileLayout()`: use `window.innerWidth + 'px'` for width, `≤ 50px` height offset
+4. Call `MobileLayout({ ... })` (see "Mobile support pattern") — do NOT hand-roll an inline
+   `adjustMobileLayout`. Use `≤ 50px` height offset in `fit`.
 5. **`styles.css`** — copy from `minero/styles.css` and replace `minero-canvas` with your canvas class. Required sections:
    - `@import url('../styles.css')` at the top — this brings in the shared layout (`.responsive-layout`, `.game-side`, `.info-side`, `.mobile-score`); **do NOT redefine those blocks locally**
-   - `@media (max-width: 900px)` responsive rules
+   - the shared `@media (max-width: 900px)` collapse comes from the root stylesheet —
+     add a local block ONLY for game-specific deltas
    - `body { background: var(--grad-bg); ... }`
    - `#startBtn, #restartBtn` button styles
    - `#playAgainBtn` (or equivalent end-of-game button) styles

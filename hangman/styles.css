@@ -421,44 +421,12 @@ body {
    RESPONSIVE / MOBILE
    ======================== */
 @media (max-width: 900px) {
-    .responsive-layout {
-        flex-direction: column;
-        align-items: center;
-        gap: 1.5rem;
-        padding: 1rem 0.5rem;
-    }
-
-    .info-side {
-        max-width: 100%;
-        width: 100%;
-        min-width: 0;
-        align-items: center;
-        text-align: center;
-        padding: 1.4rem 1rem;
-    }
-
-    .category-buttons {
-        justify-content: center;
-    }
-
-    .buttons-panel {
-        justify-content: center;
-    }
-
-    .score-row {
-        justify-content: center;
-        gap: 1rem;
-    }
-
-    .instructions {
-        text-align: left;
-    }
-
-    .game-side {
-        width: 100%;
-    }
+    .info-side { max-width: 100%; min-width: 0; padding: 1.4rem 1rem; }
+    .category-buttons { justify-content: center; }
+    .buttons-panel { justify-content: center; }
+    .score-row { justify-content: center; gap: 1rem; }
+    .instructions { text-align: left; }
 }
-
 @media (max-width: 480px) {
     .info-side h1 {
         font-size: 1.6rem;

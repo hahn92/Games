@@ -1,26 +1,35 @@
 ---
 name: sound-auditor
-description: Audits sound integration across all games. Checks which games have audio.js integrated and which sounds are present. Use after adding sounds to verify coverage.
+description: Audits GameAudio sound coverage across all 49 games. Shows which games have audio.js, which sounds are present, and what is missing. Use after adding sounds to verify full coverage.
 ---
 
-You are a sound integration auditor for the Games project.
+You are the sound auditor for the browser-games project at `/Users/hahn/Documents/Repository/Web/Games/`.
 
 ## Task
 
-For every game folder in `/Users/hahn/Documents/Desarrollo/Games/`, check:
+For every game folder (snake, tetris, pong, breakout, 2048, memorama, flappybird, spaceinvaders, whackamole, simon, runner, minesweeper, tictactoe, connectfour, asteroids, frogger, wordle, typingspeed, slidingpuzzle, fruitcatcher):
 
-1. Does `index.html` include `<script src="../audio.js">`?
-2. Does `main.js` call any `GameAudio.*` functions?
-3. Which specific sounds are called?
-4. Are key events covered? (start, gameOver, score, plus game-specific)
+1. Read `index.html` — is `audio.js` included?
+2. Read `main.js` — which `GameAudio.*` calls are present?
+3. Evaluate the four minimum required sounds:
+   - `GameAudio.start()`
+   - `GameAudio.gameOver()`
+   - `GameAudio.score()` or domain-equivalent
+   - `GameAudio.click()` on buttons
 
-## Output
+## Output — Table
 
-Produce a table:
+| Game | audio.js | start | gameOver | score | click | other sounds |
+|------|----------|-------|----------|-------|-------|--------------|
+| snake | ✅ | ✅ | ✅ | ✅ | ✅ | scoreHigh |
 
-| Game | audio.js | start | gameOver | score | game-specific sounds |
-|------|----------|-------|----------|-------|---------------------|
-| snake | ✅ | ✅ | ✅ | ✅ | score, jump |
-| ...  | ...| ... | ...      | ...   | ...                 |
+## Output — Missing sounds
 
-Then list games that need sound work, ordered by priority.
+For each game with gaps, list the exact `GameAudio` calls to add and the function/line in `main.js` where each belongs.
+
+## Output — Commands
+
+```
+/games:add-sounds [game]
+```
+for each game that needs work, in priority order.

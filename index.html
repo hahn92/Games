@@ -2,19 +2,35 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
     <title>Catálogo de Videojuegos JS/CSS</title>
-    <link rel="stylesheet" href="styles.css">
-</head>
-<!-- Google tag (gtag.js) -->
-<script async src="https://www.googletagmanager.com/gtag/js?id=G-32CT9Z3KVL"></script>
-<script>
-  window.dataLayer = window.dataLayer || [];
-  function gtag(){dataLayer.push(arguments);}
-  gtag('js', new Date());
+    <meta name="description" content="49 videojuegos clásicos jugables en el navegador, hechos con JavaScript, HTML5 Canvas y CSS puro. Sin instalación, sin plugins: Snake, Tetris, Pac-Man, Ajedrez y muchos más.">
+    <meta name="theme-color" content="#181818">
+    <link rel="canonical" href="https://games.hahndev.com/">
+    <link rel="icon" type="image/svg+xml" href="./favicon.svg">
 
-  gtag('config', 'G-32CT9Z3KVL');
-</script>
+    <meta property="og:type" content="website">
+    <meta property="og:site_name" content="Juegos Web JS/CSS">
+    <meta property="og:title" content="Catálogo de Videojuegos JS/CSS">
+    <meta property="og:description" content="49 videojuegos clásicos jugables en el navegador, hechos con JavaScript, HTML5 Canvas y CSS puro. Sin instalación, sin plugins.">
+    <meta property="og:url" content="https://games.hahndev.com/">
+    <meta property="og:image" content="https://games.hahndev.com/favicon.svg">
+    <meta name="twitter:card" content="summary">
+    <meta name="twitter:title" content="Catálogo de Videojuegos JS/CSS">
+    <meta name="twitter:description" content="49 videojuegos clásicos jugables en el navegador, hechos con JavaScript, HTML5 Canvas y CSS puro.">
+
+    <link rel="stylesheet" href="styles.css">
+
+    <!-- Google tag (gtag.js) -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-32CT9Z3KVL"></script>
+    <script>
+      window.dataLayer = window.dataLayer || [];
+      function gtag(){dataLayer.push(arguments);}
+      gtag('js', new Date());
+
+      gtag('config', 'G-32CT9Z3KVL');
+    </script>
+</head>
 <body>
     <header>
         <h1>Catálogo de Videojuegos JS/CSS</h1>
@@ -28,7 +44,7 @@
                     <div class="game-title">Snake Clásico</div>
                     <div class="game-category">Arcade</div>
                     <div class="game-desc">Controla la serpiente, come frutas y evita chocar contra las paredes o tu propio cuerpo. ¡Compite por la mejor puntuación!</div>
-                    <a class="game-link" href="./snake/index.html" target="_blank">Jugar</a>
+                    <a class="game-link" href="./snake/index.html" target="_blank" rel="noopener">Jugar</a>
                 </div>
             </div>
             <div class="game-card">
@@ -37,7 +53,7 @@
                     <div class="game-title">Tetris JS</div>
                     <div class="game-category">Puzzle</div>
                     <div class="game-desc">El clásico juego de Tetris, encaja las piezas y evita que la pantalla se llene. ¡Pon a prueba tu habilidad!</div>
-                    <a class="game-link" href="./tetris/index.html" target="_blank">Jugar</a>
+                    <a class="game-link" href="./tetris/index.html" target="_blank" rel="noopener">Jugar</a>
                 </div>
             </div>
             <div class="game-card">
@@ -46,7 +62,7 @@
                     <div class="game-title">Pong Clásico</div>
                     <div class="game-category">Arcade</div>
                     <div class="game-desc">Juega al clásico Pong contra la máquina o un amigo. Controla la paleta y trata de que la bola no pase tu lado.</div>
-                    <a class="game-link" href="./pong/index.html" target="_blank">Jugar</a>
+                    <a class="game-link" href="./pong/index.html" target="_blank" rel="noopener">Jugar</a>
                 </div>
             </div>
             <div class="game-card">
@@ -55,7 +71,7 @@
                     <div class="game-title">Breakout</div>
                     <div class="game-category">Arcade</div>
                     <div class="game-desc">Rompe todos los bloques con la bola y tu paleta. ¡Evita que la bola caiga y supera todos los niveles!</div>
-                    <a class="game-link" href="./breakout/index.html" target="_blank">Jugar</a>
+                    <a class="game-link" href="./breakout/index.html" target="_blank" rel="noopener">Jugar</a>
                 </div>
             </div>
             <div class="game-card">
@@ -64,7 +80,7 @@
                     <div class="game-title">2048</div>
                     <div class="game-category">Puzzle</div>
                     <div class="game-desc">Combina los números iguales para llegar al 2048. ¡Piensa cada movimiento y supera tu mejor puntaje!</div>
-                    <a class="game-link" href="./2048/index.html" target="_blank">Jugar</a>
+                    <a class="game-link" href="./2048/index.html" target="_blank" rel="noopener">Jugar</a>
                 </div>
             </div>
             <div class="game-card">
@@ -73,7 +89,7 @@
                     <div class="game-title">Memorama</div>
                     <div class="game-category">Puzzle</div>
                     <div class="game-desc">Encuentra todas las parejas de cartas en el menor tiempo posible. ¡Pon a prueba tu memoria!</div>
-                    <a class="game-link" href="./memorama/index.html" target="_blank">Jugar</a>
+                    <a class="game-link" href="./memorama/index.html" target="_blank" rel="noopener">Jugar</a>
                 </div>
             </div>
             <div class="game-card">
@@ -82,7 +98,7 @@
                     <div class="game-title">Flappy Bird</div>
                     <div class="game-category">Arcade</div>
                     <div class="game-desc">Haz que el pájaro vuele entre los tubos sin chocar. ¡Consigue la mayor distancia posible!</div>
-                    <a class="game-link" href="./flappybird/index.html" target="_blank">Jugar</a>
+                    <a class="game-link" href="./flappybird/index.html" target="_blank" rel="noopener">Jugar</a>
                 </div>
             </div>
             <div class="game-card">
@@ -91,7 +107,7 @@
                     <div class="game-title">Space Invaders</div>
                     <div class="game-category">Shooter</div>
                     <div class="game-desc">Defiende la tierra de los invasores espaciales. Dispara y esquiva los proyectiles enemigos.</div>
-                    <a class="game-link" href="./spaceinvaders/index.html" target="_blank">Jugar</a>
+                    <a class="game-link" href="./spaceinvaders/index.html" target="_blank" rel="noopener">Jugar</a>
                 </div>
             </div>
             <div class="game-card">
@@ -100,7 +116,7 @@
                     <div class="game-title">Whack-a-Mole</div>
                     <div class="game-category">Arcade</div>
                     <div class="game-desc">¡Golpea los topos antes de que se escondan! Pon a prueba tus reflejos en 60 segundos.</div>
-                    <a class="game-link" href="./whackamole/index.html" target="_blank">Jugar</a>
+                    <a class="game-link" href="./whackamole/index.html" target="_blank" rel="noopener">Jugar</a>
                 </div>
             </div>
             <div class="game-card">
@@ -109,7 +125,7 @@
                     <div class="game-title">Simon Dice</div>
                     <div class="game-category">Memoria</div>
                     <div class="game-desc">Repite la secuencia de colores que muestra Simon. ¡Cada ronda se vuelve más difícil!</div>
-                    <a class="game-link" href="./simon/index.html" target="_blank">Jugar</a>
+                    <a class="game-link" href="./simon/index.html" target="_blank" rel="noopener">Jugar</a>
                 </div>
             </div>
             <div class="game-card">
@@ -118,7 +134,7 @@
                     <div class="game-title">Endless Runner</div>
                     <div class="game-category">Arcade</div>
                     <div class="game-desc">Salta sobre los obstáculos y corre lo más lejos posible. ¡La velocidad aumenta con el tiempo!</div>
-                    <a class="game-link" href="./runner/index.html" target="_blank">Jugar</a>
+                    <a class="game-link" href="./runner/index.html" target="_blank" rel="noopener">Jugar</a>
                 </div>
             </div>
             <div class="game-card">
@@ -127,7 +143,7 @@
                     <div class="game-title">Buscaminas</div>
                     <div class="game-category">Puzzle</div>
                     <div class="game-desc">Encuentra todas las minas sin detonar ninguna. ¡Usa la lógica y supera tu mejor tiempo!</div>
-                    <a class="game-link" href="./minesweeper/index.html" target="_blank">Jugar</a>
+                    <a class="game-link" href="./minesweeper/index.html" target="_blank" rel="noopener">Jugar</a>
                 </div>
             </div>
             <div class="game-card">
@@ -136,7 +152,7 @@
                     <div class="game-title">Tres en Raya</div>
                     <div class="game-category">Estrategia</div>
                     <div class="game-desc">Juega al clásico Tres en Raya contra una IA imbatible. ¿Podrás hacer empate?</div>
-                    <a class="game-link" href="./tictactoe/index.html" target="_blank">Jugar</a>
+                    <a class="game-link" href="./tictactoe/index.html" target="_blank" rel="noopener">Jugar</a>
                 </div>
             </div>
             <div class="game-card">
@@ -145,7 +161,7 @@
                     <div class="game-title">Conecta 4</div>
                     <div class="game-category">Estrategia</div>
                     <div class="game-desc">Conecta 4 fichas en línea antes que la IA. ¡Piensa varios movimientos por adelantado!</div>
-                    <a class="game-link" href="./connectfour/index.html" target="_blank">Jugar</a>
+                    <a class="game-link" href="./connectfour/index.html" target="_blank" rel="noopener">Jugar</a>
                 </div>
             </div>
             <div class="game-card">
@@ -154,7 +170,7 @@
                     <div class="game-title">Asteroids</div>
                     <div class="game-category">Shooter</div>
                     <div class="game-desc">Destruye todos los asteroides antes de que te destruyan. WASD para mover, Espacio para disparar.</div>
-                    <a class="game-link" href="./asteroids/index.html" target="_blank">Jugar</a>
+                    <a class="game-link" href="./asteroids/index.html" target="_blank" rel="noopener">Jugar</a>
                 </div>
             </div>
             <div class="game-card">
@@ -163,7 +179,7 @@
                     <div class="game-title">Frogger</div>
                     <div class="game-category">Arcade</div>
                     <div class="game-desc">Lleva la rana a salvo cruzando la carretera y el río. ¡Evita los coches y no caigas al agua!</div>
-                    <a class="game-link" href="./frogger/index.html" target="_blank">Jugar</a>
+                    <a class="game-link" href="./frogger/index.html" target="_blank" rel="noopener">Jugar</a>
                 </div>
             </div>
             <div class="game-card">
@@ -172,7 +188,7 @@
                     <div class="game-title">Wordle</div>
                     <div class="game-category">Palabras</div>
                     <div class="game-desc">Adivina la palabra de 5 letras en 6 intentos. Las pistas de color te guiarán hacia la respuesta.</div>
-                    <a class="game-link" href="./wordle/index.html" target="_blank">Jugar</a>
+                    <a class="game-link" href="./wordle/index.html" target="_blank" rel="noopener">Jugar</a>
                 </div>
             </div>
             <div class="game-card">
@@ -181,7 +197,7 @@
                     <div class="game-title">Velocidad de Escritura</div>
                     <div class="game-category">Habilidad</div>
                     <div class="game-desc">Escribe palabras lo más rápido que puedas en 60 segundos. ¿Cuántas palabras por minuto eres capaz?</div>
-                    <a class="game-link" href="./typingspeed/index.html" target="_blank">Jugar</a>
+                    <a class="game-link" href="./typingspeed/index.html" target="_blank" rel="noopener">Jugar</a>
                 </div>
             </div>
             <div class="game-card">
@@ -190,7 +206,7 @@
                     <div class="game-title">Puzzle 15</div>
                     <div class="game-category">Puzzle</div>
                     <div class="game-desc">Desliza las piezas para ordenarlas del 1 al 15. ¡Resuelve el clásico puzzle deslizante en el menor tiempo!</div>
-                    <a class="game-link" href="./slidingpuzzle/index.html" target="_blank">Jugar</a>
+                    <a class="game-link" href="./slidingpuzzle/index.html" target="_blank" rel="noopener">Jugar</a>
                 </div>
             </div>
             <div class="game-card">
@@ -199,7 +215,7 @@
                     <div class="game-title">Atrapa Frutas</div>
                     <div class="game-category">Arcade</div>
                     <div class="game-desc">Mueve la cesta para atrapar las frutas que caen. ¡Cuidado con las bombas, te cuestan una vida!</div>
-                    <a class="game-link" href="./fruitcatcher/index.html" target="_blank">Jugar</a>
+                    <a class="game-link" href="./fruitcatcher/index.html" target="_blank" rel="noopener">Jugar</a>
                 </div>
             </div>
             <div class="game-card">
@@ -208,7 +224,7 @@
                     <div class="game-title">Pac-Man</div>
                     <div class="game-category">Arcade</div>
                     <div class="game-desc">Come todos los puntos evitando a los fantasmas. ¡Usa las pastillas de poder para devorarlos!</div>
-                    <a class="game-link" href="./pacman/index.html" target="_blank">Jugar</a>
+                    <a class="game-link" href="./pacman/index.html" target="_blank" rel="noopener">Jugar</a>
                 </div>
             </div>
             <div class="game-card">
@@ -217,7 +233,7 @@
                     <div class="game-title">Bubble Shooter</div>
                     <div class="game-category">Arcade</div>
                     <div class="game-desc">Apunta y dispara burbujas de colores. ¡Agrupa 3 o más del mismo color para hacerlas explotar!</div>
-                    <a class="game-link" href="./bubbleshooter/index.html" target="_blank">Jugar</a>
+                    <a class="game-link" href="./bubbleshooter/index.html" target="_blank" rel="noopener">Jugar</a>
                 </div>
             </div>
             <div class="game-card">
@@ -226,7 +242,7 @@
                     <div class="game-title">Ahorcado</div>
                     <div class="game-category">Palabras</div>
                     <div class="game-desc">Adivina la palabra letra a letra antes de que el muñeco quede colgado. ¡Animales, países y deportes!</div>
-                    <a class="game-link" href="./hangman/index.html" target="_blank">Jugar</a>
+                    <a class="game-link" href="./hangman/index.html" target="_blank" rel="noopener">Jugar</a>
                 </div>
             </div>
             <div class="game-card">
@@ -235,7 +251,7 @@
                     <div class="game-title">Carrera de Autos</div>
                     <div class="game-category">Arcade</div>
                     <div class="game-desc">Esquiva los coches enemigos a toda velocidad. ¡Recoge monedas y sobrevive el mayor tiempo posible!</div>
-                    <a class="game-link" href="./carrace/index.html" target="_blank">Jugar</a>
+                    <a class="game-link" href="./carrace/index.html" target="_blank" rel="noopener">Jugar</a>
                 </div>
             </div>
             <div class="game-card">
@@ -244,7 +260,7 @@
                     <div class="game-title">Plataformero</div>
                     <div class="game-category">Plataformas</div>
                     <div class="game-desc">Salta entre plataformas, colecta estrellas y derrota enemigos en 5 niveles llenos de acción.</div>
-                    <a class="game-link" href="./platformer/index.html" target="_blank">Jugar</a>
+                    <a class="game-link" href="./platformer/index.html" target="_blank" rel="noopener">Jugar</a>
                 </div>
             </div>
             <div class="game-card">
@@ -253,7 +269,7 @@
                     <div class="game-title">Apilador de Bloques</div>
                     <div class="game-category">Arcade</div>
                     <div class="game-desc">Toca para soltar el bloque sobre la torre. Solo la parte que coincide se queda. ¡Construye la torre más alta con precisión milimétrica!</div>
-                    <a class="game-link" href="./stacktower/index.html" target="_blank">Jugar</a>
+                    <a class="game-link" href="./stacktower/index.html" target="_blank" rel="noopener">Jugar</a>
                 </div>
             </div>
             <div class="game-card">
@@ -262,7 +278,7 @@
                     <div class="game-title">Catapulta</div>
                     <div class="game-category">Física</div>
                     <div class="game-desc">Arrastra desde la catapulta para cargar y apuntar. Calcula la parábola, compensa el viento y derriba todos los castillos con los tiros disponibles.</div>
-                    <a class="game-link" href="./catapulta/index.html" target="_blank">Jugar</a>
+                    <a class="game-link" href="./catapulta/index.html" target="_blank" rel="noopener">Jugar</a>
                 </div>
             </div>
             <div class="game-card">
@@ -271,7 +287,7 @@
                     <div class="game-title">Helicoidal</div>
                     <div class="game-category">Física</div>
                     <div class="game-desc">Arrastra para rotar la torre y alinea los huecos con la bola que cae. Rebota sobre las zonas seguras, evita las rojas y encadena combos en un descenso infinito.</div>
-                    <a class="game-link" href="./helicoidal/index.html" target="_blank">Jugar</a>
+                    <a class="game-link" href="./helicoidal/index.html" target="_blank" rel="noopener">Jugar</a>
                 </div>
             </div>
             <div class="game-card">
@@ -280,7 +296,7 @@
                     <div class="game-title">Ritmo</div>
                     <div class="game-category">Ritmo</div>
                     <div class="game-desc">Toca el carril correcto justo cuando el bloque cruce la línea brillante. 4 carriles, velocidad creciente y 3 vidas. ¡Encadena combos perfectos y marca un nuevo récord!</div>
-                    <a class="game-link" href="./ritmo/index.html" target="_blank">Jugar</a>
+                    <a class="game-link" href="./ritmo/index.html" target="_blank" rel="noopener">Jugar</a>
                 </div>
             </div>
             <div class="game-card">
@@ -289,7 +305,7 @@
                     <div class="game-title">Cambio de Color</div>
                     <div class="game-category">Reflejos</div>
                     <div class="game-desc">Un toque salta la pelota. Atraviesa cada anillo giratorio solo por el sector del color que llevas y usa los orbes para cambiar de color. Un solo error acaba la partida.</div>
-                    <a class="game-link" href="./cambiocolor/index.html" target="_blank">Jugar</a>
+                    <a class="game-link" href="./cambiocolor/index.html" target="_blank" rel="noopener">Jugar</a>
                 </div>
             </div>
             <div class="game-card">
@@ -298,7 +314,7 @@
                     <div class="game-title">Ajedrez</div>
                     <div class="game-category">Estrategia</div>
                     <div class="game-desc">Juega al ajedrez clásico contra una IA con minimax o con otro jugador. Enroque, al paso y promoción incluidos.</div>
-                    <a class="game-link" href="./chess/index.html" target="_blank">Jugar</a>
+                    <a class="game-link" href="./chess/index.html" target="_blank" rel="noopener">Jugar</a>
                 </div>
             </div>
             <div class="game-card">
@@ -307,7 +323,7 @@
                     <div class="game-title">La Cosecha</div>
                     <div class="game-category">Gestión</div>
                     <div class="game-desc">Administra tu granja en 90 segundos: planta semillas, espera que maduren y reinvierte tus monedas en cultivos cada vez más rentables. ¡Maximiza tus ingresos!</div>
-                    <a class="game-link" href="./cosecha/index.html" target="_blank">Jugar</a>
+                    <a class="game-link" href="./cosecha/index.html" target="_blank" rel="noopener">Jugar</a>
                 </div>
             </div>
             <div class="game-card">
@@ -316,7 +332,7 @@
                     <div class="game-title">Plinko</div>
                     <div class="game-category">Física</div>
                     <div class="game-desc">Toca en la parte superior para soltar una bola. Rebota entre los pinchos y cae en una ranura con multiplicador. Tienes 10 bolas por ronda: ¡apunta a los 10x y bate el récord!</div>
-                    <a class="game-link" href="./plinko/index.html" target="_blank">Jugar</a>
+                    <a class="game-link" href="./plinko/index.html" target="_blank" rel="noopener">Jugar</a>
                 </div>
             </div>
             <div class="game-card">
@@ -325,7 +341,7 @@
                     <div class="game-title">Dardos Giratorios</div>
                     <div class="game-category">Habilidad</div>
                     <div class="game-desc">Clava dardos en la diana que gira sin golpear los que ya están. Completa la cuota de cada nivel para subir de velocidad y superar tu récord.</div>
-                    <a class="game-link" href="./dardos/index.html" target="_blank">Jugar</a>
+                    <a class="game-link" href="./dardos/index.html" target="_blank" rel="noopener">Jugar</a>
                 </div>
             </div>
             <div class="game-card">
@@ -334,7 +350,7 @@
                     <div class="game-title">Gemas</div>
                     <div class="game-category">Puzzle</div>
                     <div class="game-desc">Intercambia gemas adyacentes para alinear 3 o más del mismo tipo. Encadena cascadas, desata combos y exprime cada uno de los 30 movimientos para batir tu récord.</div>
-                    <a class="game-link" href="./gemas/index.html" target="_blank">Jugar</a>
+                    <a class="game-link" href="./gemas/index.html" target="_blank" rel="noopener">Jugar</a>
                 </div>
             </div>
             <div class="game-card">
@@ -343,7 +359,7 @@
                     <div class="game-title">Minero de Oro</div>
                     <div class="game-category">Habilidad</div>
                     <div class="game-desc">Un solo toque lanza el gancho del péndulo. Atrapa pepitas, diamantes y bolsas de dinero; esquiva rocas pesadas que se retraen lentísimo. Alcanza la cuota antes de que se acabe el tiempo para pasar al siguiente nivel.</div>
-                    <a class="game-link" href="./minero/index.html" target="_blank">Jugar</a>
+                    <a class="game-link" href="./minero/index.html" target="_blank" rel="noopener">Jugar</a>
                 </div>
             </div>
             <div class="game-card" data-category="Laberinto">
@@ -352,7 +368,7 @@
                     <div class="game-title">Laberinto Neón</div>
                     <div class="game-category">Laberinto</div>
                     <div class="game-desc">Navega laberintos generados proceduralmente con DFS. Usa flechas, WASD o desliza el dedo. 10 niveles de dificultad creciente — desde 7x9 hasta 25x27. Bate tu récord de tiempo en cada uno.</div>
-                    <a class="game-link" href="./laberinto/index.html" target="_blank">Jugar</a>
+                    <a class="game-link" href="./laberinto/index.html" target="_blank" rel="noopener">Jugar</a>
                 </div>
             </div>
             <div class="game-card">
@@ -361,7 +377,7 @@
                     <div class="game-title">Empuja Cajas</div>
                     <div class="game-category">Lógica</div>
                     <div class="game-desc">Empuja cajas hasta las marcas del suelo en 10 niveles de dificultad creciente. No puedes jalar, solo empujar. Planifica cada movimiento y bate tu récord de pasos.</div>
-                    <a class="game-link" href="./sokoban/index.html" target="_blank">Jugar</a>
+                    <a class="game-link" href="./sokoban/index.html" target="_blank" rel="noopener">Jugar</a>
                 </div>
             </div>
             <div class="game-card">
@@ -370,7 +386,7 @@
                     <div class="game-title">Pinball Neón</div>
                     <div class="game-category">Arcade</div>
                     <div class="game-desc">Controla dos flippers para mantener la bola en juego. Golpea bumpers neón, sube de nivel y bate tu récord. Z/X o toca la mitad izq/der de la pantalla para activar cada flipper.</div>
-                    <a class="game-link" href="./pinball/index.html" target="_blank">Jugar</a>
+                    <a class="game-link" href="./pinball/index.html" target="_blank" rel="noopener">Jugar</a>
                 </div>
             </div>
             <div class="game-card">
@@ -379,7 +395,7 @@
                     <div class="game-title">Billar</div>
                     <div class="game-category">Física</div>
                     <div class="game-desc">Mesa de pool con físicas realistas. Arrastra desde la bola blanca para apuntar, regula la potencia y emboca todas las bolas sin meter la blanca.</div>
-                    <a class="game-link" href="./billar/index.html" target="_blank">Jugar</a>
+                    <a class="game-link" href="./billar/index.html" target="_blank" rel="noopener">Jugar</a>
                 </div>
             </div>
             <div class="game-card">
@@ -388,7 +404,7 @@
                     <div class="game-title">Air Hockey</div>
                     <div class="game-category">Arcade</div>
                     <div class="game-desc">Mesa neón contra la IA. Arrastra tu mazo para golpear el disco y marca antes que tu rival. El primero en llegar a 7 goles gana.</div>
-                    <a class="game-link" href="./airhockey/index.html" target="_blank">Jugar</a>
+                    <a class="game-link" href="./airhockey/index.html" target="_blank" rel="noopener">Jugar</a>
                 </div>
             </div>
             <div class="game-card">
@@ -397,7 +413,7 @@
                     <div class="game-title">Damas</div>
                     <div class="game-category">Estrategia</div>
                     <div class="game-desc">Damas clásicas contra una IA con minimax o contra otro jugador. Capturas obligatorias, capturas múltiples y coronación.</div>
-                    <a class="game-link" href="./damas/index.html" target="_blank">Jugar</a>
+                    <a class="game-link" href="./damas/index.html" target="_blank" rel="noopener">Jugar</a>
                 </div>
             </div>
             <div class="game-card">
@@ -406,7 +422,7 @@
                     <div class="game-title">Reversi</div>
                     <div class="game-category">Estrategia</div>
                     <div class="game-desc">Othello 8×8 contra la IA. Voltea las fichas rivales encerrándolas y domina las esquinas para controlar el tablero.</div>
-                    <a class="game-link" href="./reversi/index.html" target="_blank">Jugar</a>
+                    <a class="game-link" href="./reversi/index.html" target="_blank" rel="noopener">Jugar</a>
                 </div>
             </div>
             <div class="game-card">
@@ -415,7 +431,7 @@
                     <div class="game-title">Comando Misil</div>
                     <div class="game-category">Shooter</div>
                     <div class="game-desc">Defiende tus ciudades de la lluvia de misiles. Toca para lanzar antimisiles y crear explosiones en cadena que intercepten al enemigo.</div>
-                    <a class="game-link" href="./misiles/index.html" target="_blank">Jugar</a>
+                    <a class="game-link" href="./misiles/index.html" target="_blank" rel="noopener">Jugar</a>
                 </div>
             </div>
             <div class="game-card">
@@ -424,7 +440,7 @@
                     <div class="game-title">Saltador</div>
                     <div class="game-category">Arcade</div>
                     <div class="game-desc">Salta de plataforma en plataforma subiendo sin parar. Plataformas móviles, rompibles y muelles. ¿Hasta qué altura llegarás?</div>
-                    <a class="game-link" href="./saltador/index.html" target="_blank">Jugar</a>
+                    <a class="game-link" href="./saltador/index.html" target="_blank" rel="noopener">Jugar</a>
                 </div>
             </div>
             <div class="game-card">
@@ -433,7 +449,7 @@
                     <div class="game-title">Batalla Naval</div>
                     <div class="game-category">Estrategia</div>
                     <div class="game-desc">Hunde la flota enemiga antes de que la IA hunda la tuya. Coloca tus barcos y dispara por turnos en el tablero rival.</div>
-                    <a class="game-link" href="./batallanaval/index.html" target="_blank">Jugar</a>
+                    <a class="game-link" href="./batallanaval/index.html" target="_blank" rel="noopener">Jugar</a>
                 </div>
             </div>
             <div class="game-card">
@@ -442,7 +458,7 @@
                     <div class="game-title">Blackjack</div>
                     <div class="game-category">Cartas</div>
                     <div class="game-desc">El 21 clásico contra la banca. Apuesta tus fichas, pide, plántate o dobla. El blackjack paga 3:2 y tu banca se guarda entre sesiones.</div>
-                    <a class="game-link" href="./blackjack/index.html" target="_blank">Jugar</a>
+                    <a class="game-link" href="./blackjack/index.html" target="_blank" rel="noopener">Jugar</a>
                 </div>
             </div>
             <div class="game-card">
@@ -451,7 +467,7 @@
                     <div class="game-title">Sopa de Letras</div>
                     <div class="game-category">Palabras</div>
                     <div class="game-desc">Encuentra las 8 palabras ocultas en la cuadrícula arrastrando en cualquier dirección. Bonus por velocidad y partidas siempre nuevas.</div>
-                    <a class="game-link" href="./sopaletras/index.html" target="_blank">Jugar</a>
+                    <a class="game-link" href="./sopaletras/index.html" target="_blank" rel="noopener">Jugar</a>
                 </div>
             </div>
             <div class="game-card">
@@ -460,7 +476,7 @@
                     <div class="game-title">Torres de Hanói</div>
                     <div class="game-category">Lógica</div>
                     <div class="game-desc">Mueve la torre de discos completa a otra varilla sin poner un disco grande sobre uno pequeño. Consigue 3 estrellas con el mínimo de movimientos.</div>
-                    <a class="game-link" href="./hanoi/index.html" target="_blank">Jugar</a>
+                    <a class="game-link" href="./hanoi/index.html" target="_blank" rel="noopener">Jugar</a>
                 </div>
             </div>
             <p class="no-results" id="noResults">No se encontraron juegos con esos criterios.</p>

@@ -10,12 +10,6 @@
 }
 .info-side p { font-size: 1.1rem; margin-bottom: 1.5rem; color: var(--text-muted); }
 .buttons-panel { display: flex; gap: 1rem; margin-top: 1.5rem; }
-@media (max-width: 900px) {
-    .responsive-layout { flex-direction: column; align-items: center; gap: 1.5rem; padding: 1rem 0.5rem; }
-    .info-side { max-width: 100vw; width: 100%; margin-top: 0; align-items: center; text-align: center; }
-    .info-side h1 { font-size: 1.7rem; }
-    .game-side { width: 100%; justify-content: center; }
-}
 body { background: var(--grad-bg); color: #fff; min-height: 100vh; margin: 0; }
 
 /* ===================== WORDLE GRID ===================== */

@@ -4,7 +4,7 @@ description: Scaffold a complete new game from the project template. Pass the fo
 
 # New Game — "$ARGUMENTS"
 
-Scaffold a new game called **"$ARGUMENTS"** in `/Users/hahn/Documents/Desarrollo/Games/$ARGUMENTS/` following every project convention.
+Scaffold a new game called **"$ARGUMENTS"** in `/Users/hahn/Documents/Repository/Web/Games/$ARGUMENTS/` following every project convention.
 
 ## 1 — Create files
 
@@ -85,7 +85,7 @@ document.getElementById('playAgainBtn').addEventListener('click', function () {
 
 ## 2 — Add thumbnail to `thumbnails.js`
 
-Open `/Users/hahn/Documents/Desarrollo/Games/thumbnails.js` and add a drawing function
+Open `/Users/hahn/Documents/Repository/Web/Games/thumbnails.js` and add a drawing function
 for `$ARGUMENTS` inside the `thumbs` object, before the closing `};`.
 
 Draw a recognisable mini-scene for the game using Canvas 2D API primitives only — no images,

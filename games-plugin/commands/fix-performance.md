@@ -4,7 +4,7 @@ description: Scan a game's main.js for canvas performance anti-patterns and fix 
 
 # Fix Performance — "$ARGUMENTS"
 
-Scan `/Users/hahn/Documents/Desarrollo/Games/$ARGUMENTS/main.js` for the performance anti-patterns below and fix each one found.
+Scan `/Users/hahn/Documents/Repository/Web/Games/$ARGUMENTS/main.js` for the performance anti-patterns below and fix each one found.
 
 ## Anti-patterns to find and fix
 
