@@ -5,22 +5,19 @@ function setupMobileUI() {
     if (isMobile()) {
         touchControls.style.display = 'flex';
         mobileScore.style.display = 'block';
-        // Eventos de botones táctiles
+        // Eventos de botones táctiles (ocultos globalmente por CSS; se
+        // mantienen por compatibilidad, el control real es el swipe en canvas)
         document.getElementById('btnUp').addEventListener('touchstart', function(e) {
-            e.preventDefault();
-            if (direction !== 'DOWN') direction = 'UP';
+            e.preventDefault(); queueDirection('UP');
         });
         document.getElementById('btnDown').addEventListener('touchstart', function(e) {
-            e.preventDefault();
-            if (direction !== 'UP') direction = 'DOWN';
+            e.preventDefault(); queueDirection('DOWN');
         });
         document.getElementById('btnLeft').addEventListener('touchstart', function(e) {
-            e.preventDefault();
-            if (direction !== 'RIGHT') direction = 'LEFT';
+            e.preventDefault(); queueDirection('LEFT');
         });
         document.getElementById('btnRight').addEventListener('touchstart', function(e) {
-            e.preventDefault();
-            if (direction !== 'LEFT') direction = 'RIGHT';
+            e.preventDefault(); queueDirection('RIGHT');
         });
     } else {
         touchControls.style.display = 'none';
@@ -41,20 +38,55 @@ const ctx = canvas.getContext('2d');
 let box = 15;
 let canvasSize = 600;
 
+// Reescala una coordenada de píxeles del grid antiguo al nuevo (cambio de tamaño
+// de canvas por rotación de pantalla). Sin esto la serpiente queda fuera de
+// grid y no puede volver a comer nunca.
+function rescaleCoord(v, oldBox) {
+    const cells = Math.floor(canvasSize / box);
+    const idx = Math.min(cells - 1, Math.max(0, Math.round(v / oldBox)));
+    return idx * box;
+}
+
 function syncCanvasLogicSize() {
+    const oldBox = box;
     canvasSize = canvas.width;
-    box = Math.floor(canvasSize / 40);
+    box = Math.max(4, Math.floor(canvasSize / 40));
+    if (oldBox !== box) {
+        snake.forEach(s => { s.x = rescaleCoord(s.x, oldBox); s.y = rescaleCoord(s.y, oldBox); });
+        if (fruit) { fruit.x = rescaleCoord(fruit.x, oldBox); fruit.y = rescaleCoord(fruit.y, oldBox); }
+        if (specialFruit) {
+            specialFruit.x = rescaleCoord(specialFruit.x, oldBox);
+            specialFruit.y = rescaleCoord(specialFruit.y, oldBox);
+        }
+        bgGradSize = -1;
+        fruitGradKey = '';
+    }
 }
 window.addEventListener('resize', syncCanvasLogicSize);
 document.addEventListener('DOMContentLoaded', syncCanvasLogicSize);
 
 let snake = [{ x: 9 * box, y: 10 * box }];
 let direction = 'RIGHT';
+// Cola de giros pendientes: se consume UNO por tick de movimiento. Evita las
+// dos patologías clásicas del snake: (a) pulsar ↑ y luego ← dentro del mismo
+// tick invertía la dirección y provocaba muerte instantánea, (b) el segundo
+// giro de una pulsación rápida se perdía.
+let pendingDirs = [];
+const OPPOSITE = { LEFT: 'RIGHT', RIGHT: 'LEFT', UP: 'DOWN', DOWN: 'UP' };
 let fruit = randomPosition();
 let score = 0;
-let highScore = localStorage.getItem('snakeHighScore') || 0;
-let gameInterval;
+let highScore = Number(localStorage.getItem('snakeHighScore')) || 0;
+let gameInterval = null;
 let speed = 250;
+
+function queueDirection(dir) {
+    if (!isPlaying) return;
+    const last = pendingDirs.length ? pendingDirs[pendingDirs.length - 1] : direction;
+    if (dir === last || dir === OPPOSITE[last]) return;
+    if (pendingDirs.length >= 2) return;
+    pendingDirs.push(dir);
+    GameAudio.slide();
+}
 
 
 // --- Progresión ---
@@ -74,11 +106,19 @@ function getMultiplier() {
 let specialFruit = null;
 let specialFruitTimer = 0;
 let specialFruitBlink = 0;
-const SPECIAL_FRUIT_DURATION = 300; // ticks (a velocidad base)
+// Ticks de movimiento (a 250ms eran 75 s: la estrella no caducaba nunca en
+// la práctica). 45 ticks ≈ 11 s a nivel 1 y ≈ 4,5 s a nivel 10.
+const SPECIAL_FRUIT_DURATION = 45;
 
-// --- Flash de muerte ---
+// --- Flash de muerte (en frames de render, no en ticks) ---
 let deathFlash = false;
 let deathFlashTimer = 0;
+const DEATH_FLASH_FRAMES = 26;
+
+// --- Caché de gradientes ---
+let bgGradCache = null, bgGradSize = -1;
+let fruitGradCache = null, fruitGradKey = '';
+let starGradCache = null, starGradKey = '';
 
 // --- Partículas al comer ---
 let eatParticles = [];
@@ -126,13 +166,15 @@ function spawnEatParticles(x, y, color1, color2) {
             vx: Math.cos(angle) * spd,
             vy: Math.sin(angle) * spd,
             life: 1.0,
-            decay: 0.04 + Math.random() * 0.03,
+            // Decay pensado para 60fps de render (antes se actualizaban a 4fps)
+            decay: 0.018 + Math.random() * 0.012,
             size: 2 + Math.random() * 3,
             color: Math.random() > 0.5 ? color1 : color2
         });
     }
 }
 
+// Solo mueve/expira. El dibujado va en drawParticles().
 function updateParticles() {
     for (let i = eatParticles.length - 1; i >= 0; i--) {
         const p = eatParticles[i];
@@ -140,21 +182,37 @@ function updateParticles() {
         p.y += p.vy;
         p.vy += 0.08;
         p.life -= p.decay;
-        if (p.life <= 0) {
-            eatParticles.splice(i, 1);
-        } else {
-            ctx.save();
-            ctx.globalAlpha = p.life;
-            ctx.fillStyle = p.color;
-            ctx.beginPath();
-            ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
-            ctx.fill();
-            ctx.restore();
-        }
+        if (p.life <= 0) eatParticles.splice(i, 1);
     }
 }
 
-// Dibuja la fruta (manzana)
+function drawParticles() {
+    if (!eatParticles.length) return;
+    // Estado de dibujo fuera del bucle; fillRect en vez de arc para partículas
+    // pequeñas (reglas 2, 4 y 6 de rendimiento canvas).
+    for (let i = 0; i < eatParticles.length; i++) {
+        const p = eatParticles[i];
+        ctx.globalAlpha = p.life;
+        ctx.fillStyle = p.color;
+        ctx.fillRect(p.x - p.size / 2, p.y - p.size / 2, p.size, p.size);
+    }
+    ctx.globalAlpha = 1;
+}
+
+// Dibuja la fruta (manzana). El gradiente se cachea: la fruta solo cambia de
+// sitio al comerla, así que no hay que reconstruirlo en cada frame.
+function getFruitGrad(fx, fy, r) {
+    const key = fx + ',' + fy + ',' + r;
+    if (fruitGradKey !== key) {
+        fruitGradCache = ctx.createRadialGradient(fx - r * 0.25, fy - r * 0.25, r * 0.05, fx, fy, r);
+        fruitGradCache.addColorStop(0, '#ff6b6b');
+        fruitGradCache.addColorStop(0.5, '#e53935');
+        fruitGradCache.addColorStop(1, '#8b0000');
+        fruitGradKey = key;
+    }
+    return fruitGradCache;
+}
+
 function drawFruit() {
     const fx = fruit.x + box / 2;
     const fy = fruit.y + box / 2 + 1;
@@ -163,11 +221,7 @@ function drawFruit() {
     ctx.save();
     ctx.beginPath();
     ctx.arc(fx, fy, r, 0, Math.PI * 2);
-    const bodyGrad = ctx.createRadialGradient(fx - r * 0.25, fy - r * 0.25, r * 0.05, fx, fy, r);
-    bodyGrad.addColorStop(0, '#ff6b6b');
-    bodyGrad.addColorStop(0.5, '#e53935');
-    bodyGrad.addColorStop(1, '#8b0000');
-    ctx.fillStyle = bodyGrad;
+    ctx.fillStyle = getFruitGrad(fx, fy, r);
     ctx.fill();
 
     ctx.beginPath();
@@ -192,18 +246,26 @@ function drawFruit() {
     ctx.restore();
 }
 
-// Dibuja la fruta especial (estrella dorada parpadeante)
+function getStarGrad(fx, fy, r) {
+    const key = fx + ',' + fy + ',' + r;
+    if (starGradKey !== key) {
+        starGradCache = ctx.createRadialGradient(fx, fy - r * 0.2, 0, fx, fy, r);
+        starGradCache.addColorStop(0, '#fff9c4');
+        starGradCache.addColorStop(0.5, '#ffd700');
+        starGradCache.addColorStop(1, '#ff6f00');
+        starGradKey = key;
+    }
+    return starGradCache;
+}
+
+// Dibuja la fruta especial (estrella dorada parpadeante).
+// El contador de parpadeo lo avanza updateEffects(), no esta función.
 function drawSpecialFruit() {
     if (!specialFruit) return;
-    specialFruitBlink++;
-    // Parpadeo: ocultar cada 6 ticks en los últimos 100 ticks
-    const blinkRate = specialFruitTimer < 100 ? 4 : 8;
-    if (Math.floor(specialFruitBlink / blinkRate) % 2 === 0 && specialFruitTimer < 150) {
-        // visible
-    } else if (specialFruitTimer >= 150) {
-        // siempre visible al inicio
-    } else {
-        return;
+    // Parpadea (cada vez más rápido) en el último tercio de vida.
+    if (specialFruitTimer < SPECIAL_FRUIT_DURATION * 0.35) {
+        const blinkRate = specialFruitTimer < SPECIAL_FRUIT_DURATION * 0.15 ? 5 : 10;
+        if (Math.floor(specialFruitBlink / blinkRate) % 2 !== 0) return;
     }
 
     const fx = specialFruit.x + box / 2;
@@ -225,11 +287,7 @@ function drawSpecialFruit() {
         i === 0 ? ctx.moveTo(px, py) : ctx.lineTo(px, py);
     }
     ctx.closePath();
-    const starGrad = ctx.createRadialGradient(fx, fy - r * 0.2, 0, fx, fy, r);
-    starGrad.addColorStop(0, '#fff9c4');
-    starGrad.addColorStop(0.5, '#ffd700');
-    starGrad.addColorStop(1, '#ff6f00');
-    ctx.fillStyle = starGrad;
+    ctx.fillStyle = getStarGrad(fx, fy, r);
     ctx.fill();
     ctx.strokeStyle = '#fff8e1';
     ctx.lineWidth = 1;
@@ -282,145 +340,160 @@ function drawHUD() {
     ctx.restore();
 
     // Mensajes flotantes en canvas (multiplicador obtenido, etc.)
-    for (let i = hudMessages.length - 1; i >= 0; i--) {
-        const msg = hudMessages[i];
-        msg.y -= 0.8;
-        msg.life -= 1;
-        if (msg.life <= 0) {
-            hudMessages.splice(i, 1);
-            continue;
-        }
+    if (hudMessages.length) {
         ctx.save();
-        ctx.globalAlpha = Math.min(1, msg.life / 20);
         ctx.font = `bold ${Math.max(14, fontSize + 4)}px monospace`;
-        ctx.fillStyle = msg.color;
         ctx.textAlign = 'center';
-        ctx.fillText(msg.text, msg.x, msg.y);
+        for (let i = 0; i < hudMessages.length; i++) {
+            const msg = hudMessages[i];
+            ctx.globalAlpha = Math.min(1, msg.life / 25);
+            ctx.fillStyle = msg.color;
+            ctx.fillText(msg.text, msg.x, msg.y);
+        }
         ctx.restore();
     }
 }
 
+function getBgGrad() {
+    if (bgGradSize !== canvasSize) {
+        bgGradCache = ctx.createLinearGradient(0, 0, canvasSize, canvasSize);
+        bgGradCache.addColorStop(0, '#0a0a0a');
+        bgGradCache.addColorStop(1, '#111111');
+        bgGradSize = canvasSize;
+    }
+    return bgGradCache;
+}
+
 function draw() {
-    // Fondo
-    const bgGrad = ctx.createLinearGradient(0, 0, canvasSize, canvasSize);
-    bgGrad.addColorStop(0, '#0a0a0a');
-    bgGrad.addColorStop(1, '#111111');
-    ctx.fillStyle = bgGrad;
+    // Fondo (gradiente cacheado — regla 7)
+    ctx.fillStyle = getBgGrad();
     ctx.fillRect(0, 0, canvasSize, canvasSize);
 
     // Flash rojo de muerte
     if (deathFlash) {
-        ctx.save();
-        ctx.globalAlpha = 0.45 * (deathFlashTimer / 8);
+        ctx.globalAlpha = 0.45 * (deathFlashTimer / DEATH_FLASH_FRAMES);
         ctx.fillStyle = '#ff1744';
         ctx.fillRect(0, 0, canvasSize, canvasSize);
-        ctx.restore();
+        ctx.globalAlpha = 1;
     }
 
-    // Grid sutil
-    ctx.save();
+    // Grid sutil — un único path para las ~80 líneas en vez de 80 strokes
     ctx.strokeStyle = 'rgba(255,255,255,0.03)';
     ctx.lineWidth = 0.5;
+    ctx.beginPath();
     for (let gx = 0; gx <= canvasSize; gx += box) {
-        ctx.beginPath(); ctx.moveTo(gx, 0); ctx.lineTo(gx, canvasSize); ctx.stroke();
+        ctx.moveTo(gx, 0); ctx.lineTo(gx, canvasSize);
     }
     for (let gy = 0; gy <= canvasSize; gy += box) {
-        ctx.beginPath(); ctx.moveTo(0, gy); ctx.lineTo(canvasSize, gy); ctx.stroke();
+        ctx.moveTo(0, gy); ctx.lineTo(canvasSize, gy);
     }
-    ctx.restore();
+    ctx.stroke();
 
-    // Serpiente
-    for (let i = snake.length - 1; i >= 0; i--) {
+    // ── Cuerpo (de la cola hacia la cabeza) ──
+    // Sin gradiente ni save/restore por segmento: dos arcos planos leen igual
+    // y evitan crear N gradientes radiales por frame (reglas 2, 4 y 7).
+    const bodyR = box / 2 - 1;
+    const hiR = bodyR * 0.58;
+    for (let i = snake.length - 1; i >= 1; i--) {
         const seg = snake[i];
         const cx = seg.x + box / 2;
         const cy = seg.y + box / 2;
-        const isHead = i === 0;
-        const tailLen = snake.length;
-
-        let alpha = 1.0;
-        if (!isHead) {
-            const fromTail = tailLen - 1 - i;
-            if (fromTail === 0) alpha = 0.4;
-            else if (fromTail === 1) alpha = 0.6;
-            else if (fromTail === 2) alpha = 0.8;
-        }
-
-        ctx.save();
-        ctx.globalAlpha = alpha;
-
-        // Flash rojo en la cabeza al morir
-        const headColor0 = (deathFlash && isHead) ? '#ff6060' : '#b2ff59';
-        const headColor1 = (deathFlash && isHead) ? '#ff1744' : '#76c442';
-        const headColor2 = (deathFlash && isHead) ? '#7f0000' : '#1b5e20';
-
-        if (isHead) {
-            ctx.shadowBlur = 12;
-            ctx.shadowColor = deathFlash ? '#ff1744' : '#76ff03';
-        }
-
-        const radius = isHead ? box / 2 : box / 2 - 1;
-        const grad = ctx.createRadialGradient(
-            cx - radius * 0.2, cy - radius * 0.2, radius * 0.05,
-            cx, cy, radius
-        );
-        if (isHead) {
-            grad.addColorStop(0, headColor0);
-            grad.addColorStop(0.45, headColor1);
-            grad.addColorStop(1, headColor2);
-        } else {
-            grad.addColorStop(0, '#81c784');
-            grad.addColorStop(0.45, '#4caf50');
-            grad.addColorStop(1, '#1b5e20');
-        }
-
+        const fromTail = snake.length - 1 - i;
+        ctx.globalAlpha = fromTail === 0 ? 0.4 : fromTail === 1 ? 0.6 : fromTail === 2 ? 0.8 : 1;
+        ctx.fillStyle = '#37913c';
         ctx.beginPath();
-        ctx.arc(cx, cy, radius, 0, Math.PI * 2);
-        ctx.fillStyle = grad;
+        ctx.arc(cx, cy, bodyR, 0, Math.PI * 2);
         ctx.fill();
-
-        ctx.lineWidth = 1;
-        ctx.strokeStyle = 'rgba(0,0,0,0.4)';
-        ctx.stroke();
-
-        if (!isHead && box > 8) {
-            ctx.beginPath();
-            ctx.arc(cx, cy, radius * 0.55, Math.PI * 0.2, Math.PI * 0.8);
-            ctx.strokeStyle = 'rgba(255,255,255,0.12)';
-            ctx.lineWidth = 1;
-            ctx.stroke();
-        }
-
-        ctx.restore();
-
-        if (isHead) {
-            ctx.save();
-            let eyeOffsetX = 0, eyeOffsetY = 0, pupilOffsetX = 0, pupilOffsetY = 0;
-            if (direction === 'LEFT') { eyeOffsetX = -box / 4; pupilOffsetX = -1.5; }
-            if (direction === 'RIGHT') { eyeOffsetX = box / 4; pupilOffsetX = 1.5; }
-            if (direction === 'UP') { eyeOffsetY = -box / 4; pupilOffsetY = -1.5; }
-            if (direction === 'DOWN') { eyeOffsetY = box / 4; pupilOffsetY = 1.5; }
-
-            ctx.beginPath();
-            ctx.arc(cx - box / 6 + eyeOffsetX / 2, cy - box / 6 + eyeOffsetY / 2, box / 8, 0, Math.PI * 2);
-            ctx.fillStyle = '#fff'; ctx.fill();
-            ctx.beginPath();
-            ctx.arc(cx + box / 6 + eyeOffsetX / 2, cy - box / 6 + eyeOffsetY / 2, box / 8, 0, Math.PI * 2);
-            ctx.fillStyle = '#fff'; ctx.fill();
-            ctx.fillStyle = '#111';
-            ctx.beginPath();
-            ctx.arc(cx - box / 6 + eyeOffsetX / 2 + pupilOffsetX, cy - box / 6 + eyeOffsetY / 2 + pupilOffsetY, box / 18, 0, Math.PI * 2);
-            ctx.fill();
-            ctx.beginPath();
-            ctx.arc(cx + box / 6 + eyeOffsetX / 2 + pupilOffsetX, cy - box / 6 + eyeOffsetY / 2 + pupilOffsetY, box / 18, 0, Math.PI * 2);
-            ctx.fill();
-            ctx.restore();
-        }
+        ctx.fillStyle = '#68bd6d';
+        ctx.beginPath();
+        ctx.arc(cx - bodyR * 0.2, cy - bodyR * 0.2, hiR, 0, Math.PI * 2);
+        ctx.fill();
     }
+    ctx.globalAlpha = 1;
+
+    // ── Cabeza (único elemento con shadowBlur — regla 1) ──
+    const head = snake[0];
+    const hx = head.x + box / 2;
+    const hy = head.y + box / 2;
+    const hr = box / 2;
+
+    ctx.save();
+    ctx.shadowBlur = 12;
+    ctx.shadowColor = deathFlash ? '#ff1744' : '#76ff03';
+    const headGrad = ctx.createRadialGradient(hx - hr * 0.2, hy - hr * 0.2, hr * 0.05, hx, hy, hr);
+    headGrad.addColorStop(0, deathFlash ? '#ff6060' : '#b2ff59');
+    headGrad.addColorStop(0.45, deathFlash ? '#ff1744' : '#76c442');
+    headGrad.addColorStop(1, deathFlash ? '#7f0000' : '#1b5e20');
+    ctx.beginPath();
+    ctx.arc(hx, hy, hr, 0, Math.PI * 2);
+    ctx.fillStyle = headGrad;
+    ctx.fill();
+    ctx.restore();
+
+    ctx.lineWidth = 1;
+    ctx.strokeStyle = 'rgba(0,0,0,0.4)';
+    ctx.beginPath();
+    ctx.arc(hx, hy, hr, 0, Math.PI * 2);
+    ctx.stroke();
+
+    // Ojos
+    let eyeOffsetX = 0, eyeOffsetY = 0, pupilOffsetX = 0, pupilOffsetY = 0;
+    if (direction === 'LEFT') { eyeOffsetX = -box / 4; pupilOffsetX = -1.5; }
+    if (direction === 'RIGHT') { eyeOffsetX = box / 4; pupilOffsetX = 1.5; }
+    if (direction === 'UP') { eyeOffsetY = -box / 4; pupilOffsetY = -1.5; }
+    if (direction === 'DOWN') { eyeOffsetY = box / 4; pupilOffsetY = 1.5; }
+    const eyeLX = hx - box / 6 + eyeOffsetX / 2;
+    const eyeRX = hx + box / 6 + eyeOffsetX / 2;
+    const eyeY = hy - box / 6 + eyeOffsetY / 2;
+
+    ctx.fillStyle = '#fff';
+    ctx.beginPath();
+    ctx.arc(eyeLX, eyeY, box / 8, 0, Math.PI * 2);
+    ctx.arc(eyeRX, eyeY, box / 8, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.fillStyle = '#111';
+    ctx.beginPath();
+    ctx.arc(eyeLX + pupilOffsetX, eyeY + pupilOffsetY, box / 18, 0, Math.PI * 2);
+    ctx.arc(eyeRX + pupilOffsetX, eyeY + pupilOffsetY, box / 18, 0, Math.PI * 2);
+    ctx.fill();
 
     drawFruit();
     drawSpecialFruit();
-    updateParticles();
+    drawParticles();
     drawHUD();
+}
+
+// Avanza todo lo puramente visual. Corre a 60fps, desacoplado del tick de
+// movimiento (antes las partículas y los mensajes solo avanzaban 4 veces por
+// segundo, en el propio draw()).
+function updateEffects() {
+    updateParticles();
+
+    for (let i = hudMessages.length - 1; i >= 0; i--) {
+        const msg = hudMessages[i];
+        msg.y -= 0.8;
+        msg.life -= 1;
+        if (msg.life <= 0) hudMessages.splice(i, 1);
+    }
+
+    if (specialFruit) specialFruitBlink++;
+
+    if (deathFlash) {
+        deathFlashTimer--;
+        if (deathFlashTimer <= 0) {
+            deathFlash = false;
+            gameOver();
+        }
+    }
+}
+
+let lastRenderTs = 0;
+function renderLoop(ts) {
+    requestAnimationFrame(renderLoop);
+    if (ts - lastRenderTs < 15) return;
+    lastRenderTs = ts;
+    updateEffects();
+    draw();
 }
 
 function addHudMessage(text, x, y, color) {
@@ -430,12 +503,15 @@ function addHudMessage(text, x, y, color) {
 function updateLevel() {
     const newLevel = Math.floor(fruitsEaten / 5) + 1;
     if (newLevel !== level) {
+        const prevMult = getMultiplier();
         level = newLevel;
         addHudMessage(`NIVEL ${level}`, canvasSize / 2, canvasSize / 2, '#8fd3f4');
         const mult = getMultiplier();
         if (mult > 1) {
             addHudMessage(`×${mult} PTS`, canvasSize / 2, canvasSize / 2 + 30, '#ffe082');
         }
+        // Solo el salto de multiplicador merece el sonido de hito
+        if (mult > prevMult) GameAudio.scoreHigh();
     }
 }
 
@@ -448,6 +524,9 @@ function computeSpeed() {
 }
 
 function moveSnake() {
+    // Consume UN giro pendiente por tick (ver queueDirection)
+    if (pendingDirs.length) direction = pendingDirs.shift();
+
     let head = { ...snake[0] };
     if (direction === 'LEFT') head.x -= box;
     if (direction === 'RIGHT') head.x += box;
@@ -460,8 +539,11 @@ function moveSnake() {
         return;
     }
 
-    // Colisión con sí mismo
-    for (let i = 0; i < snake.length; i++) {
+    // Colisión con sí mismo. El último segmento se libera en este mismo tick,
+    // así que entrar en su celda es legal (la fruta nunca aparece sobre la
+    // serpiente, así que no hay caso en que la cola se quede quieta ahí).
+    const bodyEnd = snake.length - 1;
+    for (let i = 0; i < bodyEnd; i++) {
         if (head.x === snake[i].x && head.y === snake[i].y) {
             triggerDeathFlash();
             return;
@@ -503,7 +585,7 @@ function moveSnake() {
         addHudMessage(`¡+${pts}!`, specialFruit.x + box / 2, specialFruit.y, '#ffd700');
         specialFruit = null;
         specialFruitTimer = 0;
-        GameAudio.score();
+        GameAudio.powerUp();
     }
 
     if (!ate) {
@@ -526,38 +608,31 @@ function moveSnake() {
         gameInterval = rafInterval(moveSnake, speed);
     }
 
-    draw();
     updateScore();
-    updateMobileScore();
 }
 
+// El flash y la transición a game over los avanza updateEffects() en el bucle
+// de render, para que duren siempre lo mismo independientemente del nivel.
 function triggerDeathFlash() {
     rafClear(gameInterval);
+    gameInterval = null;
+    pendingDirs.length = 0;
     deathFlash = true;
-    deathFlashTimer = 8;
-    // Dibujar el flash y luego mostrar game over
-    let flashCount = 0;
-    const flashInterval = rafInterval(() => {
-        deathFlashTimer--;
-        flashCount++;
-        draw();
-        if (flashCount >= 8) {
-            rafClear(flashInterval);
-            deathFlash = false;
-            gameOver();
-        }
-    }, 60);
+    deathFlashTimer = DEATH_FLASH_FRAMES;
+    GameAudio.hit();
 }
 
 // Control de teclado
+const KEY_DIRS = {
+    ArrowLeft: 'LEFT', ArrowUp: 'UP', ArrowRight: 'RIGHT', ArrowDown: 'DOWN',
+    a: 'LEFT', w: 'UP', d: 'RIGHT', s: 'DOWN',
+    A: 'LEFT', W: 'UP', D: 'RIGHT', S: 'DOWN',
+};
 window.addEventListener('keydown', e => {
-    if (["ArrowLeft", "ArrowUp", "ArrowRight", "ArrowDown"].includes(e.key)) {
-        e.preventDefault();
-    }
-    if (e.key === 'ArrowLeft' && direction !== 'RIGHT') { direction = 'LEFT'; GameAudio.slide(); }
-    if (e.key === 'ArrowUp' && direction !== 'DOWN') { direction = 'UP'; GameAudio.slide(); }
-    if (e.key === 'ArrowRight' && direction !== 'LEFT') { direction = 'RIGHT'; GameAudio.slide(); }
-    if (e.key === 'ArrowDown' && direction !== 'UP') { direction = 'DOWN'; GameAudio.slide(); }
+    const dir = KEY_DIRS[e.key];
+    if (!dir) return;
+    e.preventDefault();
+    queueDirection(dir);
 });
 
 // Swipe gestures en el canvas
@@ -581,13 +656,11 @@ window.addEventListener('keydown', e => {
         var absDx = Math.abs(dx), absDy = Math.abs(dy);
         if (Math.max(absDx, absDy) < MIN_SWIPE) {
             // TAP: iniciar si no ha empezado, reiniciar si hay game over
-            if (!isPlaying) { startGame(); }
+            if (!isPlaying && !deathFlash) { startGame(); }
         } else if (absDx > absDy) {
-            if (dx > 0) { if (direction !== 'LEFT') { direction = 'RIGHT'; GameAudio.slide(); } }
-            else        { if (direction !== 'RIGHT') { direction = 'LEFT';  GameAudio.slide(); } }
+            queueDirection(dx > 0 ? 'RIGHT' : 'LEFT');
         } else {
-            if (dy > 0) { if (direction !== 'UP')   { direction = 'DOWN';  GameAudio.slide(); } }
-            else        { if (direction !== 'DOWN')  { direction = 'UP';    GameAudio.slide(); } }
+            queueDirection(dy > 0 ? 'DOWN' : 'UP');
         }
     }, { passive: false });
 })();
@@ -597,52 +670,45 @@ const restartBtn = document.getElementById('restartBtn');
 
 let isPlaying = false;
 
+// Estado inicial común a iniciar y reiniciar (una sola definición: antes
+// estaban duplicados y era fácil que se desincronizaran).
+function resetRoundState() {
+    rafClear(gameInterval);
+    gameInterval = null;
+    syncCanvasLogicSize();
+    snake = [{ x: 9 * box, y: 10 * box }];
+    direction = 'RIGHT';
+    pendingDirs.length = 0;
+    fruit = randomPositionFree();
+    score = 0;
+    level = 1;
+    fruitsEaten = 0;
+    speed = INITIAL_SPEED;
+    specialFruit = null;
+    specialFruitTimer = 0;
+    specialFruitBlink = 0;
+    eatParticles = [];
+    hudMessages = [];
+    deathFlash = false;
+    deathFlashTimer = 0;
+    updateScore();
+    gameInterval = rafInterval(moveSnake, speed);
+}
+
 function startGame() {
     if (isPlaying) return;
     isPlaying = true;
     GameAudio.start();
     restartBtn.disabled = false;
     startBtn.disabled = true;
-    syncCanvasLogicSize();
-    snake = [{ x: 9 * box, y: 10 * box }];
-    direction = 'RIGHT';
-    fruit = randomPositionFree();
-    score = 0;
-    level = 1;
-    fruitsEaten = 0;
-    speed = INITIAL_SPEED;
-    specialFruit = null;
-    specialFruitTimer = 0;
-    eatParticles = [];
-    hudMessages = [];
-    deathFlash = false;
-    updateScore();
-    updateMobileScore();
-    draw();
-    rafClear(gameInterval);
-    gameInterval = rafInterval(moveSnake, speed);
+    // En móvil se inicia tocando el canvas: el popup podía quedarse encima
+    document.getElementById('gameOverPopup').style.display = 'none';
+    resetRoundState();
 }
 
 function restartGame() {
     if (!isPlaying) return;
-    rafClear(gameInterval);
-    syncCanvasLogicSize();
-    snake = [{ x: 9 * box, y: 10 * box }];
-    direction = 'RIGHT';
-    fruit = randomPositionFree();
-    score = 0;
-    level = 1;
-    fruitsEaten = 0;
-    speed = INITIAL_SPEED;
-    specialFruit = null;
-    specialFruitTimer = 0;
-    eatParticles = [];
-    hudMessages = [];
-    deathFlash = false;
-    updateScore();
-    updateMobileScore();
-    draw();
-    gameInterval = rafInterval(moveSnake, speed);
+    resetRoundState();
 }
 
 function gameOver() {

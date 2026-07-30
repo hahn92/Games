@@ -50,7 +50,6 @@ var theta           = 0;
 var thetaVel        = 0;
 var ballY           = 60;        // posición mundo (y crece hacia abajo)
 var ballVY          = 0;
-var ballRestingDisc = null;      // disco sobre el que descansa (cuando rebota)
 var cameraY         = 0;         // desplazamiento cámara (screenY = worldY - cameraY)
 var targetCameraY   = 0;
 var discs           = [];        // {id, y, segments: [8 strings], passed: bool, breakT: num}
@@ -67,6 +66,7 @@ var particles       = [];
 var pops            = [];
 var lastT           = 0;
 var animId          = null;
+var popupTimer      = null;      // temporizador del popup de fin (se cancela al reiniciar)
 var difficulty      = 0;         // 0..1 (crece con profundidad)
 var starField       = [];        // estrellas de fondo cacheadas
 var comboFlashT     = 0;
@@ -105,10 +105,26 @@ function buildStarField() {
 }
 buildStarField();
 
+/* Gradientes de wedge cacheados una sola vez: los discos se dibujan
+   trasladados a su centro, así el gradiente vertical (-ry..+ry) sirve para
+   todos. Antes se creaba uno por segmento y por frame (≈80 por frame). */
+var gradSafeA = null, gradSafeB = null, gradDanger = null;
+function buildDiscGradients() {
+    gradSafeA = ctx.createLinearGradient(0, -DISC_RY, 0, DISC_RY);
+    gradSafeA.addColorStop(0, COL.safeA);
+    gradSafeA.addColorStop(1, COL.safeB);
+    gradSafeB = ctx.createLinearGradient(0, -DISC_RY, 0, DISC_RY);
+    gradSafeB.addColorStop(0, COL.safeA2);
+    gradSafeB.addColorStop(1, COL.safeB2);
+    gradDanger = ctx.createLinearGradient(0, -DISC_RY, 0, DISC_RY);
+    gradDanger.addColorStop(0, COL.dangerA);
+    gradDanger.addColorStop(1, COL.dangerB);
+}
+buildDiscGradients();
+
 /* Genera la configuración de segmentos de un disco
    Más discos abajo = más difícil (más rojos, menos huecos) */
 function generateSegments(depth) {
-    difficulty = Math.min(1, depth / 60);
     var segs = new Array(NUM_SEGMENTS);
     // cantidad de huecos (1-3) y rojos (0-3), dependiendo de dificultad
     var gaps = depth < 3 ? 3 : (Math.random() < 0.5 ? 2 : 1);
@@ -149,15 +165,20 @@ function ensureDiscs() {
     var lastY = discs.length ? discs[discs.length - 1].y : 60;
     while (lastY - ballY < H + DISC_SPACING * 3) {
         lastY += DISC_SPACING;
+        /* La profundidad tiene que venir de nextDiscId, no de discs.length:
+           pruneDiscs recorta el array por arriba, así que su longitud se queda
+           clavada en ~10 y la dificultad nunca subía del primer tramo. */
+        var depth = nextDiscId;
         discs.push({
             id: nextDiscId++,
             y: lastY,
-            segments: generateSegments(discs.length),
+            segments: generateSegments(depth),
             passed: false,
             breakT: 0,      // animación de ruptura al pasar
-            hueShift: (discs.length * 17) % 360
+            hueShift: (depth * 17) % 360
         });
     }
+    difficulty = Math.min(1, nextDiscId / 60);
 }
 
 /* Quita discos que quedaron muy arriba */
@@ -206,7 +227,10 @@ function resetGame() {
 }
 
 function startGame() {
-    if (isPlaying) return;
+    /* Sin early-return por isPlaying: "Reiniciar" está habilitado durante la
+       partida y antes no hacía nada. Cancelar el popup pendiente evita que el
+       fin de la partida anterior aparezca encima de la nueva. */
+    if (popupTimer !== null) { clearTimeout(popupTimer); popupTimer = null; }
     resetGame();
     isPlaying = true;
     isOver = false;
@@ -233,7 +257,8 @@ function endGame() {
         highScoreEl.textContent = best;
     }
     // popup con breve delay para mostrar shake y explosión
-    setTimeout(function () {
+    popupTimer = setTimeout(function () {
+        popupTimer = null;
         finalScoreEl.textContent = 'Puntos: ' + score;
         finalBestEl.textContent = (score === best && score > 0)
             ? '¡Nuevo récord!'
@@ -296,9 +321,10 @@ canvas.addEventListener('touchstart', pointerDown, { passive: false });
 canvas.addEventListener('touchmove', pointerMove, { passive: false });
 canvas.addEventListener('touchend', pointerUp);
 canvas.addEventListener('touchcancel', pointerUp);
-/* tap corto inicia si no está jugando */
+/* tap corto inicia si no está jugando (nunca durante la animación de muerte,
+   o un toque justo al morir se comía la explosión y reiniciaba al instante) */
 canvas.addEventListener('click', function () {
-    if (!isPlaying) startGame();
+    if (!isPlaying && popupTimer === null) startGame();
 });
 
 startBtn.addEventListener('click', function () { GameAudio.click(); startGame(); });

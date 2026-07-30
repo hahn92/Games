@@ -3,14 +3,24 @@ var canvas = document.getElementById('asteroidsCanvas');
 var ctx = canvas.getContext('2d');
 var W = canvas.width, H = canvas.height;
 
+// Constantes de juego
+var EXTRA_LIFE_STEP = 5000;   // puntos entre vidas extra
+var LEVEL_SPEED_STEP = 0.3;   // velocidad extra por nivel
+var LEVEL_SPEED_CAP = 8;      // niveles a partir de los que ya no acelera
+
 var keys = {};
 var ship, bullets, asteroids, particles;
 var thrustParticles = [];
-var score, highScore, lives, level;
+// Valores iniciales reales: updateHUD() corre al cargar la página y sin esto
+// el panel mostraba "undefined" hasta la primera partida.
+var score = 0, highScore = 0, lives = 3, level = 1;
 var isPlaying = false;
 var animFrameId = null;
 var invincible = 0;
 var shipGlowPhase = 0;
+var nextExtraLife = EXTRA_LIFE_STEP;
+// Screen shake / flash al perder una vida (offsets precomputados en update)
+var screenShake = 0, shakeOffX = 0, shakeOffY = 0, deathFlash = 0;
 
 highScore = parseInt(localStorage.getItem('asteroidsHigh') || '0', 10);
 
@@ -33,6 +43,31 @@ var starField = [];
 var bgGrad = ctx.createLinearGradient(0, 0, 0, H);
 bgGrad.addColorStop(0, '#0d1b4b');
 bgGrad.addColorStop(1, '#111e55');
+
+// Gradientes cacheados. Los del casco/cabina viven en coordenadas locales de la
+// nave (se dibujan tras translate/rotate) y los de asteroide sólo dependen del
+// radio, así que se crean una vez en lugar de una vez por frame y por objeto.
+var hullGrad = ctx.createLinearGradient(-14, 0, 18, 0);
+hullGrad.addColorStop(0, '#4a8fa8');
+hullGrad.addColorStop(0.5, '#8fd3f4');
+hullGrad.addColorStop(1, '#c8eaf8');
+
+var cockpitGrad = ctx.createRadialGradient(6, -2, 1, 6, -2, 7);
+cockpitGrad.addColorStop(0, 'rgba(200,240,255,0.95)');
+cockpitGrad.addColorStop(0.5, 'rgba(100,200,240,0.7)');
+cockpitGrad.addColorStop(1, 'rgba(30,100,160,0.4)');
+
+var astGrads = {};
+function asteroidGrad(radius) {
+    var g = astGrads[radius];
+    if (!g) {
+        g = ctx.createRadialGradient(0, 0, 0, 0, 0, radius);
+        g.addColorStop(0, 'rgba(155,148,135,0.92)');
+        g.addColorStop(1, 'rgba(72,68,60,0.88)');
+        astGrads[radius] = g;
+    }
+    return g;
+}
 
 function Ship(x, y) {
     this.x = x; this.y = y;
@@ -69,6 +104,7 @@ Ship.prototype.update = function() {
     this.x = (this.x + this.vx + W) % W;
     this.y = (this.y + this.vy + H) % H;
     if (this.shootCooldown > 0) this.shootCooldown--;
+    shipGlowPhase += 0.05;
 };
 
 Ship.prototype.draw = function() {
@@ -78,18 +114,11 @@ Ship.prototype.draw = function() {
     ctx.translate(this.x, this.y);
     ctx.rotate(this.angle);
 
-    shipGlowPhase += 0.05;
     var glowIntensity = 4 + 3 * Math.sin(shipGlowPhase);
 
     // Ship body glow
     ctx.shadowColor = '#8fd3f4';
     ctx.shadowBlur = glowIntensity;
-
-    // Main hull with gradient fill
-    var hullGrad = ctx.createLinearGradient(-14, 0, 18, 0);
-    hullGrad.addColorStop(0, '#4a8fa8');
-    hullGrad.addColorStop(0.5, '#8fd3f4');
-    hullGrad.addColorStop(1, '#c8eaf8');
 
     ctx.fillStyle = hullGrad;
     ctx.strokeStyle = '#8fd3f4';
@@ -122,10 +151,6 @@ Ship.prototype.draw = function() {
 
     // Cockpit dome
     ctx.shadowBlur = 0;
-    var cockpitGrad = ctx.createRadialGradient(6, -2, 1, 6, -2, 7);
-    cockpitGrad.addColorStop(0, 'rgba(200,240,255,0.95)');
-    cockpitGrad.addColorStop(0.5, 'rgba(100,200,240,0.7)');
-    cockpitGrad.addColorStop(1, 'rgba(30,100,160,0.4)');
     ctx.fillStyle = cockpitGrad;
     ctx.beginPath();
     ctx.ellipse(6, 0, 7, 5, 0, 0, Math.PI * 2);
@@ -150,7 +175,11 @@ Ship.prototype.shoot = function() {
 
 function createAsteroid(x, y, size) {
     var angle = Math.random() * Math.PI * 2;
-    var speed = (0.8 + Math.random() * 0.8) * (4 - size) * 0.5 + 0.5 * level;
+    // La progresión se aplana a partir de LEVEL_SPEED_CAP: con el +0.5*level
+    // original los asteroides pequeños del nivel 10 iban a 7 px/frame y el nivel
+    // era imposible de leer.
+    var speed = (0.8 + Math.random() * 0.8) * (4 - size) * 0.5
+              + LEVEL_SPEED_STEP * Math.min(level - 1, LEVEL_SPEED_CAP);
     var pts = [];
     var n = 8 + Math.floor(Math.random() * 4);
     for (var i = 0; i < n; i++) {
@@ -211,22 +240,22 @@ function spawnFragments(x, y, size) {
 }
 
 function drawAsteroid(a) {
-    // Draw trail (last 5 positions)
+    // Estela (últimas 5 posiciones). Sin save()/restore() por iteración: se
+    // deshace la transformación a mano, que es mucho más barato.
+    ctx.strokeStyle = '#9090a8';
+    ctx.lineWidth = 1;
     for (var t = 0; t < a.trail.length; t++) {
-        var trailAlpha = (t + 1) / (a.trail.length + 1) * 0.35;
         var trailPos = a.trail[t];
-        ctx.save();
+        ctx.globalAlpha = (t + 1) / (a.trail.length + 1) * 0.35;
         ctx.translate(trailPos.x, trailPos.y);
         ctx.rotate(trailPos.angle);
-        ctx.globalAlpha = trailAlpha;
-        ctx.strokeStyle = '#9090a8';
-        ctx.lineWidth = 1;
         ctx.beginPath();
         ctx.moveTo(a.pts[0].x, a.pts[0].y);
         for (var i = 1; i < a.pts.length; i++) ctx.lineTo(a.pts[i].x, a.pts[i].y);
         ctx.closePath();
         ctx.stroke();
-        ctx.restore();
+        ctx.rotate(-trailPos.angle);
+        ctx.translate(-trailPos.x, -trailPos.y);
     }
 
     ctx.save();
@@ -234,10 +263,8 @@ function drawAsteroid(a) {
     ctx.rotate(a.angle);
     ctx.globalAlpha = 1;
 
-    // Fill — gris rocoso opaco, visible sobre fondo oscuro
-    var astGrad = ctx.createRadialGradient(0, 0, 0, 0, 0, a.radius);
-    astGrad.addColorStop(0, 'rgba(155,148,135,0.92)');
-    astGrad.addColorStop(1, 'rgba(72,68,60,0.88)');
+    // Fill — gris rocoso opaco, visible sobre fondo oscuro (gradiente cacheado)
+    var astGrad = asteroidGrad(a.radius);
 
     ctx.beginPath();
     ctx.moveTo(a.pts[0].x, a.pts[0].y);
@@ -256,9 +283,14 @@ function circle(a, b) {
     return Math.hypot(a.x - b.x, a.y - b.y) < a.radius + b.radius;
 }
 
+// Envuelve la posición y avisa si cruzó el borde: al teletransportarse hay que
+// vaciar la estela, o queda dibujada una línea de fantasmas cruzando la pantalla.
 function wrap(obj) {
-    obj.x = (obj.x + W) % W;
-    obj.y = (obj.y + H) % H;
+    var wrapped = false;
+    if (obj.x < 0 || obj.x >= W) { obj.x = (obj.x + W) % W; wrapped = true; }
+    if (obj.y < 0 || obj.y >= H) { obj.y = (obj.y + H) % H; wrapped = true; }
+    if (wrapped && obj.trail) obj.trail.length = 0;
+    return wrapped;
 }
 
 function update() {
@@ -291,6 +323,7 @@ function update() {
                 spawnFragments(a.x, a.y, a.size);
                 var pts = a.size === 3 ? 20 : a.size === 2 ? 10 : 5;
                 score += pts;
+                grantExtraLives();
                 if (a.size > 1) {
                     asteroids.push(createAsteroid(a.x, a.y, a.size - 1));
                     asteroids.push(createAsteroid(a.x, a.y, a.size - 1));
@@ -317,10 +350,15 @@ function update() {
         // Hit ship
         if (invincible <= 0 && Math.hypot(ship.x - a.x, ship.y - a.y) < a.radius + ship.radius) {
             spawnParticles(ship.x, ship.y, '#8fd3f4', 15);
+            spawnFragments(ship.x, ship.y, 2);
+            screenShake = 14;
+            deathFlash = 1;
             lives--;
             updateHUD();
+            GameAudio.explode();
             if (lives <= 0) { gameOver(); return; }
             ship.x = W/2; ship.y = H/2; ship.vx = 0; ship.vy = 0;
+            ship.angle = -Math.PI / 2;
             invincible = 120;
         }
     }

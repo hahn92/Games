@@ -14,6 +14,14 @@ const PUCK_MIN_SPEED = 0.04;
 const GOAL_WIDTH = 140;          // ancho de la portería
 const WALL = 8;                  // grosor visual de borde interior
 const RESTITUTION = 0.92;        // rebote en paredes
+const MALLET_MAX_V = 26;         // tope de velocidad efectiva del mazo (un puntero que
+                                 // teletransporta no debe lanzar el disco al infinito)
+const SUB_STEP_MAX = 7;          // px máximos que avanza el disco por sub-paso
+const MAX_SUB_STEPS = 4;
+const STALL_LIMIT = 160;         // frames con el disco parado antes de reponerlo al centro
+const WALL_SOUND_MIN = 1.1;      // velocidad mínima de impacto para sonar el rebote
+const AI_BASE_SPEED = 4.2;
+const AI_BASE_REACT = 0.10;
 
 const COLOR_PLAYER = '#8fd3f4';
 const COLOR_CPU = '#ff512f';
@@ -26,13 +34,14 @@ let state = {
     scoreP: 0,
     scoreCpu: 0,
     wins: 0,
-    aiSpeed: 4.2,        // velocidad base de la IA, sube con los goles
-    aiReact: 0.10,       // suavizado del seguimiento
+    aiSpeed: AI_BASE_SPEED,  // velocidad de la IA, se ajusta con la diferencia de goles
+    aiReact: AI_BASE_REACT,  // suavizado del seguimiento
     serveTimer: 0,       // cuenta atrás tras un gol
     serveToCpu: false,
     flash: 0,            // flash de gol
     flashColor: '#fff',
     shake: 0,
+    stall: 0,            // frames con el disco practicamente parado
 };
 
 const puck = { x: W / 2, y: H / 2, vx: 0, vy: 0 };
@@ -124,6 +133,24 @@ function resetPuck(toCpu) {
     puck.vy = 0;
     state.serveTimer = 45;
     state.serveToCpu = toCpu;
+    state.stall = 0;
+    // El mazo de la CPU vuelve a su base: si se quedaba encima del punto de saque
+    // golpeaba el disco en el instante del pitido.
+    cpu.x = W / 2; cpu.y = H * 0.18; cpu.vx = 0; cpu.vy = 0;
+    // El mazo del jugador no se mueve (lo controla el dedo), pero sí se anula su
+    // velocidad histórica para que no arrastre un impulso fantasma al saque.
+    player.px = player.x;
+    player.py = player.y;
+}
+
+// Dificultad adaptativa: la IA aprieta cuando el jugador va por delante y se relaja
+// cuando va por detrás. Nunca imbatible (tope 8) ni trivial (suelo 3.4).
+function tuneAI() {
+    const diff = state.scoreP - state.scoreCpu;
+    let sp = AI_BASE_SPEED + diff * 0.55;
+    let re = AI_BASE_REACT + diff * 0.015;
+    state.aiSpeed = sp < 3.4 ? 3.4 : (sp > 8 ? 8 : sp);
+    state.aiReact = re < 0.075 ? 0.075 : (re > 0.2 ? 0.2 : re);
 }
 
 function startGame() {
@@ -131,10 +158,11 @@ function startGame() {
     state.over = false;
     state.scoreP = 0;
     state.scoreCpu = 0;
-    state.aiSpeed = 4.2;
-    state.aiReact = 0.10;
+    state.aiSpeed = AI_BASE_SPEED;
+    state.aiReact = AI_BASE_REACT;
     state.flash = 0;
     state.shake = 0;
+    state.stall = 0;
     player.x = W / 2; player.y = H * 0.78;
     player.px = player.x; player.py = player.y;
     cpu.x = W / 2; cpu.y = H * 0.18; cpu.vx = 0; cpu.vy = 0;
@@ -212,13 +240,22 @@ function clampPuckSpeed() {
     }
 }
 
-function malletPuckCollision(mx, my, mvx, mvy) {
+// allowPush: solo el primer contacto del frame añade el empuje del mazo y suena,
+// los sub-pasos siguientes se limitan a separar (si no, un mismo golpe se cobraba
+// varias veces y el sonido se disparaba en ráfaga).
+function malletPuckCollision(mx, my, mvx, mvy, allowPush) {
     const dx = puck.x - mx;
     const dy = puck.y - my;
-    const dist = Math.hypot(dx, dy);
+    let dist = Math.hypot(dx, dy);
     const minDist = PUCK_RADIUS + MALLET_RADIUS;
-    if (dist < minDist && dist > 0.0001) {
-        const nx = dx / dist, ny = dy / dist;
+    if (dist < minDist) {
+        let nx, ny;
+        if (dist > 0.0001) {
+            nx = dx / dist; ny = dy / dist;
+        } else {
+            // Mazo exactamente encima del disco: expulsa hacia la portería contraria
+            nx = 0; ny = my > H / 2 ? -1 : 1; dist = 0.0001;
+        }
         // separa
         const overlap = minDist - dist;
         puck.x += nx * overlap;
@@ -232,13 +269,15 @@ function malletPuckCollision(mx, my, mvx, mvy) {
             puck.vx += impulse * nx;
             puck.vy += impulse * ny;
         }
-        // empuje del mazo
-        puck.vx += mvx * 0.45;
-        puck.vy += mvy * 0.45;
+        // empuje del mazo — solo en el primer sub-paso del frame
+        if (allowPush) {
+            puck.vx += mvx * 0.45;
+            puck.vy += mvy * 0.45;
+            const sp = Math.hypot(mvx, mvy);
+            if (sp > 3) { GameAudio.paddle(); } else { GameAudio.hit(); }
+            spawnParticles(puck.x, puck.y, 6, COLOR_PUCK);
+        }
         clampPuckSpeed();
-        const sp = Math.hypot(mvx, mvy);
-        if (sp > 3) { GameAudio.paddle(); } else { GameAudio.hit(); }
-        spawnParticles(puck.x, puck.y, 6, COLOR_PUCK);
         return true;
     }
     return false;
@@ -253,10 +292,11 @@ function goalScored(byPlayer) {
         state.scoreCpu++;
         state.flashColor = COLOR_CPU;
         spawnParticles(W / 2, H - 18, 22, COLOR_CPU);
-        // IA mejora al marcar
-        state.aiSpeed = Math.min(8.5, state.aiSpeed + 0.45);
-        state.aiReact = Math.min(0.22, state.aiReact + 0.012);
     }
+    // Reajusta la IA en ambas direcciones. El ajuste anterior solo subía cuando
+    // marcaba la CPU, así que una racha suya la dejaba clavada en su tope y la
+    // remontada era imposible.
+    tuneAI();
     state.flash = 14;
     state.shake = 10;
     updateHUD();
@@ -327,6 +367,47 @@ function updateAI() {
     cpu.vy = cpu.y - prevY;
 }
 
+// Rebotes en las bandas y detección de gol. Devuelve true si hubo gol, en cuyo
+// caso el que llama debe cortar el frame: goalScored() ya reposiciona el disco.
+// El sonido se filtra por WALL_SOUND_MIN porque un disco casi parado apoyado en
+// la banda entraba aquí en cada sub-paso y disparaba el rebote en ráfaga.
+function resolveWallsAndGoals() {
+    if (puck.x - PUCK_RADIUS < WALL) {
+        puck.x = WALL + PUCK_RADIUS;
+        if (Math.abs(puck.vx) > WALL_SOUND_MIN) GameAudio.hit();
+        puck.vx = Math.abs(puck.vx) * RESTITUTION;
+    } else if (puck.x + PUCK_RADIUS > W - WALL) {
+        puck.x = W - WALL - PUCK_RADIUS;
+        if (Math.abs(puck.vx) > WALL_SOUND_MIN) GameAudio.hit();
+        puck.vx = -Math.abs(puck.vx) * RESTITUTION;
+    }
+
+    const goalL = (W - GOAL_WIDTH) / 2;
+    const goalR = (W + GOAL_WIDTH) / 2;
+
+    // pared/portería superior (CPU)
+    if (puck.y - PUCK_RADIUS < WALL) {
+        if (puck.x > goalL && puck.x < goalR) {
+            goalScored(true);   // jugador marca arriba
+            return true;
+        }
+        puck.y = WALL + PUCK_RADIUS;
+        if (Math.abs(puck.vy) > WALL_SOUND_MIN) GameAudio.hit();
+        puck.vy = Math.abs(puck.vy) * RESTITUTION;
+    }
+    // pared/portería inferior (jugador)
+    if (puck.y + PUCK_RADIUS > H - WALL) {
+        if (puck.x > goalL && puck.x < goalR) {
+            goalScored(false);  // CPU marca abajo
+            return true;
+        }
+        puck.y = H - WALL - PUCK_RADIUS;
+        if (Math.abs(puck.vy) > WALL_SOUND_MIN) GameAudio.hit();
+        puck.vy = -Math.abs(puck.vy) * RESTITUTION;
+    }
+    return false;
+}
+
 function update() {
     if (!state.running) return;
 
@@ -338,9 +419,17 @@ function update() {
     // mover IA
     updateAI();
 
-    // velocidad del mazo del jugador (de su movimiento)
-    const pvx = player.x - player.px;
-    const pvy = player.y - player.py;
+    // Velocidad del mazo del jugador, deducida de su movimiento y acotada:
+    // el puntero puede saltar cientos de píxeles en un frame (teletransporte del
+    // ratón o un touch nuevo lejos del anterior) y eso lanzaba el disco a una
+    // velocidad absurda de un solo golpe.
+    let pvx = player.x - player.px;
+    let pvy = player.y - player.py;
+    const pv = Math.hypot(pvx, pvy);
+    if (pv > MALLET_MAX_V) {
+        const k = MALLET_MAX_V / pv;
+        pvx *= k; pvy *= k;
+    }
     player.px = player.x;
     player.py = player.y;
 
@@ -350,49 +439,36 @@ function update() {
         puck.vy *= PUCK_FRICTION;
         if (Math.abs(puck.vx) < PUCK_MIN_SPEED) puck.vx = 0;
         if (Math.abs(puck.vy) < PUCK_MIN_SPEED) puck.vy = 0;
-        puck.x += puck.vx;
-        puck.y += puck.vy;
-    }
 
-    // colisiones con mazos
-    malletPuckCollision(player.x, player.y, pvx, pvy);
-    malletPuckCollision(cpu.x, cpu.y, cpu.vx, cpu.vy);
+        // Sub-pasos: a máxima velocidad el disco recorre más que su propio radio
+        // en un frame y podía atravesar un mazo o la línea de gol sin tocarlos.
+        const dist = Math.hypot(puck.vx, puck.vy);
+        let steps = Math.ceil(dist / SUB_STEP_MAX);
+        if (steps < 1) steps = 1;
+        if (steps > MAX_SUB_STEPS) steps = MAX_SUB_STEPS;
 
-    // paredes laterales
-    if (puck.x - PUCK_RADIUS < WALL) {
-        puck.x = WALL + PUCK_RADIUS;
-        puck.vx = Math.abs(puck.vx) * RESTITUTION;
-        GameAudio.hit();
-    } else if (puck.x + PUCK_RADIUS > W - WALL) {
-        puck.x = W - WALL - PUCK_RADIUS;
-        puck.vx = -Math.abs(puck.vx) * RESTITUTION;
-        GameAudio.hit();
-    }
-
-    const goalL = (W - GOAL_WIDTH) / 2;
-    const goalR = (W + GOAL_WIDTH) / 2;
-
-    // pared/portería superior (CPU)
-    if (puck.y - PUCK_RADIUS < WALL) {
-        if (puck.x > goalL && puck.x < goalR) {
-            goalScored(true);   // jugador marca arriba
-            return;
-        } else {
-            puck.y = WALL + PUCK_RADIUS;
-            puck.vy = Math.abs(puck.vy) * RESTITUTION;
-            GameAudio.hit();
+        for (let s = 0; s < steps; s++) {
+            puck.x += puck.vx / steps;
+            puck.y += puck.vy / steps;
+            // solo el primer sub-paso cobra el empuje y el sonido del mazo
+            malletPuckCollision(player.x, player.y, pvx, pvy, s === 0);
+            malletPuckCollision(cpu.x, cpu.y, cpu.vx, cpu.vy, s === 0);
+            if (resolveWallsAndGoals()) return;
         }
-    }
-    // pared/portería inferior (jugador)
-    if (puck.y + PUCK_RADIUS > H - WALL) {
-        if (puck.x > goalL && puck.x < goalR) {
-            goalScored(false);  // CPU marca abajo
-            return;
+
+        // Disco parado lejos de las bandas: sin esto la partida puede quedarse
+        // muerta en el centro, fuera del alcance de ambos mazos.
+        if (dist < PUCK_MIN_SPEED * 2) {
+            if (++state.stall > STALL_LIMIT) resetPuck(Math.random() < 0.5);
         } else {
-            puck.y = H - WALL - PUCK_RADIUS;
-            puck.vy = -Math.abs(puck.vy) * RESTITUTION;
-            GameAudio.hit();
+            state.stall = 0;
         }
+    } else {
+        // Durante el saque el disco está quieto, pero los mazos siguen pudiendo
+        // tocarlo y hay que mantenerlo dentro de la pista.
+        malletPuckCollision(player.x, player.y, pvx, pvy, true);
+        malletPuckCollision(cpu.x, cpu.y, cpu.vx, cpu.vy, true);
+        if (resolveWallsAndGoals()) return;
     }
 
     // partículas

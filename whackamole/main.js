@@ -9,11 +9,15 @@ const MOLE_EVIL   = 'evil';   // 10% chance, -1 pt
 
 let score = 0;
 let highScore = parseInt(localStorage.getItem('whackHighScore') || '0', 10);
+let prevHighScore = highScore;   // récord al arrancar la partida (para detectar récord real)
 let timeLeft = GAME_DURATION;
 let isPlaying = false;
 let moleInterval = null;
 let timerInterval = null;
-let holeTimeouts = [];
+// Un timeout de ocultado POR AGUJERO. Antes era una lista global que crecía sin
+// límite y, peor, el timeout de un topo ya golpeado podía esconder al topo
+// siguiente del mismo agujero (y sonar "miss" sin motivo).
+let holeTimers = [];
 
 // Track mole type per hole
 const holeTypes = [];
@@ -92,6 +96,7 @@ function initGrid() {
     grid.innerHTML = '';
     holes.length = 0;
     holeTypes.length = 0;
+    holeTimers.length = 0;
 
     for (let i = 0; i < TOTAL_HOLES; i++) {
         const hole = document.createElement('div');
@@ -109,7 +114,20 @@ function initGrid() {
         grid.appendChild(hole);
         holes.push(hole);
         holeTypes.push(MOLE_NORMAL);
+        holeTimers.push(null);
     }
+}
+
+/* ---- Limpia el temporizador de ocultado de un agujero ---- */
+function clearHoleTimer(idx) {
+    if (holeTimers[idx] !== null) {
+        clearTimeout(holeTimers[idx]);
+        holeTimers[idx] = null;
+    }
+}
+
+function clearAllHoleTimers() {
+    for (let i = 0; i < holeTimers.length; i++) clearHoleTimer(i);
 }
 
 /* ---- Determine mole type ---- */
@@ -122,16 +140,18 @@ function pickMoleType() {
 
 /* ---- Progressive difficulty ---- */
 function getShowDuration() {
-    // Starts at 1400ms, shrinks to ~500ms over 60s
+    // Ventana de golpeo: 1400ms → 620ms. El suelo NO baja de 620ms: por debajo
+    // de eso el tiempo de reacción + apuntado sobre una cuadrícula de 9 agujeros
+    // hace imposible acertar y el modo frenético deja de ser jugable.
     const elapsed = GAME_DURATION - timeLeft;
-    const duration = Math.max(500, 1400 - elapsed * 15);
-    return duration;
+    return Math.max(620, 1400 - elapsed * 14);
 }
 
 function getMoleInterval() {
-    // Interval between pops: starts at 900ms, goes to 450ms
+    // Cadencia entre topos: 900ms → 480ms (siempre por debajo de la ventana de
+    // golpeo, así siempre hay 1-2 topos visibles pero nunca la rejilla llena).
     const elapsed = GAME_DURATION - timeLeft;
-    return Math.max(450, 900 - elapsed * 7);
+    return Math.max(480, 900 - elapsed * 7);
 }
 
 function updateSpeedLabel() {
@@ -166,14 +186,17 @@ function popMole() {
     hole.classList.add('active');
 
     const duration = getShowDuration();
-    const t = setTimeout(function() {
+    clearHoleTimer(idx);
+    holeTimers[idx] = setTimeout(function() {
+        holeTimers[idx] = null;
+        if (!isPlaying) return;
         if (hole.classList.contains('active')) {
             GameAudio.miss();
+            resetStreak();
         }
         hole.classList.remove('active');
         holeTypes[idx] = MOLE_NORMAL;
     }, duration);
-    holeTimeouts.push(t);
 
     // Update mole interval dynamically
     clearInterval(moleInterval);
@@ -181,17 +204,21 @@ function popMole() {
 }
 
 /* ---- Hit effect floating label ---- */
-function showHitEffect(hole, text, color) {
+function showHitEffect(hole, text, color, bottomPct) {
     const eff = document.createElement('div');
     eff.className = 'hit-effect';
     eff.textContent = text;
     eff.style.color = color || '#fff';
     eff.style.left = '50%';
-    eff.style.bottom = '60%';
+    eff.style.bottom = (bottomPct || 60) + '%';
     eff.style.transform = 'translateX(-50%)';
     hole.appendChild(eff);
     setTimeout(function() { eff.remove(); }, 700);
 }
+
+/* ---- Racha de aciertos consecutivos ---- */
+let streak = 0;
+function resetStreak() { streak = 0; }
 
 /* ---- Whack ---- */
 function whack(i) {
@@ -202,21 +229,34 @@ function whack(i) {
     const type = holeTypes[i];
     hole.classList.remove('active');
     holeTypes[i] = MOLE_NORMAL;
+    // El topo ya no está: su temporizador de ocultado deja de ser válido.
+    clearHoleTimer(i);
+
+    hole.classList.add('whacked');
 
     if (type === MOLE_EVIL) {
         score = Math.max(0, score - 1);
-        hole.classList.add('whacked');
         showHitEffect(hole, '-1', '#ff4444');
+        resetStreak();
+        GameAudio.bomb();
     } else if (type === MOLE_GOLDEN) {
         score += 3;
-        hole.classList.add('whacked');
         showHitEffect(hole, '+3', '#ffd700');
+        streak++;
+        GameAudio.scoreHigh();
     } else {
         score++;
-        hole.classList.add('whacked');
         showHitEffect(hole, '+1', '#8fd3f4');
+        streak++;
+        GameAudio.whack();
     }
-    GameAudio.whack();
+
+    // Bonus de racha cada 5 aciertos seguidos
+    if (streak > 0 && streak % 5 === 0) {
+        score += 2;
+        showHitEffect(hole, 'x' + streak + ' +2', '#7cff7c', 100);
+        GameAudio.win();
+    }
 
     setTimeout(function() { hole.classList.remove('whacked'); }, 300);
     updateScore();
@@ -235,10 +275,9 @@ function updateScore() {
 
     document.getElementById('mobileScore').textContent = 'Puntaje: ' + score + ' | Tiempo: ' + timeLeft + 's';
 
-    if (score > highScore) {
-        highScore = score;
-        try { localStorage.setItem('whackHighScore', highScore); } catch (e) {}
-    }
+    // El récord se muestra en vivo pero se persiste UNA vez al terminar la
+    // partida: escribir en localStorage en cada golpe es E/S síncrona inútil.
+    if (score > highScore) highScore = score;
     document.getElementById('highScore').textContent = highScore;
 }
 
@@ -252,12 +291,13 @@ function updateTimer() {
 /* ---- Game flow ---- */
 function startGame() {
     score = 0;
+    streak = 0;
     timeLeft = GAME_DURATION;
+    prevHighScore = highScore;
     isPlaying = true;
     GameAudio.start();
 
-    holeTimeouts.forEach(t => clearTimeout(t));
-    holeTimeouts = [];
+    clearAllHoleTimers();
 
     holes.forEach(function(h, i) {
         h.classList.remove('active', 'whacked');
