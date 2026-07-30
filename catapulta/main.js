@@ -21,6 +21,9 @@ var BLOCK_H        = 27;      // stacked block unit height
 var GROUND_REST    = 0.46;    // ground bounce restitution
 var BLOCK_DAMP     = 0.72;    // momentum kept after punching a block
 var TNT_RADIUS     = 72;      // explosion blast radius
+var WIND_MIN       = 14;      // |wind| floor  — below this the arrow means nothing
+var WIND_MAX       = 105;     // |wind| ceiling — above this the shot is unaimable
+var PHYS_SUB       = 4;       // projectile sub-steps per frame (anti-tunneling)
 
 /* ───────── State ───────── */
 var state      = 'idle';  // 'idle' | 'aiming' | 'flying' | 'paused' | 'gameover' | 'levelwin'
@@ -68,9 +71,27 @@ function updateMobileScore() {
 }
 
 function updateHUD() {
+    // saveBest() antes de pintar: el récord mostrado sigue al marcador en vivo y
+    // queda persistido en cuanto se supera. Sólo escribe cuando hay récord nuevo,
+    // así que no genera escrituras por cada actualización del HUD.
+    saveBest();
     scoreEl.textContent = score;
     highScoreEl.textContent = bestScore;
     updateMobileScore();
+}
+
+// Persistir el récord en cuanto se supera, no sólo al terminar la partida:
+// si el jugador cierra la pestaña a mitad de nivel el récord ya está guardado.
+function saveBest() {
+    if (score <= bestScore) return;
+    bestScore = score;
+    try { localStorage.setItem('catapultaBest', bestScore.toString()); } catch (e) {}
+}
+
+// Origen del disparo = la cazoleta del brazo, no el eje del pivote.
+// La previsualización y el proyectil real DEBEN partir del mismo punto.
+function launchOrigin() {
+    return { x: PIVOT_X, y: PIVOT_Y - PROJ_RADIUS - 6 };
 }
 
 /* ───────── Level / structures ───────── */
@@ -109,15 +130,20 @@ function buildLevel() {
             else if (f < 2 && Math.random() < 0.4) type = 'wood';
             blocks.push(makeBlock(baseX, by, tw, BLOCK_H, type));
         }
-        // Decorative roof + flag on the top of taller towers (also a target)
+        // Decorative roof + flag on the top of taller towers (also a target).
+        // Debe apoyarse EXACTAMENTE sobre el bloque superior: si se solapa,
+        // isSupported() lo declara en el aire y salta 8 px al empezar el nivel.
         if (floors >= 2 && Math.random() < 0.7) {
-            var topY = GROUND_Y - (floors + 1) * BLOCK_H + 8;
-            blocks.push(makeBlock(baseX + 3, topY + 6, tw - 6, BLOCK_H - 6, 'wood'));
+            var roofH = BLOCK_H - 6;
+            var roofY = GROUND_Y - floors * BLOCK_H - roofH;
+            blocks.push(makeBlock(baseX + 3, roofY, tw - 6, roofH, 'wood'));
         }
     }
 
-    // Wind grows with level; direction random
-    wind = rand(-45, 45) * (1 + level * 0.12);
+    // El viento crece con el nivel, pero acotado: por debajo de WIND_MIN la
+    // flecha no informa de nada y por encima de WIND_MAX el tiro es inapuntable.
+    var wDir = Math.random() < 0.5 ? -1 : 1;
+    wind = wDir * clamp(rand(16, 45) * (1 + level * 0.12), WIND_MIN, WIND_MAX);
     shotsLeft = SHOTS_PER_LVL;
     levelIntro = 1.4;
 }
@@ -153,10 +179,7 @@ function startGame() {
 
 function endGame(won) {
     state = 'gameover';
-    if (score > bestScore) {
-        bestScore = score;
-        try { localStorage.setItem('catapultaBest', bestScore.toString()); } catch (e) {}
-    }
+    saveBest();
     updateHUD();
     overTitleEl.textContent = won ? '¡Victoria!' : '¡Sin munición!';
     finalScoreEl.textContent = 'Puntos: ' + score + '   (Nivel ' + level + ')';
@@ -216,7 +239,8 @@ function onPointerUp(e) {
     var vy = -ny * capped * LAUNCH_SCALE;
     if (vy > -60) return;   // must aim upward
     combo = 0;
-    projectile = { x: PIVOT_X, y: PIVOT_Y, vx: vx, vy: vy, trail: [], age: 0, hits: 0, bounces: 0, spin: 0 };
+    var org = launchOrigin();
+    projectile = { x: org.x, y: org.y, vx: vx, vy: vy, trail: [], age: 0, hits: 0, bounces: 0, spin: 0 };
     shotsLeft--;
     state = 'flying';
     shake = 5;
@@ -267,10 +291,11 @@ function spawnExplosion(cx, cy) {
     }
 }
 
-function spawnDust(x) {
+function spawnDust(x, y) {
+    var dy = (y == null) ? GROUND_Y : y;
     for (var m = 0; m < 7; m++) {
         particles.push({
-            x: x, y: GROUND_Y,
+            x: x, y: dy,
             vx: rand(-110, 110), vy: rand(-170, -30),
             life: rand(0.3, 0.7), maxLife: 0.7,
             col: '#b39b72', size: rand(2, 4)
@@ -343,6 +368,8 @@ function isSupported(b) {
 }
 
 function updateBlocks(dt) {
+    var landedHard = 0;         // un solo sonido por frame, no uno por bloque
+    var landX = 0, landY = GROUND_Y;
     for (var i = 0; i < blocks.length; i++) {
         var b = blocks[i];
         if (!b.alive) continue;
@@ -351,24 +378,40 @@ function updateBlocks(dt) {
         if (b.type === 'tnt') b.fuse += dt * 6;
 
         if (isSupported(b)) {
-            if (!b.resting && b.vy > 120) GameAudio.hit(); // landed hard
             b.vy = 0; b.resting = true;
         } else {
             b.resting = false;
             b.vy += GRAVITY * 0.65 * dt;
-            b.y  += b.vy * dt;
-            if (b.y + b.h >= GROUND_Y) { b.y = GROUND_Y - b.h; b.vy = 0; b.resting = true; }
-            else {
+            var prevBottom = b.y + b.h;
+            b.y += b.vy * dt;
+            var newBottom = b.y + b.h;
+            var impact = b.vy;
+            var landed = false;
+            if (newBottom >= GROUND_Y) {
+                b.y = GROUND_Y - b.h; b.vy = 0; b.resting = true; landed = true;
+            } else if (b.vy > 0) {
+                // Barrido prevBottom→newBottom. Una ventana fija (o.y + 14) se
+                // atravesaba con caídas de 3 pisos (≈15 px/frame a dt=0.05).
                 for (var k = 0; k < blocks.length; k++) {
                     var o = blocks[k];
                     if (o === b || !o.alive || !o.resting) continue;
                     if (o.x < b.x + b.w && o.x + o.w > b.x &&
-                        b.y + b.h >= o.y && b.y + b.h <= o.y + 14 && b.vy > 0) {
-                        b.y = o.y - b.h; b.vy = 0; b.resting = true; break;
+                        prevBottom <= o.y + 2 && newBottom >= o.y) {
+                        b.y = o.y - b.h; b.vy = 0; b.resting = true; landed = true; break;
                     }
                 }
             }
+            if (landed && impact > 140 && impact > landedHard) {
+                landedHard = impact;
+                landX = b.x + b.w / 2;
+                landY = b.y + b.h;
+            }
         }
+    }
+    if (landedHard > 0) {
+        GameAudio.hit();
+        spawnDust(landX, landY);
+        shake = Math.min(shake + 3, 18);
     }
 }
 
@@ -445,7 +488,7 @@ function update(dt) {
     // projectile — substepped to avoid tunneling, bounces + punch-through
     if (state === 'flying' && projectile) {
         var pj = projectile;
-        var sub = 4, sdt = dt / sub;
+        var sub = PHYS_SUB, sdt = dt / sub;
         for (var s = 0; s < sub; s++) {
             pj.vy += GRAVITY * sdt;
             pj.vx += wind * sdt;
@@ -733,27 +776,32 @@ function drawTrajectoryPreview(rest) {
     var vx = -(dx / d) * capped * LAUNCH_SCALE;
     var vy = -(dy / d) * capped * LAUNCH_SCALE;
     if (vy > -60) return;
-    var px = PIVOT_X, py = PIVOT_Y;
-    var dt = 1 / 60;
-    for (var i = 0; i < 60; i++) {
-        vy += GRAVITY * dt;
-        vx += wind * dt;
-        px += vx * dt;
-        py += vy * dt;
+    var org = launchOrigin();
+    var px = org.x, py = org.y;
+    // Mismo paso de integración que update() (dt/PHYS_SUB): con Euler
+    // semi-implícito un dt distinto dibuja una parábola que no es la real.
+    var sdt = (1 / 60) / PHYS_SUB;
+    ctx.fillStyle = '#ffffff';
+    for (var i = 0; i < 60 * PHYS_SUB; i++) {
+        vy += GRAVITY * sdt;
+        vx += wind * sdt;
+        px += vx * sdt;
+        py += vy * sdt;
         if (px < 0 || px > WIDTH) break;
         // stop preview at ground or a block
         if (py + PROJ_RADIUS >= GROUND_Y) break;
-        var blocked = false;
-        for (var b = 0; b < blocks.length; b++) {
-            var t = blocks[b];
-            if (!t.alive) continue;
-            if (px > t.x - PROJ_RADIUS && px < t.x + t.w + PROJ_RADIUS &&
-                py > t.y - PROJ_RADIUS && py < t.y + t.h + PROJ_RADIUS) { blocked = true; break; }
+        if (i % PHYS_SUB === 0) {
+            var blocked = false;
+            for (var b = 0; b < blocks.length; b++) {
+                var t = blocks[b];
+                if (!t.alive) continue;
+                if (px > t.x - PROJ_RADIUS && px < t.x + t.w + PROJ_RADIUS &&
+                    py > t.y - PROJ_RADIUS && py < t.y + t.h + PROJ_RADIUS) { blocked = true; break; }
+            }
+            if (blocked) break;
         }
-        if (blocked) break;
-        if (i % 3 === 0) {
-            ctx.globalAlpha = Math.max(0.15, 0.85 - i * 0.013);
-            ctx.fillStyle = '#ffffff';
+        if (i % (PHYS_SUB * 3) === 0) {
+            ctx.globalAlpha = Math.max(0.15, 0.85 - (i / PHYS_SUB) * 0.013);
             ctx.beginPath(); ctx.arc(px, py, 2, 0, Math.PI * 2); ctx.fill();
         }
     }

@@ -21,7 +21,13 @@ const BUNKER_H = 28;
 const BUNKER_HP = 3;
 let bunkers = [];
 
+const START_LIVES = 3;
+const RESPAWN_INVULN = 100;   // frames of blinking invulnerability after a hit
+const FIRE_COOLDOWN = 9;      // frames between shots (blocks keydown auto-repeat spam)
+const MAX_BULLETS = 3;        // bullets allowed on screen at once
+
 let playerX, bullets, invaders, invaderDir, invaderBullets, score, highScore, isPlaying;
+let lives, level, invulnTimer, fireTimer, screenShake;
 let explosions = [];
 let frame = 0;
 let animFrameId = null;
@@ -70,20 +76,14 @@ function initBunkers() {
     }
 }
 
-function resetGame() {
-    playerX = canvas.width / 2 - PLAYER_WIDTH / 2;
-    bullets = [];
+// Builds the invader formation for the current level. Higher levels start lower
+// down the screen (capped) so the player has less reaction room.
+function spawnWave() {
     invaders = [];
     invaderBullets = [];
-    explosions = [];
-    score = 0;
-    frame = 0;
-    isPlaying = false;
-    highScore = parseInt(localStorage.getItem('invadersHighScore') || '0');
+    bullets = [];
     invaderDir = 1;
-    playerGrad = null;
-    playerGradX = -1;
-
+    const topY = 40 + Math.min(4, level - 1) * 10;
     for (let r = 0; r < INVADER_ROWS; r++) {
         for (let c = 0; c < INVADER_COLS; c++) {
             // Pre-compute tentacle jitter offsets for Type C aliens (row 4)
@@ -92,7 +92,7 @@ function resetGame() {
                 : null;
             invaders.push({
                 x: 40 + c * (INVADER_WIDTH + INVADER_X_GAP),
-                y: 40 + r * (INVADER_HEIGHT + INVADER_Y_GAP),
+                y: topY + r * (INVADER_HEIGHT + INVADER_Y_GAP),
                 alive: true,
                 row: r,
                 color: getInvaderColor(r),
@@ -100,8 +100,27 @@ function resetGame() {
             });
         }
     }
-    initStars();
     initBunkers();
+}
+
+function resetGame() {
+    playerX = canvas.width / 2 - PLAYER_WIDTH / 2;
+    explosions = [];
+    score = 0;
+    frame = 0;
+    lives = START_LIVES;
+    level = 1;
+    invulnTimer = 0;
+    fireTimer = 0;
+    screenShake = 0;
+    isPlaying = false;
+    highScore = parseInt(localStorage.getItem('invadersHighScore') || '0');
+    playerGrad = null;
+    playerGradX = -1;
+
+    spawnWave();
+    initStars();
+    updateScore();
     draw();
 }
 
@@ -168,6 +187,9 @@ function updateExplosions() {
 
 function update() {
     frame++;
+    if (fireTimer > 0) fireTimer--;
+    if (invulnTimer > 0) invulnTimer--;
+    if (screenShake > 0) screenShake--;
 
     // Move stars (batched, no per-element save/restore)
     for (let i = 0; i < starsA.length; i++) {
@@ -192,24 +214,41 @@ function update() {
         if (bullets[i].y < 0) bullets.splice(i, 1);
     }
 
-    // Move invaders
+    // Move invaders. Classic Space Invaders speeds the formation up as it thins
+    // out, and each level starts faster — this is the whole difficulty curve.
+    let aliveCount = 0;
+    for (let i = 0; i < invaders.length; i++) {
+        if (invaders[i].alive) aliveCount++;
+    }
+    const total = INVADER_ROWS * INVADER_COLS;
+    const thinning = 1 + (1 - aliveCount / total) * 2.2;
+    const levelBoost = 1 + (level - 1) * 0.18;
+    const step = INVADER_SPEED * thinning * levelBoost;
+
     let edge = false;
     for (let i = 0; i < invaders.length; i++) {
         const inv = invaders[i];
         if (!inv.alive) continue;
-        inv.x += invaderDir * INVADER_SPEED;
+        inv.x += invaderDir * step;
         if (inv.x < 0 || inv.x + INVADER_WIDTH > canvas.width) edge = true;
     }
     if (edge) {
         invaderDir *= -1;
         for (let i = 0; i < invaders.length; i++) {
+            if (!invaders[i].alive) continue;
+            invaders[i].x = Math.max(0, Math.min(canvas.width - INVADER_WIDTH, invaders[i].x));
             invaders[i].y += INVADER_Y_GAP;
         }
+        crushBunkers();
     }
 
-    // Invader shooting — avoid filter() by picking random index and scanning
-    if (Math.random() < 0.02) {
-        const alive = invaders.filter(inv => inv.alive);
+    // Invader shooting — rate grows with the level
+    const shootChance = 0.018 + (level - 1) * 0.004;
+    if (Math.random() < Math.min(0.05, shootChance)) {
+        const alive = [];
+        for (let i = 0; i < invaders.length; i++) {
+            if (invaders[i].alive) alive.push(invaders[i]);
+        }
         if (alive.length) {
             const shooter = alive[Math.floor(Math.random() * alive.length)];
             invaderBullets.push({ x: shooter.x + INVADER_WIDTH / 2, y: shooter.y + INVADER_HEIGHT });
@@ -231,10 +270,10 @@ function update() {
                 inv.alive = false;
                 spawnExplosion(inv.x + INVADER_WIDTH / 2, inv.y + INVADER_HEIGHT / 2, inv.color);
                 bullets.splice(i, 1);
-                score += 10;
+                // Back rows are worth more, like the original
+                score += inv.row <= 1 ? 30 : (inv.row <= 3 ? 20 : 10);
                 updateScore();
                 GameAudio.explode();
-                GameAudio.score();
                 continue outer;
             }
         }
@@ -270,33 +309,98 @@ function update() {
         }
     }
 
-    // Invader bullets vs player
-    for (let i = invaderBullets.length - 1; i >= 0; i--) {
-        if (invaderBullets[i].x > playerX &&
-            invaderBullets[i].x < playerX + PLAYER_WIDTH &&
-            invaderBullets[i].y > canvas.height - PLAYER_HEIGHT - 10) {
-            endGame();
-            return;
+    // Invader bullets vs player (ignored while respawn-invulnerable)
+    const playerTop = canvas.height - PLAYER_HEIGHT - 10;
+    if (invulnTimer === 0) {
+        for (let i = invaderBullets.length - 1; i >= 0; i--) {
+            const b = invaderBullets[i];
+            if (b.x + BULLET_WIDTH > playerX && b.x < playerX + PLAYER_WIDTH &&
+                b.y + BULLET_HEIGHT > playerTop && b.y < canvas.height - 8) {
+                invaderBullets.splice(i, 1);
+                hitPlayer();
+                return;
+            }
         }
     }
 
-    // Invader reaches player line
+    // Invader reaches player line — always fatal, no invulnerability grace
     for (let i = 0; i < invaders.length; i++) {
         const inv = invaders[i];
         if (!inv.alive) continue;
-        if (inv.y + INVADER_HEIGHT > canvas.height - PLAYER_HEIGHT - 10) {
-            endGame();
+        if (inv.y + INVADER_HEIGHT > playerTop) {
+            lives = 0;
+            hitPlayer();
             return;
         }
     }
 
-    // Victory
-    if (invaders.every(inv => !inv.alive)) {
-        endGame(true);
+    // Wave cleared → next level
+    if (aliveCount === 0) {
+        nextWave();
         return;
     }
 
     updateExplosions();
+}
+
+// Destroys any bunker the formation has descended onto, so aliens never
+// float over intact shields.
+function crushBunkers() {
+    for (let k = 0; k < bunkers.length; k++) {
+        const bk = bunkers[k];
+        if (bk.hp <= 0) continue;
+        for (let i = 0; i < invaders.length; i++) {
+            const inv = invaders[i];
+            if (!inv.alive) continue;
+            if (inv.x < bk.x + BUNKER_W && inv.x + INVADER_WIDTH > bk.x &&
+                inv.y < bk.y + BUNKER_H && inv.y + INVADER_HEIGHT > bk.y) {
+                bk.hp = 0;
+                for (let c = 0; c < bk.cells.length; c++) bk.cells[c] = false;
+                break;
+            }
+        }
+    }
+}
+
+// Único punto de disparo del jugador (teclado y táctil). El cooldown existe
+// porque el auto-repeat de keydown al mantener Espacio empujaba una bala por
+// evento, y MAX_BULLETS conserva el racionamiento de tiro del original.
+function firePlayerBullet() {
+    if (!isPlaying) return;
+    if (fireTimer > 0 || bullets.length >= MAX_BULLETS) return;
+    fireTimer = FIRE_COOLDOWN;
+    bullets.push({
+        x: playerX + PLAYER_WIDTH / 2 - BULLET_WIDTH / 2,
+        y: canvas.height - PLAYER_HEIGHT - 10
+    });
+    GameAudio.shoot();
+}
+
+function hitPlayer() {
+    lives--;
+    screenShake = 16;
+    spawnExplosion(playerX + PLAYER_WIDTH / 2, canvas.height - PLAYER_HEIGHT / 2 - 10, '#26d0ce');
+    if (lives <= 0) {
+        lives = 0;
+        endGame();
+        return;
+    }
+    GameAudio.explode();
+    invaderBullets.length = 0;
+    invulnTimer = RESPAWN_INVULN;
+    playerX = canvas.width / 2 - PLAYER_WIDTH / 2;
+    updateScore();
+}
+
+function nextWave() {
+    level++;
+    // Surviving a wave refunds a shield wall and awards a bonus
+    score += 100 * (level - 1);
+    GameAudio.win();
+    spawnWave();
+    invulnTimer = RESPAWN_INVULN;
+    fireTimer = 0;
+    updateScore();
 }
 
 function damageBunker(bunker) {
@@ -308,27 +412,37 @@ function damageBunker(bunker) {
     if (alive.length) bunker.cells[alive[Math.floor(Math.random() * alive.length)]] = false;
 }
 
-function endGame(won = false) {
+function endGame() {
     cancelAnimationFrame(animFrameId);
     animFrameId = null;
     isPlaying = false;
+    stopAutoShoot();
     GameAudio.gameOver();
     if (score > highScore) {
         highScore = score;
         try { localStorage.setItem('invadersHighScore', highScore); } catch (e) {}
     }
+    updateScore();
     document.getElementById('gameOverPopup').style.display = 'flex';
-    document.getElementById('finalScore').textContent = won ? '¡Ganaste! Puntaje: ' + score : '¡Perdiste! Puntaje: ' + score;
+    document.getElementById('finalScore').textContent = 'Puntaje: ' + score + ' · Nivel ' + level;
     document.getElementById('startBtn').disabled = false;
     document.getElementById('restartBtn').disabled = true;
     draw();
 }
 
+// draw() la llama cada frame, así que sólo escribe en el DOM cuando algún valor
+// cambia: asignar textContent 60 veces por segundo fuerza recálculo de estilo.
+let hudCache = '';
+
 function updateScore() {
+    const key = score + '|' + level + '|' + lives + '|' + highScore;
+    if (key === hudCache) return;
+    hudCache = key;
+
     const el = document.getElementById('score');
     if (el) el.textContent = score;
     const ms = document.getElementById('mobileScore');
-    if (ms) ms.textContent = 'Puntaje: ' + score;
+    if (ms) ms.textContent = 'Puntaje: ' + score + '  ·  Nivel ' + level + '  ·  Vidas ' + lives;
     const hs = document.getElementById('highScore');
     if (hs) hs.textContent = highScore;
 }
@@ -491,6 +605,10 @@ function drawInvader(inv) {
 }
 
 function drawPlayer() {
+    // Parpadeo durante la invulnerabilidad tras perder una vida: sin esta señal
+    // el jugador recibe protección invisible y no entiende por qué no muere.
+    if (invulnTimer > 0 && Math.floor(frame / 5) % 2 === 0) return;
+
     const cx = playerX + PLAYER_WIDTH / 2;
     const py = canvas.height - PLAYER_HEIGHT - 10;
     const by = py + PLAYER_HEIGHT;
@@ -698,6 +816,15 @@ function draw() {
     ctx.fillStyle = '#080820';
     ctx.fillRect(0, 0, canvas.width, canvas.height);
 
+    // Sacudida al perder una vida. El desplazamiento se deriva de screenShake y
+    // frame, no de Math.random(), para no meter aleatoriedad en el render.
+    const shaking = screenShake > 0;
+    if (shaking) {
+        const mag = screenShake * 0.4;
+        ctx.save();
+        ctx.translate((frame % 2 ? 1 : -1) * mag, (frame % 3 ? -1 : 1) * mag * 0.5);
+    }
+
     drawStars();
 
     // Draw all invaders (no per-alien shadowBlur)
@@ -732,7 +859,28 @@ function draw() {
     ctx.fillRect(0, canvas.height - 10, canvas.width, 2);
     ctx.globalAlpha = 1;
 
+    if (shaking) ctx.restore();
+
+    drawLives();
     updateScore();
+}
+
+// Vidas restantes como naves en miniatura (formas de canvas, nunca emoji).
+// Van fuera de la sacudida para que el HUD no vibre con el impacto.
+function drawLives() {
+    if (!isPlaying && lives === START_LIVES) return;
+    const w = 16, h = 9, gap = 7;
+    ctx.fillStyle = '#26d0ce';
+    for (let i = 0; i < lives; i++) {
+        const x = 10 + i * (w + gap);
+        const y = canvas.height - 8;
+        ctx.beginPath();
+        ctx.moveTo(x, y);
+        ctx.lineTo(x + w / 2, y - h);
+        ctx.lineTo(x + w, y);
+        ctx.closePath();
+        ctx.fill();
+    }
 }
 
 const keys = {};
@@ -741,11 +889,7 @@ document.addEventListener('keydown', e => {
     if (!isPlaying) return;
     if (e.code === 'Space') {
         e.preventDefault();
-        bullets.push({
-            x: playerX + PLAYER_WIDTH / 2 - BULLET_WIDTH / 2,
-            y: canvas.height - PLAYER_HEIGHT - 10
-        });
-        GameAudio.shoot();
+        firePlayerBullet();
     }
 });
 document.addEventListener('keyup', e => { keys[e.code] = false; });
@@ -791,13 +935,17 @@ var touchActive = false;
         return (touch.clientX - rect.left) * (canvas.width / rect.width);
     }
 
-    function doShoot() {
-        if (!isPlaying) return;
-        bullets.push({
-            x: playerX + PLAYER_WIDTH / 2 - BULLET_WIDTH / 2,
-            y: canvas.height - PLAYER_HEIGHT - 10
-        });
+    // endGame() lo llama: si la partida termina con el dedo apoyado, el
+    // touchend puede no llegar nunca y el intervalo quedaría huérfano.
+    function stopAutoShoot() {
+        touchActive = false;
+        if (autoShootInterval === null) return;
+        clearInterval(autoShootInterval);
+        autoShootInterval = null;
     }
+    window.stopAutoShoot = stopAutoShoot;
+
+    function doShoot() { firePlayerBullet(); }
 
     canvas.addEventListener('touchstart', function(e) {
         e.preventDefault();
@@ -818,15 +966,11 @@ var touchActive = false;
 
     canvas.addEventListener('touchend', function(e) {
         e.preventDefault();
-        touchActive = false;
-        clearInterval(autoShootInterval);
-        autoShootInterval = null;
+        stopAutoShoot();
     }, { passive: false });
 
     canvas.addEventListener('touchcancel', function() {
-        touchActive = false;
-        clearInterval(autoShootInterval);
-        autoShootInterval = null;
+        stopAutoShoot();
     }, { passive: false });
 
     var tc = document.getElementById('touchControls');

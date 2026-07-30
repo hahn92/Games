@@ -84,7 +84,10 @@ function render() {
 
     for (let r = 0; r < cfg.rows; r++) {
         for (let c = 0; c < cfg.cols; c++) {
-            const cardData = board[r][c];
+            // El render inicial ocurre antes de repartir (board sigue vacío):
+            // sin este respaldo, board[r][c] lanzaba un TypeError al cargar la
+            // página y dejaba la rejilla sin pintar.
+            const cardData = (board[r] && board[r][c]) || { value: '', flipped: false, matched: false };
 
             const card = document.createElement('div');
             card.className = 'card';

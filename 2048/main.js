@@ -1,6 +1,11 @@
 const SIZE = 4;
-let board, score = 0, highScore = parseInt(localStorage.getItem('2048HighScore') || '0', 10);
+// Rejilla vacía desde el principio: el render() del final del archivo se ejecuta
+// al cargar la página, antes de que startGame() llame a createBoard(), y con
+// `board` sin definir lanzaba un TypeError en cada carga.
+let board = Array.from({ length: SIZE }, () => Array(SIZE).fill(0));
+let score = 0, highScore = parseInt(localStorage.getItem('2048HighScore') || '0', 10);
 let isPlaying = false;
+let winPlayed = false;
 
 // Track which cells are new or merged this turn for animations
 let newCells = [];
@@ -85,12 +90,32 @@ function render() {
 }
 
 function showScoreFloat(points) {
-    const container = document.getElementById('game2048');
+    // Se ancla a gameSide (no a #game2048): render() vacía el contenedor del
+    // tablero en cada movimiento y borraría el flotante antes de terminar.
+    const container = document.getElementById('gameSide') || document.getElementById('game2048');
     const el = document.createElement('div');
     el.className = 'score-float';
     el.textContent = '+' + points;
     container.appendChild(el);
     el.addEventListener('animationend', () => el.remove());
+}
+
+function showWinBanner() {
+    const container = document.getElementById('gameSide');
+    if (!container) return;
+    const el = document.createElement('div');
+    el.className = 'win-banner';
+    el.textContent = '¡2048 alcanzado!';
+    container.appendChild(el);
+    el.addEventListener('animationend', () => el.remove());
+}
+
+// Feedback de movimiento inválido: el tablero se sacude, sin gastar turno.
+function shakeBoard() {
+    const el = document.getElementById('game2048');
+    el.classList.remove('board-shake');
+    void el.offsetWidth;               // fuerza reflow para reiniciar la animación
+    el.classList.add('board-shake');
 }
 
 function move(dir) {
@@ -99,29 +124,32 @@ function move(dir) {
     newCells = [];
     mergedCells = [];
 
-    function slide(row, rowIndex, isRow, reversed) {
-        let arr = row.filter(v => v);
-        for (let i = 0; i < arr.length - 1; i++) {
-            if (arr[i] === arr[i + 1]) {
-                arr[i] *= 2;
-                pointsGained += arr[i];
-                score += arr[i];
-                arr[i + 1] = 0;
-                // Calculate merged cell index
-                let mergedIdx;
-                if (isRow) {
-                    const col = reversed ? SIZE - 1 - i : i;
-                    mergedIdx = rowIndex * SIZE + col;
-                } else {
-                    const row2 = reversed ? SIZE - 1 - i : i;
-                    mergedIdx = row2 * SIZE + rowIndex;
-                }
-                mergedCells.push(mergedIdx);
+    // Compacta una línea y fusiona pares adyacentes, construyendo la línea de
+    // salida sobre la marcha y saltando la ficha consumida (i++).
+    // El tablero y los puntos resultantes son los mismos que antes; lo que se
+    // corrige es el ÍNDICE de la animación de fusión. `out.length - 1` es la
+    // posición FINAL de la ficha fusionada, mientras que el índice antiguo `i`
+    // era la posición previa a compactar: con dos fusiones en la misma línea
+    // ([2,2,2,2] -> [4,4]) se marcaba la celda 2, que queda vacía, en vez de la 1.
+    function slide(line, lineIndex, isRow, reversed) {
+        const arr = line.filter(v => v);
+        const out = [];
+        for (let i = 0; i < arr.length; i++) {
+            if (i + 1 < arr.length && arr[i] === arr[i + 1]) {
+                const val = arr[i] * 2;
+                out.push(val);
+                pointsGained += val;
+                score += val;
+                const pos = out.length - 1;
+                const at = reversed ? SIZE - 1 - pos : pos;
+                mergedCells.push(isRow ? lineIndex * SIZE + at : at * SIZE + lineIndex);
+                i++;                    // la segunda ficha del par queda consumida
+            } else {
+                out.push(arr[i]);
             }
         }
-        arr = arr.filter(v => v);
-        while (arr.length < SIZE) arr.push(0);
-        return arr;
+        while (out.length < SIZE) out.push(0);
+        return out;
     }
 
     if (dir === 'left') {
@@ -173,8 +201,10 @@ function move(dir) {
         // Check for 2048 tile win
         let has2048 = false;
         for (let r = 0; r < SIZE; r++) for (let c = 0; c < SIZE; c++) if (board[r][c] >= 2048) has2048 = true;
-        if (has2048 && !window._2048WinPlayed) { window._2048WinPlayed = true; GameAudio.win(); }
+        if (has2048 && !winPlayed) { winPlayed = true; GameAudio.win(); showWinBanner(); }
         if (isGameOver()) gameOver();
+    } else {
+        shakeBoard();
     }
 }
 
@@ -191,7 +221,8 @@ function isGameOver() {
 
 function startGame() {
     score = 0;
-    window._2048WinPlayed = false;
+    winPlayed = false;
+    document.getElementById('gameOverPopup').style.display = 'none';
     createBoard();
     GameAudio.start();
     isPlaying = true;
@@ -237,12 +268,21 @@ let touchstartY = 0;
 let touchendX = 0;
 let touchendY = 0;
 
-const gestureZone = document.getElementById('game2048');
+// Zona de gestos: todo el gameSide, no sólo la rejilla — en móvil el tablero
+// ocupa una fracción de la pantalla y los swipes fuera de él se perdían.
+const gestureZone = document.getElementById('gameSide') || document.getElementById('game2048');
 
 gestureZone.addEventListener('touchstart', function(event) {
     touchstartX = event.changedTouches[0].screenX;
     touchstartY = event.changedTouches[0].screenY;
-}, false);
+    touchendX = touchstartX;
+    touchendY = touchstartY;
+}, { passive: true });
+
+// Evita el scroll/bounce de la página mientras se desliza sobre el tablero.
+gestureZone.addEventListener('touchmove', function(event) {
+    if (isPlaying) event.preventDefault();
+}, { passive: false });
 
 gestureZone.addEventListener('touchend', function(event) {
     touchendX = event.changedTouches[0].screenX;

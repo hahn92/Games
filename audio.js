@@ -52,12 +52,28 @@ var GameAudio = (function () {
         o.stop(t + dur + 0.01);
     }
 
+    /* One white-noise buffer, built once and reused. Filling a fresh buffer per
+     * call meant a Math.random() loop over thousands of samples on every
+     * explosion — allocation and GC pressure in the middle of gameplay.
+     * Variation comes from starting at a random offset instead. */
+    var noiseBuf = null;
+    var NOISE_SECONDS = 2;
+
+    function getNoiseBuffer() {
+        if (noiseBuf) return noiseBuf;
+        var len = Math.ceil(ctx.sampleRate * NOISE_SECONDS);
+        noiseBuf = ctx.createBuffer(1, len, ctx.sampleRate);
+        var d = noiseBuf.getChannelData(0);
+        for (var i = 0; i < len; i++) d[i] = Math.random() * 2 - 1;
+        return noiseBuf;
+    }
+
     function noise(t, dur, vol) {
         if (muted || !ctx) return;
-        var len = Math.ceil(ctx.sampleRate * dur);
-        var buf = ctx.createBuffer(1, len, ctx.sampleRate);
-        var d = buf.getChannelData(0);
-        for (var i = 0; i < len; i++) d[i] = Math.random() * 2 - 1;
+        var buf = getNoiseBuffer();
+        /* clamp so offset + dur never runs past the end of the buffer */
+        dur = Math.min(dur, NOISE_SECONDS);
+        var offset = Math.random() * (NOISE_SECONDS - dur);
         var src = ctx.createBufferSource();
         src.buffer = buf;
         var g = ctx.createGain();

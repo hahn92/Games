@@ -189,6 +189,13 @@ function applyMove(b,mv,ep,castle) {
         if(mv.fr===7&&mv.fc===7)nc.wKR=false; if(mv.fr===7&&mv.fc===0)nc.wQR=false;
         if(mv.fr===0&&mv.fc===7)nc.bKR=false; if(mv.fr===0&&mv.fc===0)nc.bQR=false;
     }
+    /* El derecho de enroque también se pierde si la torre es CAPTURADA en su
+     * casilla inicial: ahí no se mueve ninguna torre, así que el bloque de
+     * arriba (que sólo mira la casilla de ORIGEN) no lo detectaba. Sin esto,
+     * tras Nxh1 las blancas seguían pudiendo "enrocar" corto sin torre,
+     * dejando el rey en g1 y una torre fantasma en f1. */
+    if(mv.tr===7&&mv.tc===7)nc.wKR=false; if(mv.tr===7&&mv.tc===0)nc.wQR=false;
+    if(mv.tr===0&&mv.tc===7)nc.bKR=false; if(mv.tr===0&&mv.tc===0)nc.bQR=false;
     return {board:nb,ep:newEp,castle:nc};
 }
 
