@@ -369,7 +369,7 @@ function updateScoreDOM() {
     document.getElementById('highScore').textContent = highScore;
     if (score > highScore) {
         highScore = score;
-        localStorage.setItem('tetrisHighScore', highScore);
+        try { localStorage.setItem('tetrisHighScore', highScore); } catch (e) {}
         document.getElementById('highScore').textContent = highScore;
     }
 }

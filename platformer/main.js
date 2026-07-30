@@ -1573,7 +1573,7 @@
     function updateHUD() {
         if (score > highScore) {
             highScore = score;
-            localStorage.setItem('platformerHigh', highScore);
+            try { localStorage.setItem('platformerHigh', highScore); } catch (e) {}
         }
         if (scoreEl) scoreEl.textContent = score;
         if (highScoreEl) highScoreEl.textContent = highScore;
@@ -1616,7 +1616,7 @@
 
         if (score > highScore) {
             highScore = score;
-            localStorage.setItem('platformerHigh', highScore);
+            try { localStorage.setItem('platformerHigh', highScore); } catch (e) {}
         }
         updateHUD();
 

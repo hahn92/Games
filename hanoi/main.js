@@ -42,8 +42,11 @@ var gs = {
 
 /* ── Stats persistentes (mejor marca por nivel) ── */
 var mobileScoreEl = document.getElementById('mobileScore');
-var best = JSON.parse(localStorage.getItem('hanoiBest') || '{}');
-function saveBest() { localStorage.setItem('hanoiBest', JSON.stringify(best)); }
+var best = (function () {
+    try { return JSON.parse(localStorage.getItem('hanoiBest') || '{}') || {}; }
+    catch (e) { return {}; }
+}());
+function saveBest() { try { localStorage.setItem('hanoiBest', JSON.stringify(best)); } catch (e) {} }
 function optimalMoves(n) { return Math.pow(2, n) - 1; }
 
 function updateMobileScore() {

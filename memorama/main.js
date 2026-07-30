@@ -25,7 +25,7 @@ function getBestTime(diff) {
     return v ? parseInt(v, 10) : null;
 }
 function setBestTime(diff, seconds) {
-    localStorage.setItem('memoramaBestTime_' + diff, seconds);
+    try { localStorage.setItem('memoramaBestTime_' + diff, seconds); } catch (e) {}
 }
 
 // ---- Shuffle ----
@@ -281,7 +281,7 @@ function showVictory() {
     // Update high score (score-based)
     if (score > highScore) {
         highScore = score;
-        localStorage.setItem('memoramaHighScore', highScore);
+        try { localStorage.setItem('memoramaHighScore', highScore); } catch (e) {}
     }
 
     // Best time for this difficulty
@@ -337,7 +337,7 @@ function gameOver(won) {
 
     if (won && score > highScore) {
         highScore = score;
-        localStorage.setItem('memoramaHighScore', highScore);
+        try { localStorage.setItem('memoramaHighScore', highScore); } catch (e) {}
     }
 
     const popup = document.getElementById('gameOverPopup');

@@ -450,41 +450,86 @@ function drawTurtleGroup(o, r) {
     ctx.globalAlpha = alpha;
     for (var k = 0; k < o.n; k++) {
         var cx = o.x + unit * (k + 0.5), cy = oy;
-        var paddle = Math.sin(frame * 0.18 + k * 1.1) * 2.2;
+        var paddle = Math.sin(frame * 0.18 + k * 1.1) * 2.4;
         var hd = lane.dir;
+        var R = CELL * 0.30;
 
-        // aletas (reman alternándose)
-        ctx.fillStyle = '#5d8b46';
-        ctx.beginPath(); ctx.ellipse(cx - 9, cy - 9 + paddle * 0.4, 5, 2.6, -0.5, 0, Math.PI * 2); ctx.fill();
-        ctx.beginPath(); ctx.ellipse(cx - 9, cy + 9 - paddle * 0.4, 5, 2.6,  0.5, 0, Math.PI * 2); ctx.fill();
-        ctx.beginPath(); ctx.ellipse(cx + 9, cy - 9 - paddle * 0.4, 5, 2.6,  0.5, 0, Math.PI * 2); ctx.fill();
-        ctx.beginPath(); ctx.ellipse(cx + 9, cy + 9 + paddle * 0.4, 5, 2.6, -0.5, 0, Math.PI * 2); ctx.fill();
+        /* flippers — front pair rows forward, rear pair trails */
+        ctx.fillStyle = '#4f7c3a';
+        ctx.beginPath();
+        ctx.ellipse(cx + hd * R * 0.52, cy - R * 0.74 + paddle * 0.5, R * 0.42, R * 0.20, hd * -0.7, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.beginPath();
+        ctx.ellipse(cx + hd * R * 0.52, cy + R * 0.74 - paddle * 0.5, R * 0.42, R * 0.20, hd * 0.7, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.beginPath();
+        ctx.ellipse(cx - hd * R * 0.60, cy - R * 0.66 - paddle * 0.4, R * 0.34, R * 0.17, hd * 0.6, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.beginPath();
+        ctx.ellipse(cx - hd * R * 0.60, cy + R * 0.66 + paddle * 0.4, R * 0.34, R * 0.17, hd * -0.6, 0, Math.PI * 2);
+        ctx.fill();
 
-        // cabeza (hacia la dirección del carril)
-        ctx.fillStyle = '#6da653';
-        ctx.beginPath(); ctx.arc(cx + hd * 13, cy, 4.5, 0, Math.PI * 2); ctx.fill();
-        ctx.fillStyle = '#111';
-        ctx.beginPath(); ctx.arc(cx + hd * 15, cy - 1.8, 1, 0, Math.PI * 2); ctx.fill();
+        /* head */
+        ctx.fillStyle = '#66a04d';
+        ctx.beginPath();
+        ctx.ellipse(cx + hd * R * 1.02, cy, R * 0.30, R * 0.24, 0, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.fillStyle = '#0f0f0f';
+        ctx.beginPath();
+        ctx.arc(cx + hd * R * 1.12, cy - R * 0.10, R * 0.07, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.beginPath();
+        ctx.arc(cx + hd * R * 1.12, cy + R * 0.10, R * 0.07, 0, Math.PI * 2);
+        ctx.fill();
 
-        // caparazón
-        var shg = ctx.createRadialGradient(cx - 3, cy - 3, 1, cx, cy, 12);
-        shg.addColorStop(0, '#8bc34a');
-        shg.addColorStop(0.7, '#558b2f');
-        shg.addColorStop(1, '#33691e');
+        /* tail */
+        ctx.fillStyle = '#4f7c3a';
+        ctx.beginPath();
+        ctx.moveTo(cx - hd * R * 0.92, cy - R * 0.12);
+        ctx.lineTo(cx - hd * R * 1.24, cy);
+        ctx.lineTo(cx - hd * R * 0.92, cy + R * 0.12);
+        ctx.closePath();
+        ctx.fill();
+
+        /* shell: domed carapace with a clear rim */
+        var shg = ctx.createRadialGradient(cx - R * 0.28, cy - R * 0.34, R * 0.05, cx, cy, R);
+        shg.addColorStop(0, '#9ccc65');
+        shg.addColorStop(0.55, '#5f9236');
+        shg.addColorStop(1, '#33601c');
         ctx.fillStyle = shg;
-        ctx.beginPath(); ctx.ellipse(cx, cy, 12, 10, 0, 0, Math.PI * 2); ctx.fill();
-        ctx.strokeStyle = 'rgba(20,50,10,0.5)'; ctx.lineWidth = 1; ctx.stroke();
+        ctx.beginPath();
+        ctx.ellipse(cx, cy, R, R * 0.86, 0, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.strokeStyle = '#2a4d16';
+        ctx.lineWidth = 1.4;
+        ctx.stroke();
 
-        // patrón de placas
-        ctx.strokeStyle = 'rgba(20,50,10,0.4)';
-        ctx.beginPath(); ctx.moveTo(cx - 8, cy - 4); ctx.lineTo(cx + 8, cy - 4); ctx.stroke();
-        ctx.beginPath(); ctx.moveTo(cx - 9, cy + 2); ctx.lineTo(cx + 9, cy + 2); ctx.stroke();
-        ctx.beginPath(); ctx.moveTo(cx - 4, cy - 9); ctx.lineTo(cx - 4, cy + 8); ctx.stroke();
-        ctx.beginPath(); ctx.moveTo(cx + 4, cy - 9); ctx.lineTo(cx + 4, cy + 8); ctx.stroke();
+        /* rim separating carapace from scutes */
+        ctx.strokeStyle = 'rgba(40,80,22,0.55)';
+        ctx.lineWidth = 1;
+        ctx.beginPath();
+        ctx.ellipse(cx, cy, R * 0.70, R * 0.58, 0, 0, Math.PI * 2);
+        ctx.stroke();
 
-        // brillo húmedo
-        ctx.fillStyle = 'rgba(255,255,255,0.18)';
-        ctx.beginPath(); ctx.ellipse(cx - 3, cy - 4, 4, 2.5, -0.4, 0, Math.PI * 2); ctx.fill();
+        /* five central scutes — a simple readable pattern, not a grid */
+        ctx.fillStyle = 'rgba(40,84,20,0.30)';
+        for (var sc = -1; sc <= 1; sc++) {
+            ctx.beginPath();
+            ctx.ellipse(cx + sc * R * 0.40, cy, R * 0.17, R * 0.28, 0, 0, Math.PI * 2);
+            ctx.fill();
+        }
+        ctx.beginPath();
+        ctx.ellipse(cx, cy - R * 0.40, R * 0.15, R * 0.13, 0, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.beginPath();
+        ctx.ellipse(cx, cy + R * 0.40, R * 0.15, R * 0.13, 0, 0, Math.PI * 2);
+        ctx.fill();
+
+        /* wet highlight */
+        ctx.fillStyle = 'rgba(255,255,255,0.22)';
+        ctx.beginPath();
+        ctx.ellipse(cx - R * 0.30, cy - R * 0.36, R * 0.26, R * 0.14, -0.4, 0, Math.PI * 2);
+        ctx.fill();
     }
     ctx.restore();
 }
@@ -497,133 +542,135 @@ function hexToRgb(hex) {
     return { r: r, g: g, b: b };
 }
 
+/* Shade a hex colour by `d` (positive = lighter, negative = darker). */
+function shade(hex, d) {
+    var c = hexToRgb(hex);
+    return 'rgb(' + Math.max(0, Math.min(255, c.r + d)) + ','
+                  + Math.max(0, Math.min(255, c.g + d)) + ','
+                  + Math.max(0, Math.min(255, c.b + d)) + ')';
+}
+
+/* Cars, seen from above: tapered nose, inset roof, glass only where glass
+ * belongs (windscreen / rear window / side slits), wheels peeking past the
+ * flanks, and a cast shadow so they sit on the asphalt instead of floating. */
 function drawCars() {
     for (var r = 6; r <= 10; r++) {
         var lane = lanes[r];
         if (!lane) continue;
         for (var i = 0; i < lane.objects.length; i++) {
             var o = lane.objects[i];
-            var oy = r * CELL + 4;
-            var ow = o.w, oh = o.h;
+            var oy = r * CELL + 5;
+            var ow = o.w, oh = o.h - 2;
             var dir = lane.dir;
-            var rgb = hexToRgb(o.color);
+            var cy = oy + oh / 2;
+            // nose/tail in world x
+            var nose = dir > 0 ? o.x + ow : o.x;
+            var tail = dir > 0 ? o.x : o.x + ow;
+            var sgn  = dir > 0 ? 1 : -1;
 
-            // Wheels first — peek out from UNDER the body (top & bottom edges)
-            var wPairX = [o.x + ow * 0.20, o.x + ow * 0.74];
-            ctx.fillStyle = '#1a1a1a';
-            for (var w = 0; w < 2; w++) {
+            /* ── cast shadow ── */
+            ctx.fillStyle = 'rgba(0,0,0,0.30)';
+            ctx.beginPath();
+            ctx.roundRect(o.x + 2, oy + oh * 0.30, ow, oh * 0.86, oh * 0.30);
+            ctx.fill();
+
+            /* ── wheels (behind the body, peeking past both flanks) ── */
+            ctx.fillStyle = '#141414';
+            var axle = [0.24, 0.76];
+            for (var a = 0; a < 2; a++) {
+                var wx = o.x + ow * axle[a] - oh * 0.15;
                 ctx.beginPath();
-                ctx.ellipse(wPairX[w], oy + 1, oh * 0.20, oh * 0.16, 0, 0, Math.PI * 2);
+                ctx.roundRect(wx, oy - oh * 0.07, oh * 0.30, oh * 0.20, 1.5);
                 ctx.fill();
                 ctx.beginPath();
-                ctx.ellipse(wPairX[w], oy + oh - 1, oh * 0.20, oh * 0.16, 0, 0, Math.PI * 2);
+                ctx.roundRect(wx, oy + oh - oh * 0.13, oh * 0.30, oh * 0.20, 1.5);
                 ctx.fill();
             }
 
-            // Car body: more rounded at front, squared at back
-            var carGrad = ctx.createLinearGradient(o.x, oy, o.x, oy + oh);
-            carGrad.addColorStop(0, 'rgba(' + Math.min(rgb.r+65,255) + ',' + Math.min(rgb.g+65,255) + ',' + Math.min(rgb.b+65,255) + ',1)');
-            carGrad.addColorStop(0.45, o.color);
-            carGrad.addColorStop(1, 'rgba(' + Math.max(rgb.r-55,0) + ',' + Math.max(rgb.g-55,0) + ',' + Math.max(rgb.b-55,0) + ',1)');
-            ctx.fillStyle = carGrad;
-            // Directional corner radii: rounded at front, sharp at back
-            var fR = 9, bR = 2;
-            var radii = dir > 0 ? [bR, fR, fR, bR] : [fR, bR, bR, fR];
+            /* ── body: tapered nose, squarer tail ── */
+            var bodyGrad = ctx.createLinearGradient(0, oy, 0, oy + oh);
+            bodyGrad.addColorStop(0, shade(o.color, 54));
+            bodyGrad.addColorStop(0.42, o.color);
+            bodyGrad.addColorStop(1, shade(o.color, -58));
+            ctx.fillStyle = bodyGrad;
             ctx.beginPath();
-            ctx.roundRect(o.x, oy, ow, oh, radii);
-            ctx.fill();
-            // Body outline
-            ctx.strokeStyle = 'rgba(0,0,0,0.22)';
-            ctx.lineWidth = 0.8;
-            ctx.stroke();
-
-            // Hood line (panel crease near front)
-            var hoodX = dir > 0 ? o.x + ow * 0.72 : o.x + ow * 0.28;
-            ctx.strokeStyle = 'rgba(0,0,0,0.18)';
-            ctx.lineWidth = 1;
-            ctx.beginPath();
-            ctx.moveTo(hoodX, oy + oh * 0.08);
-            ctx.lineTo(hoodX, oy + oh * 0.92);
-            ctx.stroke();
-
-            // Windshield (front glass, angled trapezoid)
-            var windFrontX = dir > 0 ? o.x + ow * 0.58 : o.x + ow * 0.12;
-            var windRearX  = dir > 0 ? o.x + ow * 0.50 : o.x + ow * 0.20;
-            var windW = ow * 0.22;
-            ctx.fillStyle = 'rgba(160,215,255,0.6)';
-            ctx.beginPath();
-            ctx.moveTo(windFrontX, oy + oh * 0.12);
-            ctx.lineTo(windFrontX + windW * dir, oy + oh * 0.18);
-            ctx.lineTo(windFrontX + windW * dir, oy + oh * 0.82);
-            ctx.lineTo(windFrontX, oy + oh * 0.88);
+            ctx.moveTo(tail + sgn * oh * 0.16, oy);
+            ctx.lineTo(nose - sgn * oh * 0.40, oy);
+            // rounded nose
+            ctx.quadraticCurveTo(nose, oy, nose, cy);
+            ctx.quadraticCurveTo(nose, oy + oh, nose - sgn * oh * 0.40, oy + oh);
+            ctx.lineTo(tail + sgn * oh * 0.16, oy + oh);
+            // squarer tail
+            ctx.quadraticCurveTo(tail, oy + oh, tail, cy);
+            ctx.quadraticCurveTo(tail, oy, tail + sgn * oh * 0.16, oy);
             ctx.closePath();
             ctx.fill();
-
-            // Cabin / roof glass
-            var cabinX = dir > 0 ? o.x + ow * 0.25 : o.x + ow * 0.32;
-            var cabinW = ow * 0.28;
-            ctx.fillStyle = 'rgba(140,200,245,0.45)';
-            ctx.strokeStyle = 'rgba(0,0,0,0.12)';
-            ctx.lineWidth = 0.5;
-            ctx.beginPath();
-            ctx.roundRect(cabinX, oy + oh * 0.15, cabinW, oh * 0.7, 2);
-            ctx.fill();
+            ctx.strokeStyle = 'rgba(0,0,0,0.30)';
+            ctx.lineWidth = 0.9;
             ctx.stroke();
 
-            // Side mirrors (small bumps on top and bottom edges)
-            var mirrorX = o.x + ow * (dir > 0 ? 0.62 : 0.30);
-            ctx.fillStyle = 'rgba(' + Math.max(rgb.r-40,0) + ',' + Math.max(rgb.g-40,0) + ',' + Math.max(rgb.b-40,0) + ',1)';
+            /* ── roof: inset panel in a darker tint of the body ── */
+            var roofX = dir > 0 ? o.x + ow * 0.20 : o.x + ow * 0.30;
+            var roofW = ow * 0.50;
+            ctx.fillStyle = shade(o.color, -26);
             ctx.beginPath();
-            ctx.roundRect(mirrorX, oy - 3, ow * 0.12, 4, 1);
-            ctx.fill();
-            ctx.beginPath();
-            ctx.roundRect(mirrorX, oy + oh - 1, ow * 0.12, 4, 1);
+            ctx.roundRect(roofX, oy + oh * 0.17, roofW, oh * 0.66, oh * 0.16);
             ctx.fill();
 
-            // Headlights (bright circles at front)
-            var frontEdge = dir > 0 ? o.x + ow - 3 : o.x + 3;
+            /* ── glass ── */
+            var glass = 'rgba(168,214,246,0.82)';
+            // windscreen: angled strip at the front of the roof
+            ctx.fillStyle = glass;
+            ctx.beginPath();
+            var wsX = dir > 0 ? roofX + roofW : roofX;
+            ctx.moveTo(wsX, oy + oh * 0.20);
+            ctx.lineTo(wsX + sgn * oh * 0.30, oy + oh * 0.31);
+            ctx.lineTo(wsX + sgn * oh * 0.30, oy + oh * 0.69);
+            ctx.lineTo(wsX, oy + oh * 0.80);
+            ctx.closePath();
+            ctx.fill();
+            // rear window: shorter strip at the back of the roof
+            ctx.fillStyle = 'rgba(150,196,230,0.70)';
+            ctx.beginPath();
+            var rwX = dir > 0 ? roofX : roofX + roofW;
+            ctx.moveTo(rwX, oy + oh * 0.24);
+            ctx.lineTo(rwX - sgn * oh * 0.20, oy + oh * 0.33);
+            ctx.lineTo(rwX - sgn * oh * 0.20, oy + oh * 0.67);
+            ctx.lineTo(rwX, oy + oh * 0.76);
+            ctx.closePath();
+            ctx.fill();
+            // side window slits along the roof edges
+            ctx.fillStyle = 'rgba(60,80,95,0.55)';
+            ctx.fillRect(roofX + roofW * 0.16, oy + oh * 0.20, roofW * 0.66, oh * 0.09);
+            ctx.fillRect(roofX + roofW * 0.16, oy + oh * 0.71, roofW * 0.66, oh * 0.09);
+
+            /* ── roof highlight ── */
+            ctx.fillStyle = 'rgba(255,255,255,0.13)';
+            ctx.fillRect(roofX + roofW * 0.10, oy + oh * 0.33, roofW * 0.80, oh * 0.11);
+
+            /* ── lights ── */
+            // headlights
             ctx.fillStyle = '#fffde7';
             ctx.beginPath();
-            ctx.arc(frontEdge, oy + oh * 0.22, 3.5, 0, Math.PI * 2);
+            ctx.ellipse(nose - sgn * oh * 0.16, oy + oh * 0.24, oh * 0.10, oh * 0.13, 0, 0, Math.PI * 2);
             ctx.fill();
             ctx.beginPath();
-            ctx.arc(frontEdge, oy + oh * 0.78, 3.5, 0, Math.PI * 2);
+            ctx.ellipse(nose - sgn * oh * 0.16, oy + oh * 0.76, oh * 0.10, oh * 0.13, 0, 0, Math.PI * 2);
             ctx.fill();
-            // Inner bright spot
-            ctx.fillStyle = '#fff';
+            // taillights
+            ctx.fillStyle = '#e53935';
             ctx.beginPath();
-            ctx.arc(frontEdge, oy + oh * 0.22, 1.8, 0, Math.PI * 2);
+            ctx.roundRect(tail + (dir > 0 ? 1 : -oh * 0.20 - 1), oy + oh * 0.13, oh * 0.20, oh * 0.22, 1.5);
             ctx.fill();
             ctx.beginPath();
-            ctx.arc(frontEdge, oy + oh * 0.78, 1.8, 0, Math.PI * 2);
+            ctx.roundRect(tail + (dir > 0 ? 1 : -oh * 0.20 - 1), oy + oh * 0.65, oh * 0.20, oh * 0.22, 1.5);
             ctx.fill();
 
-            // Taillights (red rectangles at rear)
-            var rearEdge = dir > 0 ? o.x : o.x + ow - 5;
-            ctx.fillStyle = '#ef5350';
-            ctx.fillRect(rearEdge, oy + 2, 5, oh * 0.28);
-            ctx.fillRect(rearEdge, oy + oh - oh * 0.28 - 2, 5, oh * 0.28);
-            // Tail light highlight
-            ctx.fillStyle = 'rgba(255,160,150,0.6)';
-            ctx.fillRect(rearEdge + 1, oy + 3, 2, oh * 0.14);
-            ctx.fillRect(rearEdge + 1, oy + oh - oh * 0.28 - 1, 2, oh * 0.14);
-
-            // Speed lines on fast lanes (speed > 2.0)
-            if (Math.abs(lane.speed) > 2.0) {
-                ctx.save();
-                ctx.globalAlpha = 0.12;
-                ctx.strokeStyle = o.color;
-                ctx.lineWidth = 1;
-                for (var sl = 0; sl < 3; sl++) {
-                    var slX = o.x - dir * (10 + sl * 8);
-                    var slLen = (lane.speed - 2.0) * 8;
-                    ctx.beginPath();
-                    ctx.moveTo(slX, oy + oh * (0.25 + sl * 0.25));
-                    ctx.lineTo(slX - dir * slLen, oy + oh * (0.25 + sl * 0.25));
-                    ctx.stroke();
-                }
-                ctx.restore();
-            }
+            /* ── mirrors ── */
+            ctx.fillStyle = shade(o.color, -70);
+            var mx = dir > 0 ? roofX + roofW * 0.94 : roofX + roofW * 0.06 - oh * 0.16;
+            ctx.fillRect(mx, oy - oh * 0.09, oh * 0.16, oh * 0.10);
+            ctx.fillRect(mx, oy + oh * 0.99, oh * 0.16, oh * 0.10);
         }
     }
 }
@@ -631,212 +678,251 @@ function drawCars() {
 var frogRidingX = null;
 
 // Draw the frog shape at (cx, cy) with given radius
-function drawFrogShape(cx, cy, r, moving) {
-    // Jump animation: frogMoveFlash goes 8→0 after each hop
-    var jumpT = (moving && frogMoveFlash > 0) ? frogMoveFlash / 8 : 0;
-    var jE = jumpT * jumpT * (3 - 2 * jumpT); // smoothstep easing
+/* ── Frog model ──────────────────────────────────────────────────────────
+ * Drawn top-down, facing -Y. Built as one continuous silhouette (snout →
+ * cheeks → flanks → hips → rump) instead of stacked ellipses, with
+ * articulated hind legs (hip → knee → ankle → webbed foot) that coil when
+ * idle and extend through a hop.
+ */
 
-    // Idle breathing when not jumping
-    var breathe = (moving && jumpT < 0.01) ? Math.sin(frame * 0.04) * 0.012 : 0;
+function lerp(a, b, t) { return a + (b - a) * t; }
 
-    var brightness = jumpT;
-    var g1 = Math.min(255, 150 + Math.floor(brightness * 80));
-    var bodyColor = 'rgb(56,' + g1 + ',56)';
-    var darkGreen = '#2d5a27';
-    var lightGreen = 'rgb(100,' + Math.min(255, 200 + Math.floor(brightness * 30)) + ',80)';
-
-    // ======= BACK LEGS (behind body) =======
-    // Jump: legs spread wider and extend further back/outward
-    var bThighX  = r * (0.60 + jE * 0.28);
-    var bThighY  = r * (0.20 - jE * 0.05);
-    var bThighAng = Math.PI * (0.32 + jE * 0.22);
-    var bLowerX  = r * (0.92 + jE * 0.32);
-    var bLowerY  = r * (0.48 + jE * 0.18);
-    var bLowerAng = Math.PI * (0.08 - jE * 0.18);
-
-    ctx.fillStyle = darkGreen;
-    // Left back thigh
+/* Webbed hind foot: a fan of toes joined by concave webbing. */
+function drawWebbedFoot(ax, ay, ang, len, spread, toes, fill, edge) {
+    var i, a, tipX, tipY, midA, midR;
+    ctx.fillStyle = fill;
     ctx.beginPath();
-    ctx.ellipse(cx - bThighX, cy + bThighY, r * 0.34, r * 0.17, bThighAng, 0, Math.PI * 2);
-    ctx.fill();
-    // Left back lower leg
-    ctx.beginPath();
-    ctx.ellipse(cx - bLowerX, cy + bLowerY, r * 0.17, r * (0.28 + jE * 0.1), bLowerAng, 0, Math.PI * 2);
-    ctx.fill();
-    // Left toes (3 small toe pads)
-    var ltX = cx - bLowerX - r * (0.12 + jE * 0.06);
-    var ltY = cy + bLowerY + r * (0.30 + jE * 0.08);
-    ctx.fillStyle = '#1a4a14';
-    for (var ti = -1; ti <= 1; ti++) {
-        ctx.beginPath();
-        ctx.arc(ltX + ti * r * 0.09, ltY + Math.abs(ti) * r * 0.05, r * 0.055, 0, Math.PI * 2);
-        ctx.fill();
+    ctx.moveTo(ax, ay);
+    for (i = 0; i < toes; i++) {
+        a = ang + (i / (toes - 1) - 0.5) * spread;
+        tipX = ax + Math.cos(a) * len;
+        tipY = ay + Math.sin(a) * len;
+        if (i > 0) {
+            // webbing dips between consecutive toe tips
+            midA = ang + ((i - 0.5) / (toes - 1) - 0.5) * spread;
+            midR = len * 0.66;
+            ctx.quadraticCurveTo(ax + Math.cos(midA) * midR, ay + Math.sin(midA) * midR, tipX, tipY);
+        } else {
+            ctx.lineTo(tipX, tipY);
+        }
     }
-
-    // Right back thigh
-    ctx.fillStyle = darkGreen;
-    ctx.beginPath();
-    ctx.ellipse(cx + bThighX, cy + bThighY, r * 0.34, r * 0.17, -bThighAng, 0, Math.PI * 2);
+    ctx.closePath();
     ctx.fill();
-    // Right back lower leg
-    ctx.beginPath();
-    ctx.ellipse(cx + bLowerX, cy + bLowerY, r * 0.17, r * (0.28 + jE * 0.1), -bLowerAng, 0, Math.PI * 2);
-    ctx.fill();
-    // Right toes
-    var rtX = cx + bLowerX + r * (0.12 + jE * 0.06);
-    var rtY = cy + bLowerY + r * (0.30 + jE * 0.08);
-    ctx.fillStyle = '#1a4a14';
-    for (var ti = -1; ti <= 1; ti++) {
+    // toe bones
+    ctx.strokeStyle = edge;
+    ctx.lineWidth = Math.max(0.6, len * 0.10);
+    ctx.lineCap = 'round';
+    for (i = 0; i < toes; i++) {
+        a = ang + (i / (toes - 1) - 0.5) * spread;
         ctx.beginPath();
-        ctx.arc(rtX + ti * r * 0.09, rtY + Math.abs(ti) * r * 0.05, r * 0.055, 0, Math.PI * 2);
-        ctx.fill();
+        ctx.moveTo(ax, ay);
+        ctx.lineTo(ax + Math.cos(a) * len * 0.94, ay + Math.sin(a) * len * 0.94);
+        ctx.stroke();
     }
+}
 
-    // ======= BODY =======
-    var squashT = landSquash / 8;
-    var bodyRx = r * 0.62 * (1 - jE * 0.06 + breathe + squashT * 0.22);
-    var bodyRy = r * 0.50 * (1 + jE * 0.14 + breathe - squashT * 0.18);
-    var bodyGrad = ctx.createRadialGradient(cx - r * 0.2, cy - r * 0.2, r * 0.05, cx, cy, r * 0.75);
-    bodyGrad.addColorStop(0, lightGreen);
-    bodyGrad.addColorStop(0.6, bodyColor);
-    bodyGrad.addColorStop(1, darkGreen);
+/* One hind leg. s = -1 left / +1 right, e = 0 coiled … 1 extended. */
+function drawHindLeg(s, e, r, dark, mid, edge) {
+    var hipX = s * r * 0.40, hipY = r * 0.28;
+    // Frog hind legs are long. Coiled: knee juts far out and back beside the
+    // rump with the shin folded in — the classic resting "Z". Extended:
+    // hip→knee→ankle straighten out into a trailing kick.
+    var kneeX = s * lerp(r * 0.70, r * 0.58, e);
+    var kneeY = lerp(r * 0.54, r * 0.84, e);
+    var ankX  = s * lerp(r * 0.42, r * 0.38, e);
+    var ankY  = lerp(r * 0.88, r * 1.46, e);
+
+    ctx.lineCap = 'round';
+    ctx.lineJoin = 'round';
+    // thigh
+    ctx.strokeStyle = mid;
+    ctx.lineWidth = r * 0.24;
+    ctx.beginPath();
+    ctx.moveTo(hipX, hipY);
+    ctx.lineTo(kneeX, kneeY);
+    ctx.stroke();
+    // shin
+    ctx.strokeStyle = dark;
+    ctx.lineWidth = r * 0.17;
+    ctx.beginPath();
+    ctx.moveTo(kneeX, kneeY);
+    ctx.lineTo(ankX, ankY);
+    ctx.stroke();
+
+    // foot points away from the knee
+    var fa = Math.atan2(ankY - kneeY, ankX - kneeX);
+    drawWebbedFoot(ankX, ankY, fa, r * lerp(0.30, 0.38, e), 1.05, 4, dark, edge);
+}
+
+/* One front leg: short, hugging the flank just behind the head. Planted
+ * forward at rest, swept back through a hop. */
+function drawFrontLeg(s, e, r, dark, edge) {
+    var shX = s * r * 0.30, shY = -r * 0.36;
+    var elX = s * lerp(r * 0.54, r * 0.44, e);
+    var elY = lerp(-r * 0.16, r * 0.10, e);
+    var haX = s * lerp(r * 0.52, r * 0.30, e);
+    var haY = lerp(r * 0.18, r * 0.52, e);
+
+    ctx.strokeStyle = dark;
+    ctx.lineWidth = r * 0.13;
+    ctx.lineCap = 'round';
+    ctx.lineJoin = 'round';
+    ctx.beginPath();
+    ctx.moveTo(shX, shY);
+    ctx.lineTo(elX, elY);
+    ctx.lineTo(haX, haY);
+    ctx.stroke();
+
+    var ha = Math.atan2(haY - elY, haX - elX);
+    drawWebbedFoot(haX, haY, ha, r * 0.21, 1.7, 4, dark, edge);
+}
+
+/* Continuous body + head outline, facing -Y: narrow snout, cheeks, a slight
+ * waist behind the shoulders, then the hips as the widest point. */
+function frogBodyPath(r) {
+    ctx.beginPath();
+    ctx.moveTo(0, -r * 1.00);
+    // right: snout → cheek
+    ctx.bezierCurveTo( r * 0.15, -r * 0.99,  r * 0.34, -r * 0.84,  r * 0.39, -r * 0.58);
+    // cheek → waist (pinched, so the head reads as a head)
+    ctx.bezierCurveTo( r * 0.43, -r * 0.36,  r * 0.32, -r * 0.16,  r * 0.34,  r * 0.04);
+    // waist → hip (widest point)
+    ctx.bezierCurveTo( r * 0.38,  r * 0.30,  r * 0.64,  r * 0.34,  r * 0.62,  r * 0.60);
+    // hip → rump
+    ctx.bezierCurveTo( r * 0.60,  r * 0.86,  r * 0.34,  r * 0.96,  0,         r * 0.96);
+    // mirror back up the left side
+    ctx.bezierCurveTo(-r * 0.34,  r * 0.96, -r * 0.60,  r * 0.86, -r * 0.62,  r * 0.60);
+    ctx.bezierCurveTo(-r * 0.64,  r * 0.34, -r * 0.38,  r * 0.30, -r * 0.34,  r * 0.04);
+    ctx.bezierCurveTo(-r * 0.32, -r * 0.16, -r * 0.43, -r * 0.36, -r * 0.39, -r * 0.58);
+    ctx.bezierCurveTo(-r * 0.34, -r * 0.84, -r * 0.15, -r * 0.99,  0,        -r * 1.00);
+    ctx.closePath();
+}
+
+function drawFrogShape(cx, cy, r, moving, pose) {
+    pose = pose || {};
+    var e      = pose.ext    || 0;   // 0 coiled … 1 extended
+    var squash = pose.squash || 0;   // landing compression
+    var stretch= pose.stretch|| 0;   // take-off elongation
+
+    var breathe = (moving && e < 0.02) ? Math.sin(frame * 0.05) * 0.018 : 0;
+
+    var light = '#7cc45a';
+    var mid   = '#4e9938';
+    var dark  = '#2f6a24';
+    var edge  = '#1d4716';
+
+    ctx.save();
+    ctx.translate(cx, cy);
+    // squash & stretch along the travel axis (frog faces -Y)
+    ctx.scale(1 + squash * 0.13 - stretch * 0.08 + breathe,
+              1 - squash * 0.12 + stretch * 0.12 + breathe);
+
+    /* ── hind legs, behind the body ── */
+    drawHindLeg(-1, e, r, dark, mid, edge);
+    drawHindLeg( 1, e, r, dark, mid, edge);
+
+    /* ── body ── */
+    var bodyGrad = ctx.createLinearGradient(-r * 0.5, -r * 0.9, r * 0.5, r * 0.9);
+    bodyGrad.addColorStop(0, light);
+    bodyGrad.addColorStop(0.45, mid);
+    bodyGrad.addColorStop(1, dark);
     ctx.fillStyle = bodyGrad;
-    ctx.beginPath();
-    ctx.ellipse(cx, cy, bodyRx, bodyRy, 0, 0, Math.PI * 2);
+    frogBodyPath(r);
     ctx.fill();
-    // Body outline
-    ctx.strokeStyle = 'rgba(30,70,20,0.5)';
-    ctx.lineWidth = 0.8;
+    ctx.strokeStyle = edge;
+    ctx.lineWidth = Math.max(0.7, r * 0.05);
     ctx.stroke();
 
-    // Belly (lighter underside)
-    ctx.fillStyle = 'rgba(180,230,160,0.4)';
-    ctx.beginPath();
-    ctx.ellipse(cx, cy + r * 0.1, r * 0.36, r * 0.26, 0, 0, Math.PI * 2);
-    ctx.fill();
-
-    // Dorsal stripe
-    ctx.strokeStyle = 'rgba(25,65,15,0.38)';
-    ctx.lineWidth = r * 0.11;
+    /* ── dorsal ridges ── */
+    ctx.strokeStyle = 'rgba(24,60,16,0.32)';
+    ctx.lineWidth = Math.max(0.8, r * 0.07);
     ctx.lineCap = 'round';
     ctx.beginPath();
-    ctx.moveTo(cx, cy - bodyRy + r * 0.06);
-    ctx.lineTo(cx, cy + bodyRy - r * 0.1);
+    ctx.moveTo(-r * 0.26, -r * 0.30);
+    ctx.quadraticCurveTo(-r * 0.34, r * 0.20, -r * 0.20, r * 0.62);
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.moveTo( r * 0.26, -r * 0.30);
+    ctx.quadraticCurveTo( r * 0.34, r * 0.20,  r * 0.20, r * 0.62);
     ctx.stroke();
 
-    // Back spots
-    ctx.fillStyle = 'rgba(25,65,15,0.42)';
+    /* ── back spots ── */
+    ctx.fillStyle = 'rgba(22,58,14,0.38)';
+    ctx.beginPath(); ctx.ellipse(-r * 0.30,  r * 0.18, r * 0.11, r * 0.08,  0.5, 0, Math.PI * 2); ctx.fill();
+    ctx.beginPath(); ctx.ellipse( r * 0.30,  r * 0.18, r * 0.11, r * 0.08, -0.5, 0, Math.PI * 2); ctx.fill();
+    ctx.beginPath(); ctx.ellipse( 0,         r * 0.52, r * 0.13, r * 0.09,  0,   0, Math.PI * 2); ctx.fill();
+    ctx.beginPath(); ctx.ellipse(-r * 0.16, -r * 0.12, r * 0.08, r * 0.06,  0.3, 0, Math.PI * 2); ctx.fill();
+    ctx.beginPath(); ctx.ellipse( r * 0.16, -r * 0.12, r * 0.08, r * 0.06, -0.3, 0, Math.PI * 2); ctx.fill();
+
+    /* ── throat / chin highlight ── */
+    ctx.fillStyle = 'rgba(200,240,175,0.30)';
     ctx.beginPath();
-    ctx.ellipse(cx - r * 0.21, cy - r * 0.12, r * 0.09, r * 0.07, 0.3, 0, Math.PI * 2);
-    ctx.fill();
-    ctx.beginPath();
-    ctx.ellipse(cx + r * 0.21, cy - r * 0.12, r * 0.09, r * 0.07, -0.3, 0, Math.PI * 2);
-    ctx.fill();
-    ctx.beginPath();
-    ctx.ellipse(cx, cy + r * 0.1, r * 0.07, r * 0.06, 0, 0, Math.PI * 2);
+    ctx.ellipse(0, -r * 0.62, r * 0.19, r * 0.22, 0, 0, Math.PI * 2);
     ctx.fill();
 
-    // ======= FRONT LEGS =======
-    // Jump: arms reach slightly forward (toward head)
-    var fLegX = r * (0.52 + jE * 0.04);
-    var fLegY = r * (0.10 - jE * 0.12);
-    ctx.fillStyle = darkGreen;
-    ctx.beginPath();
-    ctx.ellipse(cx - fLegX, cy + fLegY, r * 0.20, r * 0.11, Math.PI * 0.5, 0, Math.PI * 2);
-    ctx.fill();
-    ctx.beginPath();
-    ctx.ellipse(cx + fLegX, cy + fLegY, r * 0.20, r * 0.11, -Math.PI * 0.5, 0, Math.PI * 2);
-    ctx.fill();
-    // Front toes (3 pads per side)
-    ctx.fillStyle = '#1a4a14';
-    var ftOff = [[-0.06, -0.09], [0.0, 0.0], [-0.06, 0.09]];
-    for (var fi = 0; fi < 3; fi++) {
+    /* ── front legs, over the body ── */
+    drawFrontLeg(-1, e, r, dark, edge);
+    drawFrontLeg( 1, e, r, dark, edge);
+
+    /* ── eyes: domes sitting on the skull, only just proud of the outline ── */
+    var eyeY = -r * 0.54, eyeX = r * 0.27, domeR = r * 0.185;
+    var blinking = moving && (frame % 130 < 5);
+
+    for (var s = -1; s <= 1; s += 2) {
+        // dome in body colour so it reads as part of the head
+        var domeGrad = ctx.createRadialGradient(s * eyeX - r * 0.06, eyeY - r * 0.08, r * 0.02,
+                                                s * eyeX, eyeY, domeR);
+        domeGrad.addColorStop(0, light);
+        domeGrad.addColorStop(1, mid);
+        ctx.fillStyle = domeGrad;
         ctx.beginPath();
-        ctx.arc(cx - fLegX - r * (0.18 + ftOff[fi][0]), cy + fLegY + r * ftOff[fi][1], r * 0.048, 0, Math.PI * 2);
+        ctx.arc(s * eyeX, eyeY, domeR, 0, Math.PI * 2);
         ctx.fill();
-        ctx.beginPath();
-        ctx.arc(cx + fLegX + r * (0.18 + ftOff[fi][0]), cy + fLegY + r * ftOff[fi][1], r * 0.048, 0, Math.PI * 2);
-        ctx.fill();
+        ctx.strokeStyle = edge;
+        ctx.lineWidth = Math.max(0.6, r * 0.045);
+        ctx.stroke();
+
+        if (blinking) {
+            ctx.strokeStyle = edge;
+            ctx.lineWidth = Math.max(1, r * 0.06);
+            ctx.lineCap = 'round';
+            ctx.beginPath();
+            ctx.moveTo(s * eyeX - r * 0.09, eyeY);
+            ctx.lineTo(s * eyeX + r * 0.09, eyeY);
+            ctx.stroke();
+        } else {
+            ctx.fillStyle = '#fff8e1';
+            ctx.beginPath();
+            ctx.arc(s * eyeX, eyeY, r * 0.115, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.fillStyle = '#f5a623';
+            ctx.beginPath();
+            ctx.arc(s * eyeX + r * 0.012, eyeY + r * 0.012, r * 0.075, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.fillStyle = '#0d0d0d';
+            ctx.beginPath();
+            ctx.ellipse(s * eyeX + r * 0.012, eyeY + r * 0.012, r * 0.028, r * 0.060, 0, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.fillStyle = 'rgba(255,255,255,0.85)';
+            ctx.beginPath();
+            ctx.arc(s * eyeX - r * 0.04, eyeY - r * 0.045, r * 0.03, 0, Math.PI * 2);
+            ctx.fill();
+        }
     }
 
-    // ======= EYES =======
-    var eyeY = cy - r * 0.33;
-    var eyeOffX = r * 0.31;
-    var blinking = moving && (frame % 110 < 5);
+    /* ── nostrils & mouth ── */
+    ctx.fillStyle = 'rgba(26,64,16,0.65)';
+    ctx.beginPath(); ctx.arc(-r * 0.08, -r * 0.90, r * 0.03, 0, Math.PI * 2); ctx.fill();
+    ctx.beginPath(); ctx.arc( r * 0.08, -r * 0.90, r * 0.03, 0, Math.PI * 2); ctx.fill();
 
-    // Eye bulge/socket
-    ctx.fillStyle = bodyColor;
-    ctx.beginPath();
-    ctx.arc(cx - eyeOffX, eyeY, r * 0.22, 0, Math.PI * 2);
-    ctx.fill();
-    ctx.beginPath();
-    ctx.arc(cx + eyeOffX, eyeY, r * 0.22, 0, Math.PI * 2);
-    ctx.fill();
-
-    if (blinking) {
-        // Blink: horizontal squint
-        ctx.strokeStyle = darkGreen;
-        ctx.lineWidth = r * 0.07;
-        ctx.lineCap = 'round';
-        ctx.beginPath();
-        ctx.moveTo(cx - eyeOffX - r * 0.1, eyeY);
-        ctx.lineTo(cx - eyeOffX + r * 0.1, eyeY);
-        ctx.stroke();
-        ctx.beginPath();
-        ctx.moveTo(cx + eyeOffX - r * 0.1, eyeY);
-        ctx.lineTo(cx + eyeOffX + r * 0.1, eyeY);
-        ctx.stroke();
-    } else {
-        // Sclera
-        ctx.fillStyle = '#fffde7';
-        ctx.beginPath();
-        ctx.arc(cx - eyeOffX, eyeY, r * 0.15, 0, Math.PI * 2);
-        ctx.fill();
-        ctx.beginPath();
-        ctx.arc(cx + eyeOffX, eyeY, r * 0.15, 0, Math.PI * 2);
-        ctx.fill();
-        // Gold iris
-        ctx.fillStyle = '#f9a825';
-        ctx.beginPath();
-        ctx.arc(cx - eyeOffX + r * 0.02, eyeY + r * 0.02, r * 0.09, 0, Math.PI * 2);
-        ctx.fill();
-        ctx.beginPath();
-        ctx.arc(cx + eyeOffX + r * 0.02, eyeY + r * 0.02, r * 0.09, 0, Math.PI * 2);
-        ctx.fill();
-        // Vertical slit pupil
-        ctx.fillStyle = '#111';
-        ctx.beginPath();
-        ctx.ellipse(cx - eyeOffX + r * 0.02, eyeY + r * 0.02, r * 0.033, r * 0.072, 0, 0, Math.PI * 2);
-        ctx.fill();
-        ctx.beginPath();
-        ctx.ellipse(cx + eyeOffX + r * 0.02, eyeY + r * 0.02, r * 0.033, r * 0.072, 0, 0, Math.PI * 2);
-        ctx.fill();
-        // Highlight
-        ctx.fillStyle = 'rgba(255,255,255,0.75)';
-        ctx.beginPath();
-        ctx.arc(cx - eyeOffX - r * 0.04, eyeY - r * 0.04, r * 0.034, 0, Math.PI * 2);
-        ctx.fill();
-        ctx.beginPath();
-        ctx.arc(cx + eyeOffX - r * 0.04, eyeY - r * 0.04, r * 0.034, 0, Math.PI * 2);
-        ctx.fill();
-    }
-
-    // Nostrils
-    ctx.fillStyle = 'rgba(30,70,20,0.6)';
-    ctx.beginPath();
-    ctx.arc(cx - r * 0.08, cy - r * 0.17, r * 0.03, 0, Math.PI * 2);
-    ctx.fill();
-    ctx.beginPath();
-    ctx.arc(cx + r * 0.08, cy - r * 0.17, r * 0.03, 0, Math.PI * 2);
-    ctx.fill();
-
-    // Mouth (curved line)
-    ctx.strokeStyle = darkGreen;
-    ctx.lineWidth = 1.2;
+    ctx.strokeStyle = 'rgba(26,64,16,0.55)';
+    ctx.lineWidth = Math.max(0.8, r * 0.055);
     ctx.lineCap = 'round';
     ctx.beginPath();
-    ctx.arc(cx, cy - r * 0.04, r * 0.22, 0.3, Math.PI - 0.3, false);
+    ctx.arc(0, -r * 0.80, r * 0.17, 0.35, Math.PI - 0.35, false);
     ctx.stroke();
+
+    ctx.restore();
 }
 
 // Flash on movement + hop tween state
@@ -862,6 +948,10 @@ function drawFrog() {
 
     var frogCx, frogCy;
     var frogR = CELL * 0.48;
+    var hopLift = 0;      // 0 on the ground … 1 at the top of the arc
+    var legExt  = 0;      // hind-leg extension driving the pose
+    var stretch = 0;      // take-off elongation
+    var shadowX = logX, shadowY = logY;
 
     if (frogHop && frogHop.t < frogHop.duration) {
         frogHop.t++;
@@ -873,23 +963,26 @@ function drawFrog() {
         frogCx = frogHop.fromX + (logX - frogHop.fromX) * eased;
         frogCy = frogHop.fromY + (logY - frogHop.fromY) * eased;
 
+        // The shadow tracks the ground position, never the arc
+        shadowX = frogCx;
+        shadowY = frogHop.fromY + (logY - frogHop.fromY) * eased;
+
         // Parabolic arc — taller for vertical hops, shallower for sideways
         var dxHop = Math.abs(logX - frogHop.fromX);
         var dyHop = Math.abs(logY - frogHop.fromY);
         var arcH = dyHop > dxHop ? CELL * 0.55 : CELL * 0.38;
-        frogCy -= Math.sin(p * Math.PI) * arcH;
+        hopLift = Math.sin(p * Math.PI);
+        frogCy -= hopLift * arcH;
 
-        // Slight scale-down at arc peak (height illusion)
-        frogR *= 1 - Math.sin(p * Math.PI) * 0.13;
+        // Legs snap out fast off the ground, then tuck in to land
+        legExt = p < 0.28 ? (p / 0.28)
+               : p < 0.72 ? 1
+               : 1 - (p - 0.72) / 0.28;
+        // Elongate on the way up, settle on the way down
+        stretch = Math.max(0, 1 - p * 2.6);
 
-        // Landing shadow at destination (shows where frog will land)
-        ctx.save();
-        ctx.globalAlpha = 0.28 * (1 - p * 0.5);
-        ctx.fillStyle = '#000';
-        ctx.beginPath();
-        ctx.ellipse(logX, logY + 3, CELL * 0.32 * (0.4 + eased * 0.6), CELL * 0.10, 0, 0, Math.PI * 2);
-        ctx.fill();
-        ctx.restore();
+        // Perspective: slightly smaller at the top of the arc
+        frogR *= 1 - hopLift * 0.10;
 
         // Take-off ripple (expanding ring at origin)
         if (frogHop.t <= 5) {
@@ -918,6 +1011,8 @@ function drawFrog() {
             var riding = getFrogOnLog();
             if (riding) frogCy += riding.log.bob || 0;
         }
+        shadowX = frogCx;
+        shadowY = frogCy;
         // Quieta un momento: vuelve a mirar al frente (no se queda de lado)
         if (frogUprightTimer > 0) frogUprightTimer--;
         else frogTargetAngle = 0;
@@ -933,26 +1028,45 @@ function drawFrog() {
     frogAngle += dAng * 0.45;
     if (Math.abs(dAng) < 0.02) frogAngle = frogTargetAngle;
 
+    // Cast shadow on the ground: tightens and darkens as the frog rises,
+    // which is what actually sells the height of the arc.
+    ctx.save();
+    ctx.globalAlpha = 0.30 * (1 - hopLift * 0.45);
+    ctx.fillStyle = '#000';
+    ctx.beginPath();
+    ctx.ellipse(shadowX, shadowY + CELL * 0.14 + hopLift * CELL * 0.10,
+                CELL * 0.30 * (1 - hopLift * 0.34),
+                CELL * 0.11 * (1 - hopLift * 0.34), 0, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.restore();
+
     ctx.save();
     ctx.translate(frogCx, frogCy);
     ctx.rotate(frogAngle);
-    drawFrogShape(0, 0, frogR, true);
+    drawFrogShape(0, 0, frogR, true, {
+        ext: legExt,
+        squash: landSquash / 8,
+        stretch: stretch,
+    });
 
     // Lengüetazo ocasional en reposo (en zonas seguras, mirando al frente)
     var safeRow = (frog.row === 5 || frog.row === 11);
     var tCyc = frame % 300;
     if (safeRow && !frogHop && tCyc < 16) {
-        var tLen = Math.sin((tCyc / 16) * Math.PI) * frogR * 1.1;
-        ctx.strokeStyle = '#ef6c8f';
-        ctx.lineWidth = 2.5;
+        // Short flick starting AT the snout tip. Starting it further back drew
+        // a pink stripe straight across the head.
+        var tLen = Math.sin((tCyc / 16) * Math.PI) * frogR * 0.42;
+        var tipY = -frogR * 0.98 - tLen;
+        ctx.strokeStyle = '#e0637f';
+        ctx.lineWidth = frogR * 0.11;
         ctx.lineCap = 'round';
         ctx.beginPath();
-        ctx.moveTo(0, -frogR * 0.15);
-        ctx.lineTo(0, -frogR * 0.3 - tLen);
+        ctx.moveTo(0, -frogR * 0.96);
+        ctx.lineTo(0, tipY);
         ctx.stroke();
         ctx.fillStyle = '#f48fb1';
         ctx.beginPath();
-        ctx.ellipse(0, -frogR * 0.3 - tLen, 2.6, 1.8, 0, 0, Math.PI * 2);
+        ctx.ellipse(0, tipY, frogR * 0.11, frogR * 0.085, 0, 0, Math.PI * 2);
         ctx.fill();
     }
     ctx.restore();
@@ -1370,7 +1484,7 @@ function moveFrog(dr, dc) {
 }
 
 function updateHUD() {
-    if (score > highScore) { highScore = score; localStorage.setItem('froggerHigh', highScore); }
+    if (score > highScore) { highScore = score; try { localStorage.setItem('froggerHigh', highScore); } catch (e) {} }
     document.getElementById('score').textContent = score;
     document.getElementById('highScore').textContent = highScore;
     document.getElementById('lives').textContent = lives;

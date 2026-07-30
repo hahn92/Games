@@ -321,7 +321,7 @@ function finishGame() {
     state.score += timeBonus;
     if (state.score > state.highScore) {
         state.highScore = state.score;
-        localStorage.setItem(HS_KEY, String(state.highScore));
+        try { localStorage.setItem(HS_KEY, String(state.highScore)); } catch (e) {}
     }
     updateHUD();
     if (typeof GameAudio !== 'undefined') GameAudio.win();

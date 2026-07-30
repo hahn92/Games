@@ -367,7 +367,7 @@
         state.running = false;
         if (state.score > highScore) {
             highScore = state.score;
-            localStorage.setItem('misilesHighScore', String(highScore));
+            try { localStorage.setItem('misilesHighScore', String(highScore)); } catch (e) {}
         }
         GameAudio.gameOver();
         showPopup();

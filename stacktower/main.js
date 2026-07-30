@@ -170,7 +170,7 @@ function endGame() {
     flashAlpha = 0.6;
     if (score > bestScore) {
         bestScore = score;
-        localStorage.setItem('stackTowerBest', String(bestScore));
+        try { localStorage.setItem('stackTowerBest', String(bestScore)); } catch (e) {}
         highScoreEl.textContent = bestScore;
     }
     // popup diferido para mostrar el colapso

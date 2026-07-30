@@ -510,15 +510,15 @@ function endGame(result, winCells) {
     if (winCells) drawBoard(winCells); else drawBoard();
     var title, detail;
     if (result === 'win') {
-        wins++; localStorage.setItem('c4wins', wins);
+        wins++; try { localStorage.setItem('c4wins', wins); } catch (e) {}
         title = '¡Ganaste! 🎉'; detail = '¡Bien jugado!';
         GameAudio.win();
     } else if (result === 'loss') {
-        losses++; localStorage.setItem('c4losses', losses);
+        losses++; try { localStorage.setItem('c4losses', losses); } catch (e) {}
         title = 'Perdiste 😔'; detail = 'La IA ganó esta vez';
         GameAudio.gameOver();
     } else {
-        draws++; localStorage.setItem('c4draws', draws);
+        draws++; try { localStorage.setItem('c4draws', draws); } catch (e) {}
         title = '¡Empate!'; detail = 'Tablero lleno';
         GameAudio.noMatch();
     }

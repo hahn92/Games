@@ -237,7 +237,7 @@ function updateScore() {
 
     if (score > highScore) {
         highScore = score;
-        localStorage.setItem('whackHighScore', highScore);
+        try { localStorage.setItem('whackHighScore', highScore); } catch (e) {}
     }
     document.getElementById('highScore').textContent = highScore;
 }

@@ -262,13 +262,13 @@ function endGame() {
     isNewRecord = score > prevHigh;
     if (isNewRecord || highScore === 0) {
         highScore = score;
-        localStorage.setItem('flappyHighScore', highScore);
+        try { localStorage.setItem('flappyHighScore', highScore); } catch (e) {}
     }
 
     // Medal
     const medal = getMedal(score);
     const savedMedalScore = parseInt(localStorage.getItem('flappyMedalScore') || '0', 10);
-    if (score > savedMedalScore) localStorage.setItem('flappyMedalScore', score);
+    if (score > savedMedalScore) try { localStorage.setItem('flappyMedalScore', score); } catch (e) {}
 
     document.getElementById('gameOverPopup').style.display = 'flex';
     document.getElementById('finalScore').textContent = 'Puntaje: ' + score;

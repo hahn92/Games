@@ -188,7 +188,7 @@
     function setBest(lvl, val) {
         var cur = getBest(lvl);
         if (cur === null || val < cur) {
-            localStorage.setItem('sokoban_best_' + lvl, val);
+            try { localStorage.setItem('sokoban_best_' + lvl, val); } catch (e) {}
             return true;
         }
         return false;

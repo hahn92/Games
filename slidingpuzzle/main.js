@@ -9,11 +9,13 @@ var hintsLeft = 3;
 
 // Records per size: { time, moves }
 function getRecord(size) {
-    var raw = localStorage.getItem('slidingRecord_' + size);
-    return raw ? JSON.parse(raw) : null;
+    try {
+        var raw = localStorage.getItem('slidingRecord_' + size);
+        return raw ? JSON.parse(raw) : null;
+    } catch (e) { return null; }
 }
 function setRecord(size, time, mvs) {
-    localStorage.setItem('slidingRecord_' + size, JSON.stringify({ time: time, moves: mvs }));
+    try { localStorage.setItem('slidingRecord_' + size, JSON.stringify({ time: time, moves: mvs })); } catch (e) {}
 }
 
 // ===================== GOAL / SOLVE CHECK =====================

@@ -40,7 +40,7 @@ function loadBank() {
     saveBank();
 }
 function saveBank() {
-    localStorage.setItem('blackjackBank', String(game.bank));
+    try { localStorage.setItem('blackjackBank', String(game.bank)); } catch (e) {}
     const el = document.getElementById('bank');
     if (el) el.textContent = game.bank;
     updateMobileScore();

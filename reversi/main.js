@@ -42,8 +42,11 @@ var gs = {
 
 /* ── Stats ── */
 var mobileScoreEl = document.getElementById('mobileScore');
-var stats = JSON.parse(localStorage.getItem('reversiStats') || '{"w":0,"l":0,"d":0}');
-function saveStats() { localStorage.setItem('reversiStats', JSON.stringify(stats)); }
+var stats = (function () {
+    try { return JSON.parse(localStorage.getItem('reversiStats') || '{"w":0,"l":0,"d":0}'); }
+    catch (e) { return { w: 0, l: 0, d: 0 }; }
+}());
+function saveStats() { try { localStorage.setItem('reversiStats', JSON.stringify(stats)); } catch (e) {} }
 
 function countDiscs(b) {
     var bl = 0, wh = 0;

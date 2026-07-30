@@ -31,8 +31,11 @@ var gs = {
 
 /* ── Stats persistentes (vs IA) ── */
 var mobileScoreEl = document.getElementById('mobileScore');
-var stats = JSON.parse(localStorage.getItem('damasStats') || '{"w":0,"l":0}');
-function saveStats() { localStorage.setItem('damasStats', JSON.stringify(stats)); }
+var stats = (function () {
+    try { return JSON.parse(localStorage.getItem('damasStats') || '{"w":0,"l":0}'); }
+    catch (e) { return { w: 0, l: 0 }; }
+}());
+function saveStats() { try { localStorage.setItem('damasStats', JSON.stringify(stats)); } catch (e) {} }
 
 function updateMobileScore() {
     if (!mobileScoreEl) return;

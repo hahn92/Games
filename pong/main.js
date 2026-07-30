@@ -429,7 +429,7 @@ function updateScore() {
     document.getElementById('highScore').textContent = highScore;
     if (playerScore > highScore) {
         highScore = playerScore;
-        localStorage.setItem('pongHighScore', highScore);
+        try { localStorage.setItem('pongHighScore', highScore); } catch (e) {}
         document.getElementById('highScore').textContent = highScore;
     }
 }

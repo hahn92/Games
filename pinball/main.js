@@ -66,12 +66,15 @@ var FL_REST    = 0.52;     // ~27° resting angle (downward)
 var FL_UP      = -0.52;    // ~ -30° up angle
 var FL_SPEED   = 28;       // rad/s — snappy
 var FL_PIVOT_Y = H - 80;
-/* Pivot separation: tips in resting position should leave ~24px gap (≥ ball diameter+small margin) */
-var FL_REST_DX = Math.cos(FL_REST) * FL_LEN;       // ~57
-var DRAIN_GAP  = FL_REST_DX * 2 + 24;              // ~138 px between pivots
+/* Pivot separation: tips in resting position leave a ~24px gap (≥ ball
+   diameter + small margin). DRAIN_GAP is the pivot-to-pivot distance, so each
+   pivot sits half of it from the table centre — dividing by 1.8 instead of 2
+   opened the gap to 45px, wide enough to swallow the ball down the middle. */
+var FL_REST_DX = Math.cos(FL_REST) * FL_LEN;       // ~82
+var DRAIN_GAP  = FL_REST_DX * 2 + 24;              // ~187 px between pivots
 var TABLE_MID  = (PLAY_L + LANE_SEP) / 2;
-var FL_PIVOT_LX = TABLE_MID - DRAIN_GAP / 1.8;
-var FL_PIVOT_RX = TABLE_MID + DRAIN_GAP / 1.8;
+var FL_PIVOT_LX = TABLE_MID - DRAIN_GAP / 2;
+var FL_PIVOT_RX = TABLE_MID + DRAIN_GAP / 2;
 
 /* Flipper objects.
    dir = +1 for left flipper (resting down-right, swings up-counterclockwise → angle decreases)
@@ -242,6 +245,10 @@ var MAX_SPEED  = 1200;
 
 /* ── Audio cooldown ─────────────────────────────────────── */
 var hitCooldown = 0;
+
+/* ── Stall recovery (see updateBall) ────────────────────── */
+var stallTimer  = 0;
+var stallNudges = 0;
 
 /* ── Cached gradients ───────────────────────────────────── */
 var bgGrad = null;
@@ -419,6 +426,12 @@ function updateBall(dt) {
     var flipHit   = false;
 
     for (var step = 0; step < SUBSTEPS; step++) {
+        /* Advance the flippers inside the sub-step so that the angle delta
+           collideFlipper divides by sdt really is one sub-step's worth. Stepping
+           them once per frame instead made omega read 3x too high, which pinned
+           the kick at its clamp and removed any control over shot strength. */
+        updateFlippers(sdt);
+
         /* Integrate */
         ball.vy += GRAVITY * sdt;
         ball.vx *= (1 - DRAG_X * sdt);
@@ -487,6 +500,38 @@ function updateBall(dt) {
     }
     if (flipHit) GameAudio.paddle();
 
+    /* ── Stall / trapped-ball recovery ────────────────────────────────────
+       The plunger lane is closed at the bottom, so a ball that comes to rest
+       in it can never drain and the game locks up with no way out but
+       Reiniciar. The ball can end up there from a weak shot or by rolling back
+       in from the playfield, so this net is needed on top of the launch floor.
+       Holding a flipper is excluded so that cradling the ball still works. */
+    var curSpd = Math.sqrt(ball.vx * ball.vx + ball.vy * ball.vy);
+    var inLane = ball.x > LANE_SEP;
+    if (curSpd < 45 && (inLane || !(keys.left || keys.right))) stallTimer += dt;
+    else stallTimer = 0;
+
+    if (stallTimer > 2.0) {
+        stallTimer = 0;
+        if (inLane) {
+            /* Hand it back to the shooter, as a real machine does — no life lost. */
+            stallNudges = 0;
+            resetBall();
+            return;
+        }
+        stallNudges++;
+        if (stallNudges >= 3) {
+            /* Wedged somewhere on the table: give up and drain it rather than
+               leaving the player stuck. */
+            stallNudges = 0;
+            ball.y = H + BALL_R + 8;
+        } else {
+            ball.vy = -260;
+            ball.vx += (ball.x < TABLE_MID ? 1 : -1) * 130;
+            screenShake = Math.max(screenShake, 3);
+        }
+    }
+
     /* ── Drain detection ── */
     if (ball.y - BALL_R > H + 4) {
         ball.active = false;
@@ -538,7 +583,7 @@ function addScore(pts) {
     score += pts;
     scoreEl.textContent = score;
     if (mobileScore) mobileScore.textContent = 'Puntaje: ' + score + '  Vidas: ' + lives;
-    var nl = Math.floor(score / 5000) + 100;
+    var nl = Math.floor(score / 5000) + 1;
     if (nl > level) {
         level = nl;
         levelEl.textContent = level;
@@ -556,6 +601,7 @@ function resetBall() {
     ball.active = false;
     ball.trail.length = 0;
     plungerPower = 0; plungerCharging = false; plungerY = 0;
+    stallTimer = 0; stallNudges = 0;
     state = STATE.LAUNCH;
 }
 
@@ -599,7 +645,13 @@ function launchBall() {
     ball.x = BALL_LAUNCH_X;
     ball.y = BALL_LAUNCH_Y;
     ball.vx = 0;
-    ball.vy = -(620 + power * 720); // -620..-1340
+    /* The lane is a closed chute: a shot that fails to reach the ceiling guide
+       falls back and there is no drain down there to end the ball. The floor of
+       this range must therefore always clear the guide — reaching it needs
+       ~980 px/s (rise of 511 px against GRAVITY), so 1020 leaves a margin.
+       The ceiling is MAX_SPEED, since anything above it is clamped away on the
+       first sub-step and the top of the charge meter would do nothing. */
+    ball.vy = -(1020 + power * (MAX_SPEED - 1020)); // -1020..-1200
     ball.active = true;
     ball.trail.length = 0;
     plungerPower = 0; plungerCharging = false; plungerY = 0;
@@ -911,9 +963,10 @@ function loop(ts) {
         return;
     }
 
-    /* Updates */
-    updateFlippers(dt);
+    /* Updates — during play the flippers are stepped inside updateBall's
+       sub-step loop, so only drive them here when the ball is not in play. */
     if (state === STATE.PLAY) updateBall(dt);
+    else updateFlippers(dt);
     if (state === STATE.LAUNCH && plungerCharging) {
         plungerPower = Math.min(1, plungerPower + dt * 1.4);
         plungerY = plungerPower * 18;
@@ -988,8 +1041,10 @@ document.addEventListener('keyup', function (e) {
 var activeTouches = {};
 
 function touchZone(tx, ty) {
-    var bottomBand = ty > H * 0.72;
-    if (bottomBand) {
+    /* The plunger only exists while waiting to shoot. Claiming the middle of the
+       bottom band during play would leave a dead strip right where a thumb
+       lands, with no flipper response. */
+    if (state === STATE.LAUNCH && ty > H * 0.72) {
         if (tx < W / 3) return 'L';
         if (tx > W * 2 / 3) return 'R';
         return 'P';

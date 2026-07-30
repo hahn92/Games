@@ -315,7 +315,7 @@ function endGame(won = false) {
     GameAudio.gameOver();
     if (score > highScore) {
         highScore = score;
-        localStorage.setItem('invadersHighScore', highScore);
+        try { localStorage.setItem('invadersHighScore', highScore); } catch (e) {}
     }
     document.getElementById('gameOverPopup').style.display = 'flex';
     document.getElementById('finalScore').textContent = won ? '¡Ganaste! Puntaje: ' + score : '¡Perdiste! Puntaje: ' + score;

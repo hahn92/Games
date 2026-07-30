@@ -29,7 +29,7 @@ function getBestTime() {
     return v || null;
 }
 function setBestTime(t) {
-    localStorage.setItem(getBestTimeKey(), t);
+    try { localStorage.setItem(getBestTimeKey(), t); } catch (e) {}
 }
 
 // ---- Build difficulty selector dynamically ----

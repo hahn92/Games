@@ -436,7 +436,7 @@ function update() {
         waveTimer = 0;
         if (wave > maxWave) {
             maxWave = wave;
-            localStorage.setItem('catcherMaxWave', maxWave);
+            try { localStorage.setItem('catcherMaxWave', maxWave); } catch (e) {}
         }
         triggerWaveMessage();
     }
@@ -692,7 +692,7 @@ for (var i = 0; i < 70; i++)
 function updateHUD() {
     if (score > highScore) {
         highScore = score;
-        localStorage.setItem('catcherHigh', highScore);
+        try { localStorage.setItem('catcherHigh', highScore); } catch (e) {}
     }
     document.getElementById('score').textContent = score;
     document.getElementById('highScore').textContent = highScore;

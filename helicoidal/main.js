@@ -229,7 +229,7 @@ function endGame() {
     if (typeof GameAudio !== 'undefined') GameAudio.gameOver();
     if (score > best) {
         best = score;
-        localStorage.setItem('helicoidalHighScore', String(best));
+        try { localStorage.setItem('helicoidalHighScore', String(best)); } catch (e) {}
         highScoreEl.textContent = best;
     }
     // popup con breve delay para mostrar shake y explosión

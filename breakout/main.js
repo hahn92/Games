@@ -586,7 +586,7 @@ function updateScore() {
     document.getElementById('highScore').textContent = highScore;
     if (score > highScore) {
         highScore = score;
-        localStorage.setItem('breakoutHighScore', highScore);
+        try { localStorage.setItem('breakoutHighScore', highScore); } catch (e) {}
         document.getElementById('highScore').textContent = highScore;
     }
 }

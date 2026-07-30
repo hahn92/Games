@@ -230,7 +230,7 @@ function endGame(result) {
 
     if (result.winner === 'X') {
         wins++;
-        localStorage.setItem('tttWins', wins);
+        try { localStorage.setItem('tttWins', wins); } catch (e) {}
         title = '¡Ganaste! 🎉';
         detail = '¡Bien jugado!';
         changedId = 'wins';
@@ -239,7 +239,7 @@ function endGame(result) {
         GameAudio.win();
     } else if (result.winner === 'O') {
         losses++;
-        localStorage.setItem('tttLosses', losses);
+        try { localStorage.setItem('tttLosses', losses); } catch (e) {}
         title = 'Perdiste 😔';
         detail = 'La IA ganó esta vez';
         changedId = 'losses';
@@ -248,7 +248,7 @@ function endGame(result) {
         GameAudio.gameOver();
     } else {
         draws++;
-        localStorage.setItem('tttDraws', draws);
+        try { localStorage.setItem('tttDraws', draws); } catch (e) {}
         title = '¡Empate!';
         detail = 'Nadie ganó';
         changedId = 'draws';

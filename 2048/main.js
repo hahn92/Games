@@ -168,7 +168,7 @@ function move(dir) {
         }
         if (score > highScore) {
             highScore = score;
-            localStorage.setItem('2048HighScore', highScore);
+            try { localStorage.setItem('2048HighScore', highScore); } catch (e) {}
         }
         // Check for 2048 tile win
         let has2048 = false;

@@ -1203,7 +1203,7 @@
         gameOver = true;
         if (score > highScore) {
             highScore = score;
-            localStorage.setItem('carrace_hs', highScore);
+            try { localStorage.setItem('carrace_hs', highScore); } catch (e) {}
         }
         highScoreEl.textContent = highScore;
         finalScore.textContent = 'Puntaje: ' + score;

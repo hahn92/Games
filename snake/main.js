@@ -649,7 +649,7 @@ function gameOver() {
     rafClear(gameInterval);
     if (score > highScore) {
         highScore = score;
-        localStorage.setItem('snakeHighScore', highScore);
+        try { localStorage.setItem('snakeHighScore', highScore); } catch (e) {}
         GameAudio.scoreHigh();
     }
     GameAudio.gameOver();

@@ -560,7 +560,7 @@ function endGame(win) {
     state = STATE.OVER;
     if (score > highScore) {
         highScore = score;
-        localStorage.setItem(HS_KEY, String(highScore));
+        try { localStorage.setItem(HS_KEY, String(highScore)); } catch (e) {}
         highScoreEl.textContent = highScore;
     }
     popupTitle.textContent = win ? '¡Mesa limpia!' : 'Fin del juego';

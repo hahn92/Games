@@ -237,7 +237,7 @@ function endGame() {
     startBtn.disabled = false;
     if (earned > best) {
         best = earned;
-        localStorage.setItem('cosechaHighScore', String(best));
+        try { localStorage.setItem('cosechaHighScore', String(best)); } catch (e) {}
         highScoreEl.textContent = best;
     }
     GameAudio.gameOver();

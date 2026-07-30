@@ -49,8 +49,11 @@ var gs = {
 
 /* ── Persistent stats (vs IA) & mobile overlay ── */
 var mobileScoreEl = document.getElementById('mobileScore');
-var stats = JSON.parse(localStorage.getItem('chessStats') || '{"w":0,"l":0,"d":0}');
-function saveStats() { localStorage.setItem('chessStats', JSON.stringify(stats)); }
+var stats = (function () {
+    try { return JSON.parse(localStorage.getItem('chessStats') || '{"w":0,"l":0,"d":0}'); }
+    catch (e) { return { w: 0, l: 0, d: 0 }; }
+}());
+function saveStats() { try { localStorage.setItem('chessStats', JSON.stringify(stats)); } catch (e) {} }
 function updateMobileScore() {
     if (!mobileScoreEl) return;
     var st = gs.status==='checkmate' ? (gs.turn==='w'?'Ganan Negras':'Ganan Blancas')

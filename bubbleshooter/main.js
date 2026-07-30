@@ -573,7 +573,7 @@ function triggerGameOver() {
     GameAudio.gameOver();
     if (score > highScore) {
         highScore = score;
-        localStorage.setItem('bubbleHighScore', highScore);
+        try { localStorage.setItem('bubbleHighScore', highScore); } catch (e) {}
     }
 
     setTimeout(() => {
@@ -591,7 +591,7 @@ function triggerWin() {
     GameAudio.win();
     if (score > highScore) {
         highScore = score;
-        localStorage.setItem('bubbleHighScore', highScore);
+        try { localStorage.setItem('bubbleHighScore', highScore); } catch (e) {}
     }
 
     setTimeout(() => {

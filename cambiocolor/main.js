@@ -627,7 +627,7 @@ function endGame(reason) {
     spawnDeathParticles(BALL_X, ball.y);
     if (score > best) {
         best = score;
-        localStorage.setItem('cambiocolorHighScore', String(best));
+        try { localStorage.setItem('cambiocolorHighScore', String(best)); } catch (e) {}
     }
     highScoreEl.textContent  = best;
     finalScoreEl.textContent = 'Puntos: ' + score;

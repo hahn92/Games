@@ -323,7 +323,7 @@ function spawnParticles(cx, cy, color, n) {
 function bestCheck() {
     if (score > bestScore) {
         bestScore = score;
-        localStorage.setItem('mineroBest', String(bestScore));
+        try { localStorage.setItem('mineroBest', String(bestScore)); } catch (e) {}
         highScoreEl.textContent = bestScore;
     }
 }

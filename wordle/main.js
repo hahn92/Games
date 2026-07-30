@@ -27,7 +27,13 @@ streak      = parseInt(localStorage.getItem('wordleStreak')     || '0', 10);
 bestStreak  = parseInt(localStorage.getItem('wordleBestStreak') || '0', 10);
 
 // distribution[i] = number of wins in (i+1) attempts, i=0..5
-var distribution = JSON.parse(localStorage.getItem('wordleDist') || '[0,0,0,0,0,0]');
+var distribution = (function () {
+    try {
+        var d = JSON.parse(localStorage.getItem('wordleDist') || '[0,0,0,0,0,0]');
+        if (Array.isArray(d) && d.length === 6) return d;
+    } catch (e) {}
+    return [0, 0, 0, 0, 0, 0];
+}());
 
 var keyStatus = {}; // letter -> 'correct' | 'present' | 'absent'
 
@@ -214,10 +220,10 @@ function submitGuess() {
             wins++; streak++;
             if (streak > bestStreak) bestStreak = streak;
             distribution[currentRow]++;
-            localStorage.setItem('wordleWins', wins);
-            localStorage.setItem('wordleStreak', streak);
-            localStorage.setItem('wordleBestStreak', bestStreak);
-            localStorage.setItem('wordleDist', JSON.stringify(distribution));
+            try { localStorage.setItem('wordleWins', wins); } catch (e) {}
+            try { localStorage.setItem('wordleStreak', streak); } catch (e) {}
+            try { localStorage.setItem('wordleBestStreak', bestStreak); } catch (e) {}
+            try { localStorage.setItem('wordleDist', JSON.stringify(distribution)); } catch (e) {}
             updateScores();
             // Bounce winning row
             for (var b = 0; b < 5; b++) {
@@ -244,7 +250,7 @@ function submitGuess() {
             currentCol = 0;
             if (currentRow >= 6) {
                 streak = 0;
-                localStorage.setItem('wordleStreak', 0);
+                try { localStorage.setItem('wordleStreak', 0); } catch (e) {}
                 updateScores();
                 GameAudio.gameOver();
                 showToast('La palabra era: ' + target);

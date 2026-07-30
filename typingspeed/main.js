@@ -284,7 +284,7 @@ function endGame() {
     var accuracy = totalAttempts > 0 ? Math.round((correctAttempts / totalAttempts) * 100) : 100;
     if (wpm > highScore) {
         highScore = wpm;
-        localStorage.setItem('typingHigh', highScore);
+        try { localStorage.setItem('typingHigh', highScore); } catch (e) {}
     }
     document.getElementById('highScore').textContent = highScore;
 

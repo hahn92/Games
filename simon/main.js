@@ -100,7 +100,7 @@ function updateScore() {
 
     if (score > highScore) {
         highScore = score;
-        localStorage.setItem('simonHighScore', highScore);
+        try { localStorage.setItem('simonHighScore', highScore); } catch (e) {}
     }
     document.getElementById('highScore').textContent = highScore;
 

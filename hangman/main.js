@@ -254,7 +254,7 @@ function bumpScore(delta) {
     state.score += delta;
     if (state.score > state.highScore) {
         state.highScore = state.score;
-        localStorage.setItem('hangman_highscore', state.highScore);
+        try { localStorage.setItem('hangman_highscore', state.highScore); } catch (e) {}
     }
     scoreEl.classList.remove('bump');
     void scoreEl.offsetWidth; // reflow to restart animation

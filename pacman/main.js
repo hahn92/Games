@@ -454,7 +454,7 @@
         gameState='gameover';
         if (score>highScore) {
             highScore=score;
-            localStorage.setItem('pacmanHighScore', highScore);
+            try { localStorage.setItem('pacmanHighScore', highScore); } catch (e) {}
         }
         popupTitle.textContent = 'Game Over';
         finalScoreEl.textContent = 'Puntaje: '+score;

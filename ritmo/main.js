@@ -533,7 +533,7 @@ function endGame() {
     isPlaying = false;
     if (score > best) {
         best = score;
-        localStorage.setItem('ritmoHighScore', String(best));
+        try { localStorage.setItem('ritmoHighScore', String(best)); } catch (e) {}
     }
     highScoreEl.textContent = best;
     finalScoreEl.textContent = 'Puntos: ' + score + ' · Mejor combo: x' + bestCombo;

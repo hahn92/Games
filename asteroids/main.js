@@ -461,7 +461,7 @@ function draw() {
 }
 
 function updateHUD() {
-    if (score > highScore) { highScore = score; localStorage.setItem('asteroidsHigh', highScore); }
+    if (score > highScore) { highScore = score; try { localStorage.setItem('asteroidsHigh', highScore); } catch (e) {} }
     document.getElementById('score').textContent = score;
     document.getElementById('highScore').textContent = highScore;
     document.getElementById('lives').textContent = lives;

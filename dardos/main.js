@@ -171,7 +171,7 @@
         cancelAnimationFrame(raf);
         if (score > highScore) {
             highScore = score;
-            localStorage.setItem('dardos_hs', highScore);
+            try { localStorage.setItem('dardos_hs', highScore); } catch (e) {}
         }
         finalScoreEl.textContent = `Puntos: ${score}`;
         finalBestEl.textContent = score >= highScore && score > 0 ? '¡Nuevo récord!' : `Récord: ${highScore}`;

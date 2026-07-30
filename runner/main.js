@@ -967,7 +967,7 @@ function updateScore() {
     document.getElementById('mobileScore').textContent = 'Puntaje: ' + score;
     if (score > highScore) {
         highScore = score;
-        localStorage.setItem('runnerHighScore', highScore);
+        try { localStorage.setItem('runnerHighScore', highScore); } catch (e) {}
     }
     document.getElementById('highScore').textContent = highScore;
 }
