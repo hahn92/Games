@@ -74,9 +74,20 @@
      * several of these games are already fill-bound on a phone. */
     var HIDPI_MAX = 2;
 
-    function upgradeCanvas(canvas, maxScale) {
+    /* opts: a number (maxScale) or {maxScale, pinCss}.
+     *
+     * pinCss defaults to true and is what stops the page from rendering at
+     * double size — but pass false when a stylesheet already sizes the canvas
+     * (the catalog thumbnails use `width:100%; aspect-ratio:1/1`). Pinning
+     * there would set an explicit height, which wins over an aspect ratio
+     * nothing else constrains and squashes the element. */
+    function upgradeCanvas(canvas, opts) {
         if (!canvas || canvas.__guHidpi) return 0;
         if (canvas.hasAttribute && canvas.hasAttribute('data-no-hidpi')) return 0;
+
+        if (typeof opts === 'number' || opts == null) opts = { maxScale: opts };
+        var maxScale = opts.maxScale;
+        var pinCss = opts.pinCss !== false;
 
         var dpr = Math.min(global.devicePixelRatio || 1, maxScale || HIDPI_MAX);
         if (!(dpr > 1)) return 0;
@@ -92,10 +103,10 @@
         canvas.__guHidpi = dpr;
 
         /* The CSS box must stay at the logical size or the page doubles.
-         * Injected at the TOP of <head> with plain element specificity, so a
-         * game's own `canvas { max-width: 95vw; height: auto }` and the inline
-         * styles mobile-layout.js writes both still win. */
-        pinCssSize(canvas, logicalW, logicalH);
+         * Injected at the TOP of <head> at zero specificity, so a game's own
+         * `canvas { max-width: 95vw; height: auto }` and the inline styles
+         * mobile-layout.js writes both still win. */
+        if (pinCss) pinCssSize(canvas, logicalW, logicalH);
 
         dw.set.call(canvas, Math.round(logicalW * dpr));
         dh.set.call(canvas, Math.round(logicalH * dpr));
@@ -163,11 +174,20 @@
             ':where(' + sel + '){width:' + w + 'px;height:' + h + 'px}\n'));
     }
 
-    function upgradeAllCanvases(maxScale) {
+    /* Auto-upgrade only canvases whose size is declared in the markup. A canvas
+     * with no width/height attribute is still at the 300x150 default, and its
+     * real size arrives later from script (the catalog's thumbnails do this) —
+     * upgrading it now would capture the wrong logical size. Those must call
+     * upgradeCanvas() themselves, after they set width/height. */
+    function upgradeAllCanvases(opts) {
         if (!global.document) return 0;
         var list = global.document.getElementsByTagName('canvas');
         var n = 0;
-        for (var i = 0; i < list.length; i++) if (upgradeCanvas(list[i], maxScale)) n++;
+        for (var i = 0; i < list.length; i++) {
+            var c = list[i];
+            if (c.hasAttribute && !(c.hasAttribute('width') && c.hasAttribute('height'))) continue;
+            if (upgradeCanvas(c, opts)) n++;
+        }
         return n;
     }
 

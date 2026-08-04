@@ -136,7 +136,7 @@ because games already called them unqualified.
 | Canvas | `pointerPos(canvas, e)`\* → `{x, y}` in canvas space; `GU.roundRectPath(ctx, x,y,w,h,r)`; `GU.gradientMemo()` |
 | Storage | `GameStore.getNum/setNum/getJSON/setJSON/get/set/remove`\*, `GameStore.available` |
 | Particles | `new Particles(max)`\* with `.burst(x, y, n, opts)`, `.add(x, y, vx, vy, opts)`, `.update(dt)`, `.draw(ctx)`, `.clear()` |
-| HiDPI | automatic; `GU.upgradeCanvas(canvas)` / `GU.upgradeAllCanvases()` for canvases created at runtime |
+| HiDPI | automatic; `GU.upgradeCanvas(canvas, {maxScale, pinCss})` for canvases sized at runtime |
 
 \* also available as a flat global.
 
@@ -166,12 +166,18 @@ because games already called them unqualified.
   Currently used by: breakout, batallanaval, dardos, hanoi, platformer, pong, sopaletras.
   The other particle systems stay hand-rolled on purpose — they draw rotated ellipses,
   hue-cycling sparks, trails or fragment shapes the shared pool does not render.
-- **HiDPI** — applied automatically to every canvas at load. `canvas.width`/`height`
-  keep reporting the LOGICAL size, so game logic, hit testing and `pointerPos()` are
-  unaffected; only the backing store and a base `scale(dpr)` transform change. Capped at
-  2×. Opt a canvas out with `data-no-hidpi`. Because of this, **never assume
-  `canvas.width` is the backing-store size** — and if a game ever needs to resize its
-  canvas, assigning `canvas.width` still works and the base transform is reinstalled.
+- **HiDPI** — applied automatically at load to every canvas **whose size is declared in
+  the markup**. `canvas.width`/`height` keep reporting the LOGICAL size, so game logic,
+  hit testing and `pointerPos()` are unaffected; only the backing store and a base
+  `scale(dpr)` transform change. Capped at 2×. Opt a canvas out with `data-no-hidpi`.
+  Because of this, **never assume `canvas.width` is the backing-store size** — and if a
+  game ever needs to resize its canvas, assigning `canvas.width` still works and the base
+  transform is reinstalled.
+  A canvas sized from script instead (the catalog thumbnails) is skipped by the automatic
+  pass — its real size is not known yet — and must call `GU.upgradeCanvas()` itself right
+  after setting width/height and before `getContext()`. Pass `{pinCss: false}` when a
+  stylesheet already sizes it: the CSS pin sets an explicit height, which would override
+  an `aspect-ratio` that nothing else constrains and squash the element.
 - **`gradientMemo`** — gradients are among the more expensive 2D calls. Key on
   everything the gradient depends on, geometry and colour stops both, and make sure the
   key is BOUNDED: keying on a scrolling or animated coordinate leaks a gradient per

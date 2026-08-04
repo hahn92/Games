@@ -4272,6 +4272,11 @@
             if (!fn) return;
             canvas.width  = W;
             canvas.height = H;
+            /* Sized here rather than in the markup, so the automatic pass in
+               game-utils.js skipped it — opt in now that W/H are known, before
+               the context is created. No CSS pin: styles.css already sizes
+               these with width:100% + aspect-ratio:1/1. */
+            if (window.GU) GU.upgradeCanvas(canvas, { pinCss: false });
             var ctx = canvas.getContext('2d');
             try { fn(ctx); } catch (e) { console.warn('Thumbnail error for', key, e); }
         });

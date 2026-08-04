@@ -401,30 +401,35 @@ function draw() {
     // Asteroids with trails
     for (var i = 0; i < asteroids.length; i++) drawAsteroid(asteroids[i]);
 
-    // Bullets with glow and trail
+    // Bullets: trails first without glow, then every head in one glowing
+    // batch. shadowBlur is the most expensive canvas state there is, so it is
+    // set once for the batch instead of toggled on and off per bullet.
+    // (This puts all heads above all trails; with 3px dots under a <=0.4 alpha
+    // trail the z-order is not perceptible.)
+    ctx.fillStyle = '#ff8060';
     for (var i = 0; i < bullets.length; i++) {
         var b = bullets[i];
-        // Trail points
         for (var t = 0; t < b.trail.length; t++) {
             var tAlpha = (b.trail.length - t) / b.trail.length * 0.4;
             var tRadius = 2 * (1 - t / b.trail.length);
             ctx.globalAlpha = tAlpha;
-            ctx.fillStyle = '#ff8060';
             ctx.beginPath();
             ctx.arc(b.trail[t].x, b.trail[t].y, tRadius, 0, Math.PI * 2);
             ctx.fill();
         }
-        ctx.globalAlpha = 1;
+    }
+    ctx.globalAlpha = 1;
 
-        // Glow bullet
-        ctx.shadowBlur = 8;
-        ctx.shadowColor = '#ff512f';
-        ctx.fillStyle = '#ff9060';
+    ctx.shadowBlur = 8;
+    ctx.shadowColor = '#ff512f';
+    ctx.fillStyle = '#ff9060';
+    for (var i = 0; i < bullets.length; i++) {
+        var b = bullets[i];
         ctx.beginPath();
         ctx.arc(b.x, b.y, 3, 0, Math.PI * 2);
         ctx.fill();
-        ctx.shadowBlur = 0;
     }
+    ctx.shadowBlur = 0;
     ctx.globalAlpha = 1;
 
     // Thrust fire particles
