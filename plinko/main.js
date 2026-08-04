@@ -81,13 +81,10 @@
 
     /* ── localStorage ──────────────────────────────────────────── */
     function loadHigh() {
-        try {
-            var v = parseInt(localStorage.getItem('plinkoHighScore') || '0', 10);
-            highScore = isNaN(v) ? 0 : v;
-        } catch (e) { highScore = 0; }
+        highScore = GameStore.getNum('plinkoHighScore', 0);
     }
     function saveHigh() {
-        try { localStorage.setItem('plinkoHighScore', String(highScore)); } catch (e) {}
+        GameStore.set('plinkoHighScore', highScore);
     }
 
     /* ── utilidades UI ─────────────────────────────────────────── */
@@ -204,10 +201,7 @@
 
     /* ── input ─────────────────────────────────────────────────── */
     function canvasCoord(clientX, clientY) {
-        var r = canvas.getBoundingClientRect();
-        var sx = W / r.width;
-        var sy = H / r.height;
-        return { x: (clientX - r.left) * sx, y: (clientY - r.top) * sy };
+        return GU.pointerPos(canvas, { clientX: clientX, clientY: clientY });
     }
     function onPointerDown(e) {
         if (!running) return;

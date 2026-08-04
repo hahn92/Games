@@ -139,7 +139,7 @@ function resetGame() {
     dayTarget = 0;
     isNewRecord = false;
     newRecordPulse = 0;
-    highScore = parseInt(localStorage.getItem('flappyHighScore') || '0', 10);
+    highScore = GameStore.getNum('flappyHighScore', 0);
     pipeGap = GAP_EASY;
     initClouds();
     initStars();
@@ -258,17 +258,17 @@ function endGame() {
     rafClear(gameLoop);
     GameAudio.gameOver();
     isPlaying = false;
-    const prevHigh = parseInt(localStorage.getItem('flappyHighScore') || '0', 10);
+    const prevHigh = GameStore.getNum('flappyHighScore', 0);
     isNewRecord = score > prevHigh;
     if (isNewRecord || highScore === 0) {
         highScore = score;
-        try { localStorage.setItem('flappyHighScore', highScore); } catch (e) {}
+        GameStore.set('flappyHighScore', highScore);
     }
 
     // Medal
     const medal = getMedal(score);
-    const savedMedalScore = parseInt(localStorage.getItem('flappyMedalScore') || '0', 10);
-    if (score > savedMedalScore) try { localStorage.setItem('flappyMedalScore', score); } catch (e) {}
+    const savedMedalScore = GameStore.getNum('flappyMedalScore', 0);
+    if (score > savedMedalScore) GameStore.set('flappyMedalScore', score);
 
     document.getElementById('gameOverPopup').style.display = 'flex';
     document.getElementById('finalScore').textContent = 'Puntaje: ' + score;

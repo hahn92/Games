@@ -8,7 +8,7 @@ const MOLE_GOLDEN = 'golden'; // 15% chance, worth 3 pts
 const MOLE_EVIL   = 'evil';   // 10% chance, -1 pt
 
 let score = 0;
-let highScore = parseInt(localStorage.getItem('whackHighScore') || '0', 10);
+let highScore = GameStore.getNum('whackHighScore', 0);
 let prevHighScore = highScore;   // récord al arrancar la partida (para detectar récord real)
 let timeLeft = GAME_DURATION;
 let isPlaying = false;

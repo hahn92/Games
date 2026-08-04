@@ -42,7 +42,7 @@
 
     let gameActive = false;
     let score = 0;
-    let highScore = parseInt(localStorage.getItem('dardos_hs') || '0', 10);
+    let highScore = GameStore.getNum('dardos_hs', 0);
     let level = 1;
     let quota = 6;
     let landed = 0;
@@ -50,7 +50,7 @@
     let boardSpeed = 0.018;
     let stuckDarts = [];
     let flyingDart = null;
-    let particles = [];
+    const particles = new Particles(160);   // pooled, see game-utils.js
     let raf = null;
     let lastTime = 0;
 
@@ -76,7 +76,7 @@
         boardSpeed = cfg.speed;
         stuckDarts = [];
         flyingDart = null;
-        particles = [];
+        particles.clear();
         updateHUD();
     }
 
@@ -99,14 +99,11 @@
         for (let i = 0; i < n; i++) {
             let angle = (i / n) * Math.PI * 2 + Math.random() * 0.4;
             let spd = 1.8 + Math.random() * 2.5;
-            particles.push({
-                x, y,
-                vx: Math.cos(angle) * spd,
-                vy: Math.sin(angle) * spd,
-                life: 1.0,
-                decay: 0.038 + Math.random() * 0.035,
-                r: 2 + Math.random() * 2.5,
-                color,
+            particles.add(
+                x, y, Math.cos(angle) * spd, Math.sin(angle) * spd, {
+                life: 1 / ((0.038 + Math.random() * 0.035) * 60),
+                size: 2 + Math.random() * 2.5,
+                color: color, gravity: 0.1
             });
         }
     }
@@ -171,7 +168,7 @@
         cancelAnimationFrame(raf);
         if (score > highScore) {
             highScore = score;
-            try { localStorage.setItem('dardos_hs', highScore); } catch (e) {}
+            GameStore.set('dardos_hs', highScore);
         }
         finalScoreEl.textContent = `Puntos: ${score}`;
         finalBestEl.textContent = score >= highScore && score > 0 ? '¡Nuevo récord!' : `Récord: ${highScore}`;
@@ -282,16 +279,7 @@
         ctx.fill();
     }
 
-    function drawParticles() {
-        for (let p of particles) {
-            ctx.globalAlpha = p.life;
-            ctx.fillStyle = p.color;
-            ctx.beginPath();
-            ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
-            ctx.fill();
-        }
-        ctx.globalAlpha = 1;
-    }
+    function drawParticles() { particles.draw(ctx); }
 
     function drawGuide() {
         ctx.strokeStyle = 'rgba(143,211,244,0.3)';
@@ -358,14 +346,7 @@
             checkLand();
         }
 
-        for (let i = particles.length - 1; i >= 0; i--) {
-            let p = particles[i];
-            p.x += p.vx;
-            p.y += p.vy;
-            p.vy += 0.1;
-            p.life -= p.decay;
-            if (p.life <= 0) particles.splice(i, 1);
-        }
+        particles.update();
     }
 
     function frame(ts) {

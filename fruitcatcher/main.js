@@ -39,8 +39,8 @@ var shakeFrames = 0;
 var flashColor  = null;
 var flashAlpha  = 0;
 
-highScore = parseInt(localStorage.getItem('catcherHigh') || '0', 10);
-maxWave   = parseInt(localStorage.getItem('catcherMaxWave') || '1', 10);
+highScore = GameStore.getNum('catcherHigh', 0);
+maxWave   = GameStore.getNum('catcherMaxWave', 1);
 
 // ─── DRAW INDIVIDUAL FRUIT ─────────────────────────────────
 function drawFruit(kind, cx, cy, r, rot, isStarItem) {
@@ -436,7 +436,7 @@ function update() {
         waveTimer = 0;
         if (wave > maxWave) {
             maxWave = wave;
-            try { localStorage.setItem('catcherMaxWave', maxWave); } catch (e) {}
+            GameStore.set('catcherMaxWave', maxWave);
         }
         triggerWaveMessage();
     }
@@ -692,7 +692,7 @@ for (var i = 0; i < 70; i++)
 function updateHUD() {
     if (score > highScore) {
         highScore = score;
-        try { localStorage.setItem('catcherHigh', highScore); } catch (e) {}
+        GameStore.set('catcherHigh', highScore);
     }
     document.getElementById('score').textContent = score;
     document.getElementById('highScore').textContent = highScore;

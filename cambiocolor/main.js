@@ -59,7 +59,7 @@ var obstacles = [];
 var particles = [];
 var stars     = [];
 var score     = 0;
-var best      = parseInt(localStorage.getItem('cambiocolorHighScore') || '0', 10);
+var best      = GameStore.getNum('cambiocolorHighScore', 0);
 var scrollSpeed  = START_SCROLL;
 var isPlaying    = false;
 var isOver       = false;
@@ -86,8 +86,6 @@ highScoreEl.textContent = best;
 
 /* ─────────────────────── Helpers ─────────────────────── */
 function rand(a, b)    { return a + Math.random() * (b - a); }
-function clamp(v,a,b)  { return v < a ? a : v > b ? b : v; }
-
 function buildStars() {
     stars = [];
     for (var i = 0; i < 55; i++) {
@@ -627,7 +625,7 @@ function endGame(reason) {
     spawnDeathParticles(BALL_X, ball.y);
     if (score > best) {
         best = score;
-        try { localStorage.setItem('cambiocolorHighScore', String(best)); } catch (e) {}
+        GameStore.set('cambiocolorHighScore', best);
     }
     highScoreEl.textContent  = best;
     finalScoreEl.textContent = 'Puntos: ' + score;

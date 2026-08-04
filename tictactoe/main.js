@@ -3,9 +3,9 @@ var board = ['','','','','','','','',''];
 var isPlaying = false;
 var aiThinking = false;
 var aiDifficulty = 'hard'; // 'easy' | 'hard'
-var wins   = parseInt(localStorage.getItem('tttWins')   || '0', 10);
-var losses = parseInt(localStorage.getItem('tttLosses') || '0', 10);
-var draws  = parseInt(localStorage.getItem('tttDraws')  || '0', 10);
+var wins   = GameStore.getNum('tttWins', 0);
+var losses = GameStore.getNum('tttLosses', 0);
+var draws  = GameStore.getNum('tttDraws', 0);
 var currentPlayer = 'X'; // always X first
 
 var LINES = [
@@ -230,7 +230,7 @@ function endGame(result) {
 
     if (result.winner === 'X') {
         wins++;
-        try { localStorage.setItem('tttWins', wins); } catch (e) {}
+        GameStore.set('tttWins', wins);
         title = '¡Ganaste! 🎉';
         detail = '¡Bien jugado!';
         changedId = 'wins';
@@ -239,7 +239,7 @@ function endGame(result) {
         GameAudio.win();
     } else if (result.winner === 'O') {
         losses++;
-        try { localStorage.setItem('tttLosses', losses); } catch (e) {}
+        GameStore.set('tttLosses', losses);
         title = 'Perdiste 😔';
         detail = 'La IA ganó esta vez';
         changedId = 'losses';
@@ -248,7 +248,7 @@ function endGame(result) {
         GameAudio.gameOver();
     } else {
         draws++;
-        try { localStorage.setItem('tttDraws', draws); } catch (e) {}
+        GameStore.set('tttDraws', draws);
         title = '¡Empate!';
         detail = 'Nadie ganó';
         changedId = 'draws';

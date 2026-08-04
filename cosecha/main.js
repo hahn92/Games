@@ -72,7 +72,7 @@ var COL = {
 var plots = [];         // 9 plots; cada uno: { seedId, plantedAt, matureAt } o null
 var coins = START_COINS;
 var earned = START_COINS;  // monedas totales ganadas (score)
-var best = parseInt(localStorage.getItem('cosechaHighScore') || '0', 10);
+var best = GameStore.getNum('cosechaHighScore', 0);
 var selectedSeed = 0;   // índice de SEEDS
 var timeLeft = GAME_LEN;
 var isPlaying = false;
@@ -237,7 +237,7 @@ function endGame() {
     startBtn.disabled = false;
     if (earned > best) {
         best = earned;
-        try { localStorage.setItem('cosechaHighScore', String(best)); } catch (e) {}
+        GameStore.set('cosechaHighScore', best);
         highScoreEl.textContent = best;
     }
     GameAudio.gameOver();
@@ -717,20 +717,8 @@ function drawFlash() {
     }
 }
 
-/* ─────────────────────── Utility: roundRect polyfill ─────────────────────── */
-function roundRect(x, y, w, h, r) {
-    ctx.beginPath();
-    ctx.moveTo(x + r, y);
-    ctx.lineTo(x + w - r, y);
-    ctx.quadraticCurveTo(x + w, y, x + w, y + r);
-    ctx.lineTo(x + w, y + h - r);
-    ctx.quadraticCurveTo(x + w, y + h, x + w - r, y + h);
-    ctx.lineTo(x + r, y + h);
-    ctx.quadraticCurveTo(x, y + h, x, y + h - r);
-    ctx.lineTo(x, y + r);
-    ctx.quadraticCurveTo(x, y, x + r, y);
-    ctx.closePath();
-}
+/* ─────────────────────── Utility: rounded-rect path ─────────────────────── */
+function roundRect(x, y, w, h, r) { GU.roundRectPath(ctx, x, y, w, h, r); }
 
 /* ─────────────────────── Game Loop ─────────────────────── */
 var timeAcc = 0;
@@ -786,23 +774,7 @@ function loop(tsMs) {
 }
 
 /* ─────────────────────── Input ─────────────────────── */
-function canvasPoint(e) {
-    var rect = canvas.getBoundingClientRect();
-    var sx = canvas.width / rect.width;
-    var sy = canvas.height / rect.height;
-    var clientX, clientY;
-    if (e.touches && e.touches.length > 0) {
-        clientX = e.touches[0].clientX;
-        clientY = e.touches[0].clientY;
-    } else if (e.changedTouches && e.changedTouches.length > 0) {
-        clientX = e.changedTouches[0].clientX;
-        clientY = e.changedTouches[0].clientY;
-    } else {
-        clientX = e.clientX;
-        clientY = e.clientY;
-    }
-    return { x: (clientX - rect.left) * sx, y: (clientY - rect.top) * sy };
-}
+function canvasPoint(e) { return GU.pointerPos(canvas, e); }
 
 function handleTap(e) {
     if (!isPlaying && !isOver) return;

@@ -34,13 +34,13 @@ const game = {
 
 // ---- localStorage bank ----
 function loadBank() {
-    let v = parseInt(localStorage.getItem('blackjackBank'), 10);
+    let v = GameStore.getNum('blackjackBank', 0);
     if (!Number.isFinite(v) || v <= 0) v = STARTING_BANK;
     game.bank = v;
     saveBank();
 }
 function saveBank() {
-    try { localStorage.setItem('blackjackBank', String(game.bank)); } catch (e) {}
+    GameStore.set('blackjackBank', game.bank);
     const el = document.getElementById('bank');
     if (el) el.textContent = game.bank;
     updateMobileScore();
@@ -417,18 +417,7 @@ function buildButtons() {
 }
 
 // ---- Input ----
-function canvasPoint(e) {
-    const rect = canvas.getBoundingClientRect();
-    const sx = canvas.width / rect.width;
-    const sy = canvas.height / rect.height;
-    let cx, cy;
-    if (e.touches && e.touches.length) {
-        cx = e.touches[0].clientX; cy = e.touches[0].clientY;
-    } else {
-        cx = e.clientX; cy = e.clientY;
-    }
-    return { x: (cx - rect.left) * sx, y: (cy - rect.top) * sy };
-}
+function canvasPoint(e) { return GU.pointerPos(canvas, e); }
 
 function handleClick(p) {
     for (const b of game.buttons) {
@@ -515,15 +504,7 @@ function drawCardSlot(s) {
     ctx.restore();
 }
 
-function roundRectPath(x, y, w, h, r) {
-    ctx.beginPath();
-    ctx.moveTo(x + r, y);
-    ctx.arcTo(x + w, y, x + w, y + h, r);
-    ctx.arcTo(x + w, y + h, x, y + h, r);
-    ctx.arcTo(x, y + h, x, y, r);
-    ctx.arcTo(x, y, x + w, y, r);
-    ctx.closePath();
-}
+function roundRectPath(x, y, w, h, r) { GU.roundRectPath(ctx, x, y, w, h, r); }
 
 function drawCardBack(x, y) {
     roundRectPath(x, y, CARD_W, CARD_H, 8);

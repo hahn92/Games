@@ -22,7 +22,7 @@ var nextExtraLife = EXTRA_LIFE_STEP;
 // Screen shake / flash al perder una vida (offsets precomputados en update)
 var screenShake = 0, shakeOffX = 0, shakeOffY = 0, deathFlash = 0;
 
-highScore = parseInt(localStorage.getItem('asteroidsHigh') || '0', 10);
+highScore = GameStore.getNum('asteroidsHigh', 0);
 
 // Star field — pequeños cuadrados blancos (estilo fruitcatcher)
 var starField = [];
@@ -499,7 +499,7 @@ function draw() {
 }
 
 function updateHUD() {
-    if (score > highScore) { highScore = score; try { localStorage.setItem('asteroidsHigh', highScore); } catch (e) {} }
+    if (score > highScore) { highScore = score; GameStore.set('asteroidsHigh', highScore); }
     document.getElementById('score').textContent = score;
     document.getElementById('highScore').textContent = highScore;
     document.getElementById('lives').textContent = lives;

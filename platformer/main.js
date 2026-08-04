@@ -46,7 +46,7 @@
     // ── State ────────────────────────────────────────────────
     let gameRunning = false;
     let score = 0;
-    let highScore = parseInt(localStorage.getItem('platformerHigh') || '0');
+    let highScore = GameStore.getNum('platformerHigh', 0);
     let lives = 3;
     let currentLevel = 0;
     let speedMultiplier = 1;
@@ -73,21 +73,18 @@
     let camX = 0;
 
     // ── Particles ────────────────────────────────────────────
-    let particles = [];
+    const particles = new Particles(260);   // pooled, see game-utils.js
 
     function spawnDeathParticles(x, y) {
         const colors = ['#26c6da','#80deea','#ff8a65','#ffcc02','#ef5350'];
         for (let i = 0; i < 24; i++) {
             const angle = (Math.PI * 2 / 24) * i + (Math.random() - 0.5) * 0.4;
             const speed = 2 + Math.random() * 5;
-            particles.push({
-                x, y,
-                vx: Math.cos(angle) * speed,
-                vy: Math.sin(angle) * speed - 2,
-                size: 4 + Math.random() * 5,
+            const decay = 0.03 + Math.random() * 0.025;
+            particles.add(x, y, Math.cos(angle) * speed, Math.sin(angle) * speed - 2, {
+                life: 1 / (decay * 60), size: 4 + Math.random() * 5,
                 color: colors[Math.floor(Math.random() * colors.length)],
-                life: 1.0,
-                decay: 0.03 + Math.random() * 0.025
+                gravity: 0.18, shape: 'square'
             });
         }
     }
@@ -96,14 +93,10 @@
         for (let i = 0; i < 10; i++) {
             const angle = Math.random() * Math.PI * 2;
             const speed = 1.5 + Math.random() * 3;
-            particles.push({
-                x, y,
-                vx: Math.cos(angle) * speed,
-                vy: Math.sin(angle) * speed - 1.5,
-                size: 3 + Math.random() * 4,
-                color: '#ffd700',
-                life: 1.0,
-                decay: 0.04 + Math.random() * 0.03
+            const decay = 0.04 + Math.random() * 0.03;
+            particles.add(x, y, Math.cos(angle) * speed, Math.sin(angle) * speed - 1.5, {
+                life: 1 / (decay * 60), size: 3 + Math.random() * 4,
+                color: '#ffd700', gravity: 0.18, shape: 'square'
             });
         }
     }
@@ -112,36 +105,22 @@
         for (let i = 0; i < 12; i++) {
             const angle = Math.random() * Math.PI * 2;
             const speed = 1.5 + Math.random() * 3.5;
-            particles.push({
-                x, y,
-                vx: Math.cos(angle) * speed,
-                vy: Math.sin(angle) * speed - 2,
-                size: 4 + Math.random() * 5,
-                color,
-                life: 1.0,
-                decay: 0.035 + Math.random() * 0.03
+            const decay = 0.035 + Math.random() * 0.03;
+            particles.add(x, y, Math.cos(angle) * speed, Math.sin(angle) * speed - 2, {
+                life: 1 / (decay * 60), size: 4 + Math.random() * 5,
+                color: color, gravity: 0.18, shape: 'square'
             });
         }
     }
 
-    function updateParticles() {
-        for (let i = particles.length - 1; i >= 0; i--) {
-            const p = particles[i];
-            p.x += p.vx;
-            p.y += p.vy;
-            p.vy += 0.18;
-            p.life -= p.decay;
-            if (p.life <= 0) particles.splice(i, 1);
-        }
-    }
+    function updateParticles() { particles.update(); }
 
     function drawParticles() {
-        for (const p of particles) {
-            ctx.globalAlpha = Math.max(0, p.life);
-            ctx.fillStyle = p.color;
-            ctx.fillRect(p.x - camX - p.size / 2, p.y - p.size / 2, p.size, p.size);
-        }
-        ctx.globalAlpha = 1;
+        /* Particles live in world space; the camera offset that used to be
+           subtracted per particle is now one translate. */
+        ctx.translate(-camX, 0);
+        particles.draw(ctx);
+        ctx.translate(camX, 0);
     }
 
     // ── Score floaters ────────────────────────────────────────
@@ -450,14 +429,13 @@
 
     function spawnDust(x, y, n) {
         for (let i = 0; i < n; i++) {
-            particles.push({
-                x: x + (Math.random() - 0.5) * 10, y,
-                vx: (Math.random() - 0.5) * 2.2,
-                vy: -Math.random() * 1.6,
-                size: 2 + Math.random() * 3,
+            /* alpha 0.8 reproduces the old `life: 0.8` peak opacity */
+            const decay = 0.05 + Math.random() * 0.04;
+            particles.add(x + (Math.random() - 0.5) * 10, y,
+                (Math.random() - 0.5) * 2.2, -Math.random() * 1.6, {
+                life: 0.8 / (decay * 60), alpha: 0.8, size: 2 + Math.random() * 3,
                 color: Math.random() < 0.5 ? '#9e8c70' : '#bcaa88',
-                life: 0.8,
-                decay: 0.05 + Math.random() * 0.04
+                gravity: 0.18, shape: 'square'
             });
         }
     }
@@ -501,7 +479,7 @@
         // Position player
         player = createPlayer();
         deathCooldown = 0;
-        particles = [];
+        particles.clear();
         floaters = [];
     }
 
@@ -1499,14 +1477,7 @@
     }
 
     function getCanvasPoint(e, idx) {
-        const rect = canvas.getBoundingClientRect();
-        const scaleX = W / rect.width;
-        const scaleY = H / rect.height;
-        const t = e.touches[idx];
-        return {
-            x: (t.clientX - rect.left) * scaleX,
-            y: (t.clientY - rect.top)  * scaleY
-        };
+        return GU.pointerPos(canvas, e.touches[idx]);
     }
 
     function inCircle(px, py, cx, cy, r) {
@@ -1573,7 +1544,7 @@
     function updateHUD() {
         if (score > highScore) {
             highScore = score;
-            try { localStorage.setItem('platformerHigh', highScore); } catch (e) {}
+            GameStore.set('platformerHigh', highScore);
         }
         if (scoreEl) scoreEl.textContent = score;
         if (highScoreEl) highScoreEl.textContent = highScore;
@@ -1589,7 +1560,7 @@
         lives = 3;
         currentLevel = 0;
         speedMultiplier = 1;
-        particles = [];
+        particles.clear();
         floaters = [];
         levelTransition = false;
 
@@ -1616,7 +1587,7 @@
 
         if (score > highScore) {
             highScore = score;
-            try { localStorage.setItem('platformerHigh', highScore); } catch (e) {}
+            GameStore.set('platformerHigh', highScore);
         }
         updateHUD();
 

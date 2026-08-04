@@ -15,17 +15,17 @@ const DIFFICULTY_CONFIG = {
 
 let currentDifficulty = 'normal';
 let board = [], flipped = [], matchedCount = 0;
-let score = 500, highScore = parseInt(localStorage.getItem('memoramaHighScore') || '0', 10);
+let score = 500, highScore = GameStore.getNum('memoramaHighScore', 0);
 let isPlaying = false;
 let timerInterval = null, elapsedSeconds = 0, timerStarted = false;
 
 // Best times per difficulty, stored as seconds (lower = better)
 function getBestTime(diff) {
-    const v = localStorage.getItem('memoramaBestTime_' + diff);
+    const v = GameStore.get('memoramaBestTime_' + diff, null);
     return v ? parseInt(v, 10) : null;
 }
 function setBestTime(diff, seconds) {
-    try { localStorage.setItem('memoramaBestTime_' + diff, seconds); } catch (e) {}
+    GameStore.set('memoramaBestTime_' + diff, seconds);
 }
 
 // ---- Shuffle ----
@@ -284,7 +284,7 @@ function showVictory() {
     // Update high score (score-based)
     if (score > highScore) {
         highScore = score;
-        try { localStorage.setItem('memoramaHighScore', highScore); } catch (e) {}
+        GameStore.set('memoramaHighScore', highScore);
     }
 
     // Best time for this difficulty
@@ -340,7 +340,7 @@ function gameOver(won) {
 
     if (won && score > highScore) {
         highScore = score;
-        try { localStorage.setItem('memoramaHighScore', highScore); } catch (e) {}
+        GameStore.set('memoramaHighScore', highScore);
     }
 
     const popup = document.getElementById('gameOverPopup');

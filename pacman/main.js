@@ -87,7 +87,7 @@
 
     // ── Estado ───────────────────────────────────────────────
     var maze = [], pellets = [], totalPellets = 0;
-    var score = 0, highScore = parseInt(localStorage.getItem('pacmanHighScore') || '0', 10), lives = 3, level = 1;
+    var score = 0, highScore = GameStore.getNum('pacmanHighScore', 0), lives = 3, level = 1;
     var gameState = 'idle';  // idle | playing | dying | levelclear | gameover
     var pulseT = 0, rafId = null, lastTime = 0;
     var scorePopups = [];
@@ -454,7 +454,7 @@
         gameState='gameover';
         if (score>highScore) {
             highScore=score;
-            try { localStorage.setItem('pacmanHighScore', highScore); } catch (e) {}
+            GameStore.set('pacmanHighScore', highScore);
         }
         popupTitle.textContent = 'Game Over';
         finalScoreEl.textContent = 'Puntaje: '+score;

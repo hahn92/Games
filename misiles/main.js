@@ -43,7 +43,7 @@
         flash: 0
     };
 
-    var highScore = parseInt(localStorage.getItem('misilesHighScore') || '0', 10);
+    var highScore = GameStore.getNum('misilesHighScore', 0);
 
     // Posiciones de las ciudades (3 a cada lado de la base)
     var cityXs = [];
@@ -367,7 +367,7 @@
         state.running = false;
         if (state.score > highScore) {
             highScore = state.score;
-            try { localStorage.setItem('misilesHighScore', String(highScore)); } catch (e) {}
+            GameStore.set('misilesHighScore', highScore);
         }
         GameAudio.gameOver();
         showPopup();
@@ -589,10 +589,7 @@
 
     /* ---------- Input ---------- */
     function canvasPoint(clientX, clientY) {
-        var rect = canvas.getBoundingClientRect();
-        var scaleX = W / rect.width;
-        var scaleY = H / rect.height;
-        return { x: (clientX - rect.left) * scaleX, y: (clientY - rect.top) * scaleY };
+        return GU.pointerPos(canvas, { clientX: clientX, clientY: clientY });
     }
 
     canvas.addEventListener('mousedown', function (ev) {

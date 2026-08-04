@@ -43,10 +43,9 @@ var gs = {
 /* ── Stats ── */
 var mobileScoreEl = document.getElementById('mobileScore');
 var stats = (function () {
-    try { return JSON.parse(localStorage.getItem('reversiStats') || '{"w":0,"l":0,"d":0}'); }
-    catch (e) { return { w: 0, l: 0, d: 0 }; }
+    return GameStore.getJSON('reversiStats', { w: 0, l: 0, d: 0 });
 }());
-function saveStats() { try { localStorage.setItem('reversiStats', JSON.stringify(stats)); } catch (e) {} }
+function saveStats() { GameStore.setJSON('reversiStats', stats); }
 
 function countDiscs(b) {
     var bl = 0, wh = 0;
@@ -444,11 +443,8 @@ function loop(ts) {
 
 /* ── Entrada (click/tap con escalado) ── */
 function canvasToCell(clientX, clientY) {
-    var rect = canvas.getBoundingClientRect();
-    var sx = canvas.width / rect.width;
-    var sy = canvas.height / rect.height;
-    var px = (clientX - rect.left) * sx;
-    var py = (clientY - rect.top) * sy;
+    var p = GU.pointerPos(canvas, { clientX: clientX, clientY: clientY });
+    var px = p.x, py = p.y;
     if (py < BY) return null;
     var c = Math.floor((px - BX) / SQ);
     var r = Math.floor((py - BY) / SQ);

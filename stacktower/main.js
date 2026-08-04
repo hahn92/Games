@@ -23,7 +23,7 @@ var perfectPops = [];          // texto flotante "¡Perfecto!"
 var cameraY = 0;               // desplazamiento de la cámara (world y → screen y = world_y + cameraY)
 var targetCameraY = 0;
 var score = 0;
-var bestScore = parseInt(localStorage.getItem('stackTowerBest') || '0', 10);
+var bestScore = GameStore.getNum('stackTowerBest', 0);
 var isPlaying = false;
 var isGameOver = false;
 var shake = 0;
@@ -170,7 +170,7 @@ function endGame() {
     flashAlpha = 0.6;
     if (score > bestScore) {
         bestScore = score;
-        try { localStorage.setItem('stackTowerBest', String(bestScore)); } catch (e) {}
+        GameStore.set('stackTowerBest', bestScore);
         highScoreEl.textContent = bestScore;
     }
     // popup diferido para mostrar el colapso

@@ -8,7 +8,11 @@ var COLS = 10, ROWS = 12;
 var CELL = W / COLS; // 40
 
 var score, highScore, lives, isPlaying, animFrameId;
-highScore = parseInt(localStorage.getItem('froggerHigh') || '0', 10);
+highScore = GameStore.getNum('froggerHigh', 0);
+
+/* Gradient cache. Only keys that are provably bounded go in here — anything
+   keyed on a scrolling or bobbing coordinate would grow every frame. */
+var gMemo = GU.gradientMemo();
 
 // Frog
 var frog = { col: 5, row: 11 };
@@ -174,11 +178,12 @@ function drawBackground() {
         // Lily pad body
         ctx.save();
         ctx.translate(0, bounceY);
-        var padGrad = ctx.createRadialGradient(gx + CELL/2 - 3, CELL/2 - 4, 1, gx + CELL/2, CELL/2, CELL/2 - 3);
-        padGrad.addColorStop(0, isFilled ? '#66bb6a' : '#1a5276');
-        padGrad.addColorStop(1, isFilled ? '#2e7d32' : '#0d3b6e');
-
-        ctx.fillStyle = padGrad;
+        ctx.fillStyle = gMemo('pad:' + gx + ':' + isFilled, function () {
+            var g = ctx.createRadialGradient(gx + CELL/2 - 3, CELL/2 - 4, 1, gx + CELL/2, CELL/2, CELL/2 - 3);
+            g.addColorStop(0, isFilled ? '#66bb6a' : '#1a5276');
+            g.addColorStop(1, isFilled ? '#2e7d32' : '#0d3b6e');
+            return g;
+        });
         ctx.beginPath();
         ctx.ellipse(gx + CELL/2, CELL/2, CELL/2 - 4, CELL/2 - 4, 0, 0, Math.PI * 2);
         ctx.fill();
@@ -249,14 +254,18 @@ function drawBackground() {
 
     // Caustic light columns (animated vertical shimmer bands)
     ctx.save();
+    /* Stop alphas are the originals divided by 1.6, with that 1.6 moved into
+       globalAlpha — identical output, one gradient instead of twelve. */
+    ctx.fillStyle = gMemo('caustic', function () {
+        var g = ctx.createLinearGradient(0, CELL, 0, CELL * 5);
+        g.addColorStop(0,   'rgba(140,200,255,0.625)');
+        g.addColorStop(0.5, 'rgba(160,220,255,1)');
+        g.addColorStop(1,   'rgba(100,170,220,0.3125)');
+        return g;
+    });
     for (var cCol = 0; cCol < 12; cCol++) {
         var cBase = (cCol * 34 + frame * 0.4) % W;
-        var cAlpha = 0.06 + 0.04 * Math.sin(frame * 0.03 + cCol);
-        var causticG = ctx.createLinearGradient(cBase, CELL, cBase, CELL * 5);
-        causticG.addColorStop(0, 'rgba(140,200,255,' + cAlpha + ')');
-        causticG.addColorStop(0.5, 'rgba(160,220,255,' + (cAlpha * 1.6) + ')');
-        causticG.addColorStop(1, 'rgba(100,170,220,' + (cAlpha * 0.5) + ')');
-        ctx.fillStyle = causticG;
+        ctx.globalAlpha = (0.06 + 0.04 * Math.sin(frame * 0.03 + cCol)) * 1.6;
         var bandW = 6 + 4 * Math.sin(frame * 0.02 + cCol * 0.8);
         ctx.fillRect(cBase, CELL, bandW, CELL * 4);
     }
@@ -534,22 +543,6 @@ function drawTurtleGroup(o, r) {
     ctx.restore();
 }
 
-// Helper: parse hex color to rgb
-function hexToRgb(hex) {
-    var r = parseInt(hex.slice(1,3), 16);
-    var g = parseInt(hex.slice(3,5), 16);
-    var b = parseInt(hex.slice(5,7), 16);
-    return { r: r, g: g, b: b };
-}
-
-/* Shade a hex colour by `d` (positive = lighter, negative = darker). */
-function shade(hex, d) {
-    var c = hexToRgb(hex);
-    return 'rgb(' + Math.max(0, Math.min(255, c.r + d)) + ','
-                  + Math.max(0, Math.min(255, c.g + d)) + ','
-                  + Math.max(0, Math.min(255, c.b + d)) + ')';
-}
-
 /* Cars, seen from above: tapered nose, inset roof, glass only where glass
  * belongs (windscreen / rear window / side slits), wheels peeking past the
  * flanks, and a cast shadow so they sit on the asphalt instead of floating. */
@@ -588,11 +581,13 @@ function drawCars() {
             }
 
             /* ── body: tapered nose, squarer tail ── */
-            var bodyGrad = ctx.createLinearGradient(0, oy, 0, oy + oh);
-            bodyGrad.addColorStop(0, shade(o.color, 54));
-            bodyGrad.addColorStop(0.42, o.color);
-            bodyGrad.addColorStop(1, shade(o.color, -58));
-            ctx.fillStyle = bodyGrad;
+            ctx.fillStyle = gMemo('car:' + oy + ':' + oh + ':' + o.color, function () {
+                var g = ctx.createLinearGradient(0, oy, 0, oy + oh);
+                g.addColorStop(0, shade(o.color, 54));
+                g.addColorStop(0.42, o.color);
+                g.addColorStop(1, shade(o.color, -58));
+                return g;
+            });
             ctx.beginPath();
             ctx.moveTo(tail + sgn * oh * 0.16, oy);
             ctx.lineTo(nose - sgn * oh * 0.40, oy);
@@ -684,8 +679,6 @@ var frogRidingX = null;
  * articulated hind legs (hip → knee → ankle → webbed foot) that coil when
  * idle and extend through a hop.
  */
-
-function lerp(a, b, t) { return a + (b - a) * t; }
 
 /* Webbed hind foot: a fan of toes joined by concave webbing. */
 function drawWebbedFoot(ax, ay, ang, len, spread, toes, fill, edge) {
@@ -1484,7 +1477,7 @@ function moveFrog(dr, dc) {
 }
 
 function updateHUD() {
-    if (score > highScore) { highScore = score; try { localStorage.setItem('froggerHigh', highScore); } catch (e) {} }
+    if (score > highScore) { highScore = score; GameStore.set('froggerHigh', highScore); }
     document.getElementById('score').textContent = score;
     document.getElementById('highScore').textContent = highScore;
     document.getElementById('lives').textContent = lives;

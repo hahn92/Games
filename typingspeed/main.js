@@ -33,7 +33,7 @@ var timeLeft = TIME_LIMIT;
 var wordCount = 0;
 var currentWordIndex = 0;
 var wordQueue = [];
-var highScore = parseInt(localStorage.getItem('typingHigh') || '0', 10);
+var highScore = GameStore.getNum('typingHigh', 0);
 var prevWpm = 0;
 var currentStreak = 0;
 var bestStreak = 0;
@@ -284,7 +284,7 @@ function endGame() {
     var accuracy = totalAttempts > 0 ? Math.round((correctAttempts / totalAttempts) * 100) : 100;
     if (wpm > highScore) {
         highScore = wpm;
-        try { localStorage.setItem('typingHigh', highScore); } catch (e) {}
+        GameStore.set('typingHigh', highScore);
     }
     document.getElementById('highScore').textContent = highScore;
 

@@ -79,7 +79,7 @@
     let gameOver      = false;
     let score         = 0;
     let scoreFloat    = 0;   // fractional distance-score accumulator
-    let highScore     = parseInt(localStorage.getItem('carrace_hs') || '0', 10);
+    let highScore     = GameStore.getNum('carrace_hs', 0);
     let level         = 1;
     let lives         = 3;
     let roadOffset    = 0;
@@ -150,10 +150,6 @@
     // ── Utility ───────────────────────────────────────────────────────────────
     function rand(min, max) { return Math.random() * (max - min) + min; }
     function randInt(min, max) { return Math.floor(rand(min, max + 1)); }
-    function clamp(v, lo, hi) { return v < lo ? lo : v > hi ? hi : v; }
-
-    function lerp(a, b, t) { return a + (b - a) * t; }
-
     // ── Road speed & level ────────────────────────────────────────────────────
     function computeRoadSpeed() {
         const t = Math.min((level - 1) / (MAX_LEVEL - 1), 1);
@@ -1203,7 +1199,7 @@
         gameOver = true;
         if (score > highScore) {
             highScore = score;
-            try { localStorage.setItem('carrace_hs', highScore); } catch (e) {}
+            GameStore.set('carrace_hs', highScore);
         }
         highScoreEl.textContent = highScore;
         finalScore.textContent = 'Puntaje: ' + score;

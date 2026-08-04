@@ -21,7 +21,7 @@ let sequence = [];
 let playerSeq = [];
 let round = 0;
 let score = 0;
-let highScore = parseInt(localStorage.getItem('simonHighScore') || '0', 10);
+let highScore = GameStore.getNum('simonHighScore', 0);
 let isPlaying = false;
 let isFlashing = false;
 let playerTurn = false;
@@ -100,7 +100,7 @@ function updateScore() {
 
     if (score > highScore) {
         highScore = score;
-        try { localStorage.setItem('simonHighScore', highScore); } catch (e) {}
+        GameStore.set('simonHighScore', highScore);
     }
     document.getElementById('highScore').textContent = highScore;
 

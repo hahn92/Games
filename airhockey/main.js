@@ -102,19 +102,12 @@ const mobileScore = document.getElementById('mobileScore');
 
 // localStorage
 function loadStats() {
-    try {
-        const raw = localStorage.getItem('airhockeyStats');
-        if (raw) {
-            const s = JSON.parse(raw);
-            state.wins = s.wins || 0;
-        }
-    } catch (e) {}
+    const s = GameStore.getJSON('airhockeyStats', null);
+    if (s) state.wins = s.wins || 0;
     winsEl.textContent = state.wins;
 }
 function saveStats() {
-    try {
-        localStorage.setItem('airhockeyStats', JSON.stringify({ wins: state.wins }));
-    } catch (e) {}
+    GameStore.setJSON('airhockeyStats', { wins: state.wins });
 }
 loadStats();
 
@@ -177,10 +170,7 @@ function startGame() {
 
 // ---- Input ----
 function pointerToCanvas(clientX, clientY) {
-    const r = canvas.getBoundingClientRect();
-    const sx = W / r.width;
-    const sy = H / r.height;
-    return { x: (clientX - r.left) * sx, y: (clientY - r.top) * sy };
+    return GU.pointerPos(canvas, { clientX: clientX, clientY: clientY });
 }
 
 let dragging = false;

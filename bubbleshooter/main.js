@@ -42,7 +42,7 @@ let shootAngle = -Math.PI / 2;  // radians, -π/2 = straight up
 let canShoot   = true;
 
 let score     = 0;
-let highScore = parseInt(localStorage.getItem('bubbleHighScore') || '0', 10);
+let highScore = GameStore.getNum('bubbleHighScore', 0);
 let level     = 1;
 let shots     = 0;          // shots fired this level cycle
 let gameState = 'idle';     // 'idle' | 'playing' | 'over' | 'win'
@@ -53,8 +53,6 @@ let dropBubbles   = [];     // { x, y, color, vy, alpha }
 let lastTime = 0;
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
-function clamp(v, lo, hi) { return Math.max(lo, Math.min(hi, v)); }
-
 // Effective parity: addNewRow flips parityBase so visual offsets stay stable
 function effParity(row) {
     return (row + parityBase) % 2;
@@ -91,18 +89,9 @@ function dist2(ax, ay, bx, by) {
     return dx*dx + dy*dy;
 }
 
-function shadeColor(hex, f) {
-    const n = parseInt(hex.slice(1), 16);
-    const r = Math.round(((n >> 16) & 255) * f);
-    const g = Math.round(((n >> 8) & 255) * f);
-    const b = Math.round((n & 255) * f);
-    return 'rgb(' + r + ',' + g + ',' + b + ')';
-}
+function shadeColor(hex, f) { return GU.scaleColor(hex, f); }
 
-function rgbaFromHex(hex, a) {
-    const n = parseInt(hex.slice(1), 16);
-    return 'rgba(' + ((n >> 16) & 255) + ',' + ((n >> 8) & 255) + ',' + (n & 255) + ',' + a + ')';
-}
+function rgbaFromHex(hex, a) { return GU.rgba(hex, a); }
 
 // Pre-rendered glossy bubble sprites (one offscreen canvas per color) —
 // avoids creating a radial gradient per bubble per frame
@@ -573,7 +562,7 @@ function triggerGameOver() {
     GameAudio.gameOver();
     if (score > highScore) {
         highScore = score;
-        try { localStorage.setItem('bubbleHighScore', highScore); } catch (e) {}
+        GameStore.set('bubbleHighScore', highScore);
     }
 
     setTimeout(() => {
@@ -591,7 +580,7 @@ function triggerWin() {
     GameAudio.win();
     if (score > highScore) {
         highScore = score;
-        try { localStorage.setItem('bubbleHighScore', highScore); } catch (e) {}
+        GameStore.set('bubbleHighScore', highScore);
     }
 
     setTimeout(() => {
@@ -603,23 +592,7 @@ function triggerWin() {
 }
 
 // ─── Aiming ──────────────────────────────────────────────────────────────────
-function getCanvasPoint(e) {
-    const rect   = canvas.getBoundingClientRect();
-    const scaleX = W / rect.width;
-    const scaleY = H / rect.height;
-    let clientX, clientY;
-    if (e.touches && e.touches.length > 0) {
-        clientX = e.touches[0].clientX;
-        clientY = e.touches[0].clientY;
-    } else {
-        clientX = e.clientX;
-        clientY = e.clientY;
-    }
-    return {
-        x: (clientX - rect.left) * scaleX,
-        y: (clientY - rect.top)  * scaleY,
-    };
-}
+function getCanvasPoint(e) { return GU.pointerPos(canvas, e); }
 
 function updateAngle(px, py) {
     const dx = px - SHOOTER_X;

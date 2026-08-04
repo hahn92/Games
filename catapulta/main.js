@@ -39,7 +39,7 @@ var shotsLeft  = SHOTS_PER_LVL;
 var level      = 1;
 var combo      = 0;
 var wind       = 0;
-var bestScore  = parseInt(localStorage.getItem('catapultaBest') || '0', 10);
+var bestScore  = GameStore.getNum('catapultaBest', 0);
 var shake      = 0;
 var levelIntro = 0;       // seconds remaining to show the level banner
 var animFrameId = null;
@@ -62,7 +62,6 @@ highScoreEl.textContent = bestScore;
 
 /* ───────── Utilities ───────── */
 function rand(a, b) { return a + Math.random() * (b - a); }
-function clamp(v, lo, hi) { return Math.max(lo, Math.min(hi, v)); }
 
 function updateMobileScore() {
     if (!mobileScoreEl) return;
@@ -85,7 +84,7 @@ function updateHUD() {
 function saveBest() {
     if (score <= bestScore) return;
     bestScore = score;
-    try { localStorage.setItem('catapultaBest', bestScore.toString()); } catch (e) {}
+    GameStore.set('catapultaBest', bestScore);
 }
 
 // Origen del disparo = la cazoleta del brazo, no el eje del pivote.
@@ -192,21 +191,7 @@ function endGame(won) {
 function hidePopup() { popup.style.display = 'none'; }
 
 /* ───────── Input ───────── */
-function canvasPoint(e) {
-    var r = canvas.getBoundingClientRect();
-    var x, y;
-    if (e.touches && e.touches.length) {
-        x = e.touches[0].clientX - r.left;
-        y = e.touches[0].clientY - r.top;
-    } else if (e.changedTouches && e.changedTouches.length) {
-        x = e.changedTouches[0].clientX - r.left;
-        y = e.changedTouches[0].clientY - r.top;
-    } else {
-        x = e.clientX - r.left;
-        y = e.clientY - r.top;
-    }
-    return { x: x * (WIDTH / r.width), y: y * (HEIGHT / r.height) };
-}
+function canvasPoint(e) { return GU.pointerPos(canvas, e); }
 
 function onPointerDown(e) {
     if (state !== 'aiming') return;

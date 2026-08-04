@@ -35,7 +35,7 @@ var mobileScore = document.getElementById('mobileScore');
 
 /* ── Persistencia ───────────────────────────────────────── */
 var HS_KEY = 'billarHighScore';
-var highScore = parseInt(localStorage.getItem(HS_KEY) || '0', 10);
+var highScore = GameStore.getNum(HS_KEY, 0);
 highScoreEl.textContent = highScore;
 
 /* ── Constantes de mesa ─────────────────────────────────── */
@@ -503,27 +503,8 @@ function drawIdle() {
 /* ── helpers de color ───────────────────────────────────── */
 function lighten(hex, amt) { return shade(hex, amt); }
 function darken(hex, amt) { return shade(hex, -amt); }
-function shade(hex, amt) {
-    var c = hex.replace('#', '');
-    if (c.length === 3) c = c[0] + c[0] + c[1] + c[1] + c[2] + c[2];
-    var r = parseInt(c.substr(0, 2), 16);
-    var g = parseInt(c.substr(2, 2), 16);
-    var b = parseInt(c.substr(4, 2), 16);
-    r = Math.max(0, Math.min(255, r + amt));
-    g = Math.max(0, Math.min(255, g + amt));
-    b = Math.max(0, Math.min(255, b + amt));
-    return 'rgb(' + r + ',' + g + ',' + b + ')';
-}
 
-function roundRectPath(x, y, w, h, r) {
-    ctx.beginPath();
-    ctx.moveTo(x + r, y);
-    ctx.arcTo(x + w, y, x + w, y + h, r);
-    ctx.arcTo(x + w, y + h, x, y + h, r);
-    ctx.arcTo(x, y + h, x, y, r);
-    ctx.arcTo(x, y, x + w, y, r);
-    ctx.closePath();
-}
+function roundRectPath(x, y, w, h, r) { GU.roundRectPath(ctx, x, y, w, h, r); }
 
 /* ═══════════════════════════════════════════════════════════
    HUD
@@ -560,7 +541,7 @@ function endGame(win) {
     state = STATE.OVER;
     if (score > highScore) {
         highScore = score;
-        try { localStorage.setItem(HS_KEY, String(highScore)); } catch (e) {}
+        GameStore.set(HS_KEY, highScore);
         highScoreEl.textContent = highScore;
     }
     popupTitle.textContent = win ? '¡Mesa limpia!' : 'Fin del juego';
@@ -627,11 +608,7 @@ function loop(ts) {
    INPUT
 ═══════════════════════════════════════════════════════════ */
 function canvasPos(clientX, clientY) {
-    var rect = canvas.getBoundingClientRect();
-    return {
-        x: (clientX - rect.left) * (canvas.width / rect.width),
-        y: (clientY - rect.top) * (canvas.height / rect.height)
-    };
+    return GU.pointerPos(canvas, { clientX: clientX, clientY: clientY });
 }
 
 function onDown(x, y) {

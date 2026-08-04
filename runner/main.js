@@ -22,7 +22,7 @@ var milestoneMsg = null;   // { text, alpha, y }
 var SPEED = 4;
 var frame = 0;
 var score = 0;
-var highScore = parseInt(localStorage.getItem('runnerHighScore') || '0', 10);
+var highScore = GameStore.getNum('runnerHighScore', 0);
 var isPlaying = false;
 var isDying   = false;
 var isCrouching = false;
@@ -298,6 +298,8 @@ function drawCactus(o) {
     var w = o.width, h = o.height;
 
     function cactusSegment(sx, sy, sw, sh, lit) {
+        /* Not memoised: cactus w/h are continuous randoms, so a cache keyed
+           on them would grow for every cactus ever spawned. */
         var g = ctx.createLinearGradient(sx, sy, sx + sw, sy);
         g.addColorStop(0, lit ? '#388e3c' : '#2e7d32');
         g.addColorStop(0.4, lit ? '#43a047' : '#388e3c');
@@ -388,9 +390,11 @@ function drawBird(o) {
     // Wing (animated with rotation)
     ctx.save();
     ctx.rotate(flapAngle);
-    var wg = ctx.createLinearGradient(-18, 0, 0, 0);
-    wg.addColorStop(0, '#6d4c41'); wg.addColorStop(1, '#8d6e63');
-    ctx.fillStyle = wg;
+    ctx.fillStyle = gMemo('ptero:wing', function () {
+        var g = ctx.createLinearGradient(-18, 0, 0, 0);
+        g.addColorStop(0, '#6d4c41'); g.addColorStop(1, '#8d6e63');
+        return g;
+    });
     ctx.beginPath();
     ctx.moveTo(-2, -2);
     ctx.bezierCurveTo(-8, -5, -16, -3, -20, 2);
@@ -405,9 +409,11 @@ function drawBird(o) {
     ctx.restore();
 
     // Body
-    var bg = ctx.createRadialGradient(-3, -2, 1, 0, 0, 14);
-    bg.addColorStop(0, '#8d6e63'); bg.addColorStop(1, '#4e342e');
-    ctx.fillStyle = bg;
+    ctx.fillStyle = gMemo('ptero:body', function () {
+        var g = ctx.createRadialGradient(-3, -2, 1, 0, 0, 14);
+        g.addColorStop(0, '#8d6e63'); g.addColorStop(1, '#4e342e');
+        return g;
+    });
     ctx.beginPath();
     ctx.moveTo(-14, 0);
     ctx.bezierCurveTo(-14, -5, -8, -8, 0, -8);
@@ -429,9 +435,11 @@ function drawBird(o) {
     ctx.closePath(); ctx.fill();
 
     // Head
-    var hg = ctx.createRadialGradient(12, -6, 1, 12, -6, 8);
-    hg.addColorStop(0, '#8d6e63'); hg.addColorStop(1, '#4e342e');
-    ctx.fillStyle = hg;
+    ctx.fillStyle = gMemo('ptero:head', function () {
+        var g = ctx.createRadialGradient(12, -6, 1, 12, -6, 8);
+        g.addColorStop(0, '#8d6e63'); g.addColorStop(1, '#4e342e');
+        return g;
+    });
     ctx.beginPath(); ctx.arc(12, -5, 8, 0, Math.PI*2); ctx.fill();
 
     // Eye
@@ -575,6 +583,10 @@ function drawCloudShape(c, th) {
     }
 }
 
+/* Gradient cache — the sky alone was a full-screen gradient rebuilt on every
+   frame, and the dino is redrawn (and re-gradiented) every frame too. */
+var gMemo = GU.gradientMemo();
+
 // ─── DRAW BACKGROUND ───────────────────────────────────────
 function drawBackground() {
     var gYf = GROUND_Y + PLAYER_SIZE;
@@ -582,11 +594,13 @@ function drawBackground() {
     var th  = BG_THEMES[ti];
 
     // Sky gradient
-    var sky = ctx.createLinearGradient(0, 0, 0, gYf);
-    sky.addColorStop(0,    th.s0);
-    sky.addColorStop(0.55, th.s1);
-    sky.addColorStop(1,    th.s2);
-    ctx.fillStyle = sky;
+    ctx.fillStyle = gMemo('sky:' + ti, function () {
+        var g = ctx.createLinearGradient(0, 0, 0, gYf);
+        g.addColorStop(0,    th.s0);
+        g.addColorStop(0.55, th.s1);
+        g.addColorStop(1,    th.s2);
+        return g;
+    });
     ctx.fillRect(0, 0, WIDTH, HEIGHT);
 
     // Stars (temas oscuros)
@@ -694,9 +708,11 @@ function drawDino(x, y, running, dead, deathAng) {
         ctx.closePath(); ctx.fill();
 
         // body (flat, horizontal ellipse)
-        var bg = ctx.createLinearGradient(0, -20, 0, -6);
-        bg.addColorStop(0, TOP); bg.addColorStop(0.55, MID); bg.addColorStop(1, DRK);
-        ctx.fillStyle = bg;
+        ctx.fillStyle = gMemo('bird:body', function () {
+            var g = ctx.createLinearGradient(0, -20, 0, -6);
+            g.addColorStop(0, TOP); g.addColorStop(0.55, MID); g.addColorStop(1, DRK);
+            return g;
+        });
         ctx.beginPath(); ctx.roundRect(2, -20, 28, 14, 7); ctx.fill();
         ctx.strokeStyle = DRK; ctx.lineWidth = 1; ctx.stroke();
         // belly stripe
@@ -708,9 +724,11 @@ function drawDino(x, y, running, dead, deathAng) {
         ctx.beginPath(); ctx.roundRect(26, -25, 9, 13, 4); ctx.fill();
 
         // head (big, forward-extended)
-        var hg = ctx.createLinearGradient(25, -30, 25, -14);
-        hg.addColorStop(0, TOP); hg.addColorStop(0.6, MID); hg.addColorStop(1, DRK);
-        ctx.fillStyle = hg;
+        ctx.fillStyle = gMemo('bird:head', function () {
+            var g = ctx.createLinearGradient(25, -30, 25, -14);
+            g.addColorStop(0, TOP); g.addColorStop(0.6, MID); g.addColorStop(1, DRK);
+            return g;
+        });
         ctx.beginPath(); ctx.roundRect(24, -30, 24, 16, 6); ctx.fill();
         ctx.strokeStyle = DRK; ctx.lineWidth = 0.8; ctx.stroke();
         // snout
@@ -784,9 +802,11 @@ function drawDino(x, y, running, dead, deathAng) {
     ctx.closePath(); ctx.fill();
 
     /* BODY */
-    var bg = ctx.createLinearGradient(3, 12, 3, 30);
-    bg.addColorStop(0, TOP); bg.addColorStop(0.5, MID); bg.addColorStop(1, DRK);
-    ctx.fillStyle = bg;
+    ctx.fillStyle = gMemo('dino:body', function () {
+        var g = ctx.createLinearGradient(3, 12, 3, 30);
+        g.addColorStop(0, TOP); g.addColorStop(0.5, MID); g.addColorStop(1, DRK);
+        return g;
+    });
     ctx.beginPath(); ctx.roundRect(3, 13, 21, 17, 8); ctx.fill();
     ctx.strokeStyle = DRK; ctx.lineWidth = 1; ctx.stroke();
     // belly
@@ -803,12 +823,15 @@ function drawDino(x, y, running, dead, deathAng) {
     }
 
     /* NECK */
-    var ng = ctx.createLinearGradient(18, 8, 26, 18);
-    ng.addColorStop(0, TOP); ng.addColorStop(1, MID);
-    ctx.fillStyle = ng;
+    ctx.fillStyle = gMemo('dino:neck', function () {
+        var g = ctx.createLinearGradient(18, 8, 26, 18);
+        g.addColorStop(0, TOP); g.addColorStop(1, MID);
+        return g;
+    });
     ctx.beginPath(); ctx.roundRect(18, 9, 9, 12, 4); ctx.fill();
 
     /* HEAD — grande y expresiva */
+    /* hl is a continuous gait sine — memoising on it would leak. */
     var hg = ctx.createLinearGradient(12 + hl, 0, 12 + hl, 14);
     hg.addColorStop(0, TOP); hg.addColorStop(0.55, MID); hg.addColorStop(1, DRK);
     ctx.fillStyle = hg;
@@ -967,7 +990,7 @@ function updateScore() {
     document.getElementById('mobileScore').textContent = 'Puntaje: ' + score;
     if (score > highScore) {
         highScore = score;
-        try { localStorage.setItem('runnerHighScore', highScore); } catch (e) {}
+        GameStore.set('runnerHighScore', highScore);
     }
     document.getElementById('highScore').textContent = highScore;
 }

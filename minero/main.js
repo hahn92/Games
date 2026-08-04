@@ -41,7 +41,7 @@ var quota = 700;
 var timeLeft = 60;
 var timeTotal = 60;
 var lastTickWarn = -1;
-var bestScore = parseInt(localStorage.getItem('mineroBest') || '0', 10);
+var bestScore = GameStore.getNum('mineroBest', 0);
 var isPlaying = false;
 var isGameOver = false;
 var isLevelTransition = false;
@@ -323,7 +323,7 @@ function spawnParticles(cx, cy, color, n) {
 function bestCheck() {
     if (score > bestScore) {
         bestScore = score;
-        try { localStorage.setItem('mineroBest', String(bestScore)); } catch (e) {}
+        GameStore.set('mineroBest', bestScore);
         highScoreEl.textContent = bestScore;
     }
 }

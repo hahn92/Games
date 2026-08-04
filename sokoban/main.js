@@ -182,13 +182,13 @@
 
     // ── LocalStorage helpers ─────────────────────────────────────────
     function getBest(lvl) {
-        var v = localStorage.getItem('sokoban_best_' + lvl);
+        var v = GameStore.get('sokoban_best_' + lvl, null);
         return v ? parseInt(v, 10) : null;
     }
     function setBest(lvl, val) {
         var cur = getBest(lvl);
         if (cur === null || val < cur) {
-            try { localStorage.setItem('sokoban_best_' + lvl, val); } catch (e) {}
+            GameStore.set('sokoban_best_' + lvl, val);
             return true;
         }
         return false;

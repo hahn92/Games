@@ -112,14 +112,11 @@ const finalBest = document.getElementById('finalBest');
 const mobileScore = document.getElementById('mobileScore');
 
 function loadHigh() {
-    try {
-        const v = parseInt(localStorage.getItem('saltadorHighScore'), 10);
-        if (!isNaN(v)) state.highScore = v;
-    } catch (e) {}
+    state.highScore = GameStore.getNum('saltadorHighScore', 0);
     highScoreEl.textContent = state.highScore;
 }
 function saveHigh() {
-    try { localStorage.setItem('saltadorHighScore', String(state.highScore)); } catch (e) {}
+    GameStore.set('saltadorHighScore', state.highScore);
 }
 loadHigh();
 
@@ -188,10 +185,8 @@ let touchLeft = false, touchRight = false;
 function handleTouch(e) {
     touchLeft = false; touchRight = false;
     if (!state.running) return;
-    const r = canvas.getBoundingClientRect();
     for (let i = 0; i < e.touches.length; i++) {
-        const t = e.touches[i];
-        const x = (t.clientX - r.left) * (W / r.width);
+        const x = GU.pointerPos(canvas, e.touches[i]).x;
         if (x < W / 2) touchLeft = true; else touchRight = true;
     }
 }
@@ -426,15 +421,7 @@ function drawPlatform(pl) {
     }
 }
 
-function roundRect(x, y, w, h, r) {
-    ctx.beginPath();
-    ctx.moveTo(x + r, y);
-    ctx.arcTo(x + w, y, x + w, y + h, r);
-    ctx.arcTo(x + w, y + h, x, y + h, r);
-    ctx.arcTo(x, y + h, x, y, r);
-    ctx.arcTo(x, y, x + w, y, r);
-    ctx.closePath();
-}
+function roundRect(x, y, w, h, r) { GU.roundRectPath(ctx, x, y, w, h, r); }
 
 function drawPlayer() {
     const cx = player.x + PLAYER_W / 2;

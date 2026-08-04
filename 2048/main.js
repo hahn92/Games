@@ -3,7 +3,7 @@ const SIZE = 4;
 // al cargar la página, antes de que startGame() llame a createBoard(), y con
 // `board` sin definir lanzaba un TypeError en cada carga.
 let board = Array.from({ length: SIZE }, () => Array(SIZE).fill(0));
-let score = 0, highScore = parseInt(localStorage.getItem('2048HighScore') || '0', 10);
+let score = 0, highScore = GameStore.getNum('2048HighScore', 0);
 let isPlaying = false;
 let winPlayed = false;
 
@@ -196,7 +196,7 @@ function move(dir) {
         }
         if (score > highScore) {
             highScore = score;
-            try { localStorage.setItem('2048HighScore', highScore); } catch (e) {}
+            GameStore.set('2048HighScore', highScore);
         }
         // Check for 2048 tile win
         let has2048 = false;

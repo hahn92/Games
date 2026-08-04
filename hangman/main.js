@@ -39,7 +39,7 @@ let state = {
     wrong: 0,
     wrongLetters: [],
     score: 0,
-    highScore: parseInt(localStorage.getItem('hangman_highscore') || '0', 10),
+    highScore: GameStore.getNum('hangman_highscore', 0),
     gameActive: false,
     gameOver: false
 };
@@ -254,7 +254,7 @@ function bumpScore(delta) {
     state.score += delta;
     if (state.score > state.highScore) {
         state.highScore = state.score;
-        try { localStorage.setItem('hangman_highscore', state.highScore); } catch (e) {}
+        GameStore.set('hangman_highscore', state.highScore);
     }
     scoreEl.classList.remove('bump');
     void scoreEl.offsetWidth; // reflow to restart animation

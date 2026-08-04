@@ -50,10 +50,9 @@ var gs = {
 /* ── Persistent stats (vs IA) & mobile overlay ── */
 var mobileScoreEl = document.getElementById('mobileScore');
 var stats = (function () {
-    try { return JSON.parse(localStorage.getItem('chessStats') || '{"w":0,"l":0,"d":0}'); }
-    catch (e) { return { w: 0, l: 0, d: 0 }; }
+    return GameStore.getJSON('chessStats', { w: 0, l: 0, d: 0 });
 }());
-function saveStats() { try { localStorage.setItem('chessStats', JSON.stringify(stats)); } catch (e) {} }
+function saveStats() { GameStore.setJSON('chessStats', stats); }
 function updateMobileScore() {
     if (!mobileScoreEl) return;
     var st = gs.status==='checkmate' ? (gs.turn==='w'?'Ganan Negras':'Ganan Blancas')
@@ -318,20 +317,26 @@ function gPc(isW) { return isW ? WC : BC; }
 /* ── Gradient helpers ── */
 // Cylindrical shading: bright on left-center, dark on both edges — simulates a round piece
 function gCyl(cx, w, isW) {
-    var g=ctx.createLinearGradient(cx-w/2,0,cx+w/2,0), C=gPc(isW);
-    g.addColorStop(0,C.lo); g.addColorStop(0.12,C.mid);
-    g.addColorStop(0.28,C.hi); g.addColorStop(0.60,C.mid); g.addColorStop(1,C.lo);
-    return g;
+    return gMemo('cyl:'+cx+':'+w+':'+isW, function () {
+        var g=ctx.createLinearGradient(cx-w/2,0,cx+w/2,0), C=gPc(isW);
+        g.addColorStop(0,C.lo); g.addColorStop(0.12,C.mid);
+        g.addColorStop(0.28,C.hi); g.addColorStop(0.60,C.mid); g.addColorStop(1,C.lo);
+        return g;
+    });
 }
 function gV(cx, y, h, isW) {
-    var g=ctx.createLinearGradient(cx,y,cx,y+h), C=gPc(isW);
-    g.addColorStop(0,C.hi); g.addColorStop(0.45,C.mid); g.addColorStop(1,C.lo);
-    return g;
+    return gMemo('v:'+cx+':'+y+':'+h+':'+isW, function () {
+        var g=ctx.createLinearGradient(cx,y,cx,y+h), C=gPc(isW);
+        g.addColorStop(0,C.hi); g.addColorStop(0.45,C.mid); g.addColorStop(1,C.lo);
+        return g;
+    });
 }
 function gR(cx, cy, r, isW) {
-    var g=ctx.createRadialGradient(cx-r*0.28,cy-r*0.30,r*0.04,cx,cy,r), C=gPc(isW);
-    g.addColorStop(0,C.hi); g.addColorStop(0.50,C.mid); g.addColorStop(1,C.lo);
-    return g;
+    return gMemo('r:'+cx+':'+cy+':'+r+':'+isW, function () {
+        var g=ctx.createRadialGradient(cx-r*0.28,cy-r*0.30,r*0.04,cx,cy,r), C=gPc(isW);
+        g.addColorStop(0,C.hi); g.addColorStop(0.50,C.mid); g.addColorStop(1,C.lo);
+        return g;
+    });
 }
 
 /* ── Shadow ellipse ── */
@@ -343,9 +348,11 @@ function pShadow(cx, by) {
 /* ── Elliptical base disk ── */
 function pDisk(cx, by, rx, isW) {
     var C=gPc(isW), ry=rx*0.30;
-    var g=ctx.createLinearGradient(cx,by-ry,cx,by+ry);
-    g.addColorStop(0,C.mid); g.addColorStop(1,C.lo);
-    ctx.fillStyle=g;
+    ctx.fillStyle=gMemo('disk:'+cx+':'+by+':'+rx+':'+isW, function () {
+        var g=ctx.createLinearGradient(cx,by-ry,cx,by+ry);
+        g.addColorStop(0,C.mid); g.addColorStop(1,C.lo);
+        return g;
+    });
     ctx.beginPath(); ctx.ellipse(cx,by,rx,ry,0,0,Math.PI*2); ctx.fill();
     // top rim highlight
     ctx.strokeStyle=isW?'rgba(255,255,255,0.50)':C.glow+'66';
@@ -398,9 +405,11 @@ function pTaper(cx, y, rBot, rTop, h, isW) {
 /* ── Collar ring between stem and head ── */
 function pCollar(cx, y, r, isW) {
     var C=gPc(isW);
-    var g=ctx.createLinearGradient(cx,y-r*0.38,cx,y+r*0.38);
-    g.addColorStop(0,C.hi); g.addColorStop(0.5,C.mid); g.addColorStop(1,C.lo);
-    ctx.fillStyle=g;
+    ctx.fillStyle=gMemo('collar:'+cx+':'+y+':'+r+':'+isW, function () {
+        var g=ctx.createLinearGradient(cx,y-r*0.38,cx,y+r*0.38);
+        g.addColorStop(0,C.hi); g.addColorStop(0.5,C.mid); g.addColorStop(1,C.lo);
+        return g;
+    });
     ctx.beginPath(); ctx.ellipse(cx,y,r,r*0.32,0,0,Math.PI*2); ctx.fill();
     ctx.strokeStyle=C.glow+'88'; ctx.lineWidth=1;
     ctx.beginPath(); ctx.ellipse(cx,y-r*0.06,r*0.88,r*0.18,0,Math.PI,0); ctx.stroke();
@@ -507,9 +516,11 @@ function pKnight(cx, cy, isW) {
     pHL(cx, base-s*0.200, s*0.170, s*0.360, isW);
     // Horse head — full silhouette (facing right)
     var nT=base-s*0.200;
-    var gh=ctx.createLinearGradient(cx-s*0.155,nT-s*0.250,cx+s*0.280,nT);
-    gh.addColorStop(0,C.hi); gh.addColorStop(0.38,C.mid); gh.addColorStop(1,C.lo);
-    ctx.fillStyle=gh;
+    ctx.fillStyle=gMemo('horse:'+cx+':'+nT+':'+s+':'+isW, function () {
+        var g=ctx.createLinearGradient(cx-s*0.155,nT-s*0.250,cx+s*0.280,nT);
+        g.addColorStop(0,C.hi); g.addColorStop(0.38,C.mid); g.addColorStop(1,C.lo);
+        return g;
+    });
     ctx.beginPath();
     // bottom of head (left to right)
     ctx.moveTo(cx-s*0.050,nT);
@@ -753,24 +764,40 @@ function drawPiece(piece, r, c) {
     }
 }
 
+/* Gradient cache. The HUD and the board rebuilt ~70 gradients on every single
+   frame; all of them are geometry- and colour-stable, so they are built once. */
+var gMemo = GU.gradientMemo();
+
 /* ── Accent gradient (shared for borders and lines) ── */
 function accentGrad(x0, y0, x1, y1) {
-    var g=ctx.createLinearGradient(x0,y0,x1,y1);
-    g.addColorStop(0,'#8fd3f4'); g.addColorStop(0.5,'#b07898'); g.addColorStop(1,'#ff512f');
-    return g;
+    return gMemo('accent:'+x0+','+y0+','+x1+','+y1, function () {
+        var g=ctx.createLinearGradient(x0,y0,x1,y1);
+        g.addColorStop(0,'#8fd3f4'); g.addColorStop(0.5,'#b07898'); g.addColorStop(1,'#ff512f');
+        return g;
+    });
 }
 
 /* ── Board ── */
 function sqXY(r,c) { return {x:BX+c*SQ, y:BY+r*SQ}; }
 
+/* Every square shares the same diagonal, so two origin-space gradients cover
+   the whole board — translate into place instead of building 64 per frame. */
+function squareGrad(isLight) {
+    return gMemo(isLight ? 'sq:light' : 'sq:dark', function () {
+        var g=ctx.createLinearGradient(0,0,SQ,SQ);
+        if (isLight) { g.addColorStop(0,'#c8a858'); g.addColorStop(1,'#b49040'); }
+        else         { g.addColorStop(0,'#253a6a'); g.addColorStop(1,'#142248'); }
+        return g;
+    });
+}
+
 function drawBoard() {
     for (var r=0;r<8;r++) for (var c=0;c<8;c++) {
         var p=sqXY(r,c);
-        var isLight=(r+c)%2===0;
-        var g=ctx.createLinearGradient(p.x,p.y,p.x+SQ,p.y+SQ);
-        if (isLight) { g.addColorStop(0,'#c8a858'); g.addColorStop(1,'#b49040'); }
-        else         { g.addColorStop(0,'#253a6a'); g.addColorStop(1,'#142248'); }
-        ctx.fillStyle=g; ctx.fillRect(p.x,p.y,SQ,SQ);
+        ctx.translate(p.x,p.y);
+        ctx.fillStyle=squareGrad((r+c)%2===0);
+        ctx.fillRect(0,0,SQ,SQ);
+        ctx.translate(-p.x,-p.y);
     }
     // Gradient border frame
     ctx.strokeStyle=accentGrad(BX,BY,BX+8*SQ,BY+8*SQ);
@@ -820,9 +847,11 @@ function drawCoords() {
 /* ── HUD ── */
 function drawHUD() {
     // Top bar
-    var gTop=ctx.createLinearGradient(0,0,W,0);
-    gTop.addColorStop(0,'#08101e'); gTop.addColorStop(1,'#140810');
-    ctx.fillStyle=gTop; ctx.fillRect(0,0,W,BY);
+    ctx.fillStyle=gMemo('hud:top', function () {
+        var g=ctx.createLinearGradient(0,0,W,0);
+        g.addColorStop(0,'#08101e'); g.addColorStop(1,'#140810');
+        return g;
+    }); ctx.fillRect(0,0,W,BY);
     // Accent line
     ctx.strokeStyle=accentGrad(0,BY,W,BY); ctx.lineWidth=1.5;
     ctx.beginPath(); ctx.moveTo(0,BY-0.75); ctx.lineTo(W,BY-0.75); ctx.stroke();
@@ -845,9 +874,11 @@ function drawHUD() {
 
     // Bottom bar
     var botY=BY+8*SQ;
-    var gBot=ctx.createLinearGradient(0,botY,0,H);
-    gBot.addColorStop(0,'#140810'); gBot.addColorStop(1,'#08101e');
-    ctx.fillStyle=gBot; ctx.fillRect(0,botY,W,H-botY);
+    ctx.fillStyle=gMemo('hud:bot', function () {
+        var g=ctx.createLinearGradient(0,botY,0,H);
+        g.addColorStop(0,'#140810'); g.addColorStop(1,'#08101e');
+        return g;
+    }); ctx.fillRect(0,botY,W,H-botY);
     ctx.strokeStyle=accentGrad(0,botY,W,botY); ctx.lineWidth=1.5;
     ctx.beginPath(); ctx.moveTo(0,botY+0.75); ctx.lineTo(W,botY+0.75); ctx.stroke();
 
@@ -855,18 +886,22 @@ function drawHUD() {
     var bActive=gs.turn==='b'&&gs.status!=='idle'&&gs.status!=='checkmate'&&gs.status!=='stalemate';
 
     // White disc
-    var wg=ctx.createRadialGradient(W/2-36,botY+14,3,W/2-36,botY+20,16);
-    wg.addColorStop(0,wActive?'#b0ccf0':'#243060'); wg.addColorStop(1,wActive?'#2858a0':'#101828');
-    ctx.fillStyle=wg; ctx.beginPath(); ctx.arc(W/2-36,botY+20,16,0,Math.PI*2); ctx.fill();
+    ctx.fillStyle=gMemo('disc:w:'+wActive, function () {
+        var g=ctx.createRadialGradient(W/2-36,botY+14,3,W/2-36,botY+20,16);
+        g.addColorStop(0,wActive?'#b0ccf0':'#243060'); g.addColorStop(1,wActive?'#2858a0':'#101828');
+        return g;
+    }); ctx.beginPath(); ctx.arc(W/2-36,botY+20,16,0,Math.PI*2); ctx.fill();
     ctx.strokeStyle=wActive?'#8fd3f4':'#243060'; ctx.lineWidth=1.5; ctx.stroke();
     ctx.fillStyle=wActive?'#041020':'#4a5880';
     ctx.font='bold 11px "Georgia",serif'; ctx.textAlign='center'; ctx.textBaseline='middle';
     ctx.fillText('B',W/2-36,botY+20);
 
     // Black disc
-    var bg=ctx.createRadialGradient(W/2+36,botY+14,3,W/2+36,botY+20,16);
-    bg.addColorStop(0,bActive?'#3a1424':'#0e0a14'); bg.addColorStop(1,bActive?'#1a0608':'#060408');
-    ctx.fillStyle=bg; ctx.beginPath(); ctx.arc(W/2+36,botY+20,16,0,Math.PI*2); ctx.fill();
+    ctx.fillStyle=gMemo('disc:b:'+bActive, function () {
+        var g=ctx.createRadialGradient(W/2+36,botY+14,3,W/2+36,botY+20,16);
+        g.addColorStop(0,bActive?'#3a1424':'#0e0a14'); g.addColorStop(1,bActive?'#1a0608':'#060408');
+        return g;
+    }); ctx.beginPath(); ctx.arc(W/2+36,botY+20,16,0,Math.PI*2); ctx.fill();
     ctx.strokeStyle=bActive?'#ff512f':'#2a1020'; ctx.lineWidth=1.5; ctx.stroke();
     ctx.fillStyle=bActive?'#ffc880':'#5a3028';
     ctx.fillText('N',W/2+36,botY+20);

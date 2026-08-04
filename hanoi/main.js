@@ -37,16 +37,15 @@ var gs = {
     status: 'playing',   // playing | won
     anim: null,          // {size, fromPeg, toPeg, x, y, tx, ty, phase}
     shake: 0,            // frames de shake
-    particles: []        // partículas de victoria
+    particles: new Particles(80)   // pooled, see game-utils.js
 };
 
 /* ── Stats persistentes (mejor marca por nivel) ── */
 var mobileScoreEl = document.getElementById('mobileScore');
 var best = (function () {
-    try { return JSON.parse(localStorage.getItem('hanoiBest') || '{}') || {}; }
-    catch (e) { return {}; }
+    return GameStore.getJSON('hanoiBest', {}) || {};
 }());
-function saveBest() { try { localStorage.setItem('hanoiBest', JSON.stringify(best)); } catch (e) {} }
+function saveBest() { GameStore.setJSON('hanoiBest', best); }
 function optimalMoves(n) { return Math.pow(2, n) - 1; }
 
 function updateMobileScore() {
@@ -75,7 +74,7 @@ function setupLevel(n) {
     gs.status = 'playing';
     gs.anim = null;
     gs.shake = 0;
-    gs.particles = [];
+    gs.particles.clear();
     closePopup();
     updateLabels();
     GameAudio.start();
@@ -164,17 +163,16 @@ function finishAnim() {
 
 /* ── Partículas de victoria ── */
 function spawnWinParticles() {
-    gs.particles = [];
+    gs.particles.clear();
     for (var i = 0; i < 60; i++) {
         var ang = Math.random() * Math.PI * 2;
         var spd = 1.5 + Math.random() * 4;
-        gs.particles.push({
-            x: TOWER_X[2], y: PEG_TOP + 20,
-            vx: Math.cos(ang) * spd,
-            vy: Math.sin(ang) * spd - 2,
-            life: 1,
-            size: 2 + Math.random() * 3,
-            color: DISK_COLORS[Math.floor(Math.random() * DISK_COLORS.length)][0]
+        /* the old loop aged life by dt * 0.7, i.e. a 1/0.7 s lifetime */
+        gs.particles.add(TOWER_X[2], PEG_TOP + 20,
+            Math.cos(ang) * spd, Math.sin(ang) * spd - 2, {
+            life: 1 / 0.7, size: 2 + Math.random() * 3,
+            color: DISK_COLORS[Math.floor(Math.random() * DISK_COLORS.length)][0],
+            gravity: 0.12, shape: 'square'
         });
     }
 }
@@ -203,16 +201,7 @@ function drawDisk(cx, cy, size) {
     ctx.stroke();
 }
 
-function roundRect(x, y, w, h, r) {
-    if (r > h / 2) r = h / 2;
-    ctx.beginPath();
-    ctx.moveTo(x + r, y);
-    ctx.arcTo(x + w, y, x + w, y + h, r);
-    ctx.arcTo(x + w, y + h, x, y + h, r);
-    ctx.arcTo(x, y + h, x, y, r);
-    ctx.arcTo(x, y, x + w, y, r);
-    ctx.closePath();
-}
+function roundRect(x, y, w, h, r) { GU.roundRectPath(ctx, x, y, w, h, r); }
 
 function draw() {
     ctx.clearRect(0, 0, W, H);
@@ -263,16 +252,7 @@ function draw() {
     }
 
     // partículas de victoria
-    if (gs.particles.length > 0) {
-        for (var k = 0; k < gs.particles.length; k++) {
-            var pt = gs.particles[k];
-            if (pt.life <= 0) continue;
-            ctx.globalAlpha = Math.max(0, pt.life);
-            ctx.fillStyle = pt.color;
-            ctx.fillRect(pt.x - pt.size / 2, pt.y - pt.size / 2, pt.size, pt.size);
-        }
-        ctx.globalAlpha = 1;
-    }
+    gs.particles.draw(ctx);
 
     // etiquetas A B C
     ctx.fillStyle = '#7a88a8';
@@ -365,18 +345,7 @@ function loop(ts) {
     }
 
     // partículas
-    if (gs.particles.length > 0) {
-        var alive = false;
-        for (var i = 0; i < gs.particles.length; i++) {
-            var pt = gs.particles[i];
-            pt.vy += 0.12;
-            pt.x += pt.vx;
-            pt.y += pt.vy;
-            pt.life -= dt * 0.7;
-            if (pt.life > 0) alive = true;
-        }
-        if (!alive) gs.particles = [];
-    }
+    gs.particles.update(dt);
 
     draw();
 }
@@ -389,10 +358,7 @@ function pegFromX(px) {
     return 2;
 }
 function canvasPeg(clientX, clientY) {
-    var rect = canvas.getBoundingClientRect();
-    var sx = canvas.width / rect.width;
-    var px = (clientX - rect.left) * sx;
-    return pegFromX(px);
+    return pegFromX(GU.pointerPos(canvas, { clientX: clientX, clientY: clientY }).x);
 }
 
 canvas.addEventListener('click', function (e) {

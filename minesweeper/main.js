@@ -25,11 +25,11 @@ function getBestTimeKey() {
     return 'minesweeperBest_' + currentDifficulty;
 }
 function getBestTime() {
-    var v = parseInt(localStorage.getItem(getBestTimeKey()) || '0', 10);
+    var v = GameStore.getNum(getBestTimeKey(), 0);
     return v || null;
 }
 function setBestTime(t) {
-    try { localStorage.setItem(getBestTimeKey(), t); } catch (e) {}
+    GameStore.set(getBestTimeKey(), t);
 }
 
 // ---- Build difficulty selector dynamically ----

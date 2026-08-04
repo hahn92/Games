@@ -22,14 +22,14 @@ var KEYBOARD_ROWS = [
 
 var target, grid, currentRow, currentCol, isPlaying, gameEnded;
 var wins, streak, bestStreak;
-wins        = parseInt(localStorage.getItem('wordleWins')       || '0', 10);
-streak      = parseInt(localStorage.getItem('wordleStreak')     || '0', 10);
-bestStreak  = parseInt(localStorage.getItem('wordleBestStreak') || '0', 10);
+wins        = GameStore.getNum('wordleWins', 0);
+streak      = GameStore.getNum('wordleStreak', 0);
+bestStreak  = GameStore.getNum('wordleBestStreak', 0);
 
 // distribution[i] = number of wins in (i+1) attempts, i=0..5
 var distribution = (function () {
     try {
-        var d = JSON.parse(localStorage.getItem('wordleDist') || '[0,0,0,0,0,0]');
+        var d = GameStore.getJSON('wordleDist', [0,0,0,0,0,0]);
         if (Array.isArray(d) && d.length === 6) return d;
     } catch (e) {}
     return [0, 0, 0, 0, 0, 0];
@@ -220,10 +220,10 @@ function submitGuess() {
             wins++; streak++;
             if (streak > bestStreak) bestStreak = streak;
             distribution[currentRow]++;
-            try { localStorage.setItem('wordleWins', wins); } catch (e) {}
-            try { localStorage.setItem('wordleStreak', streak); } catch (e) {}
-            try { localStorage.setItem('wordleBestStreak', bestStreak); } catch (e) {}
-            try { localStorage.setItem('wordleDist', JSON.stringify(distribution)); } catch (e) {}
+            GameStore.set('wordleWins', wins);
+            GameStore.set('wordleStreak', streak);
+            GameStore.set('wordleBestStreak', bestStreak);
+            GameStore.setJSON('wordleDist', distribution);
             updateScores();
             // Bounce winning row
             for (var b = 0; b < 5; b++) {
@@ -250,7 +250,7 @@ function submitGuess() {
             currentCol = 0;
             if (currentRow >= 6) {
                 streak = 0;
-                try { localStorage.setItem('wordleStreak', 0); } catch (e) {}
+                GameStore.set('wordleStreak', 0);
                 updateScores();
                 GameAudio.gameOver();
                 showToast('La palabra era: ' + target);

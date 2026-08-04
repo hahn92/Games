@@ -63,7 +63,7 @@ var screenShake   = 0;
 var shakeOffX     = 0;
 var shakeOffY     = 0;
 var elapsed       = 0;
-var best          = parseInt(localStorage.getItem('ritmoHighScore') || '0', 10);
+var best          = GameStore.getNum('ritmoHighScore', 0);
 var isPlaying     = false;
 var isOver        = false;
 var lastT         = 0;
@@ -85,22 +85,7 @@ var finalBestEl  = document.getElementById('finalBest');
 highScoreEl.textContent = best;
 
 /* ─────────────────────── Helpers ─────────────────────── */
-function roundRect(x, y, w, h, r) {
-    var rr = Math.min(r, w / 2, h / 2);
-    ctx.beginPath();
-    ctx.moveTo(x + rr, y);
-    ctx.lineTo(x + w - rr, y);
-    ctx.quadraticCurveTo(x + w, y, x + w, y + rr);
-    ctx.lineTo(x + w, y + h - rr);
-    ctx.quadraticCurveTo(x + w, y + h, x + w - rr, y + h);
-    ctx.lineTo(x + rr, y + h);
-    ctx.quadraticCurveTo(x, y + h, x, y + h - rr);
-    ctx.lineTo(x, y + rr);
-    ctx.quadraticCurveTo(x, y, x + rr, y);
-    ctx.closePath();
-}
-
-function clamp(v, a, b) { return v < a ? a : v > b ? b : v; }
+function roundRect(x, y, w, h, r) { GU.roundRectPath(ctx, x, y, w, h, r); }
 
 function buildStars() {
     stars = [];
@@ -533,7 +518,7 @@ function endGame() {
     isPlaying = false;
     if (score > best) {
         best = score;
-        try { localStorage.setItem('ritmoHighScore', String(best)); } catch (e) {}
+        GameStore.set('ritmoHighScore', best);
     }
     highScoreEl.textContent = best;
     finalScoreEl.textContent = 'Puntos: ' + score + ' · Mejor combo: x' + bestCombo;
@@ -550,10 +535,7 @@ playAgainBtn.addEventListener('click', function () { GameAudio.click(); startGam
 
 // Tap / clic sobre el canvas
 function canvasPos(clientX, clientY) {
-    var rect = canvas.getBoundingClientRect();
-    var x = (clientX - rect.left) * (W / rect.width);
-    var y = (clientY - rect.top) * (H / rect.height);
-    return { x: x, y: y };
+    return GU.pointerPos(canvas, { clientX: clientX, clientY: clientY });
 }
 
 canvas.addEventListener('touchstart', function (e) {

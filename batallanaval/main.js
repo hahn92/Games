@@ -29,21 +29,19 @@ let aiTargetQueue = [];     // celdas candidatas a probar
 let aiHitStack = [];        // celdas tocadas del barco actual
 
 // Efectos
-let particles = [];
+const particles = new Particles(160);   // pooled, see game-utils.js
 let splashes = [];
 let screenShake = 0;
 let stats = { wins: 0, losses: 0 };
 
 // ---- Utilidades de stats ----
 function loadStats() {
-    try {
-        const s = JSON.parse(localStorage.getItem('navalStats'));
-        if (s && typeof s.wins === 'number') stats = s;
-    } catch (e) { /* ignore */ }
+    const s = GameStore.getJSON('navalStats', null);
+    if (s && typeof s.wins === 'number') stats = s;
     updateStatsUI();
 }
 function saveStats() {
-    try { localStorage.setItem('navalStats', JSON.stringify(stats)); } catch (e) { /* ignore */ }
+    GameStore.setJSON('navalStats', stats);
 }
 function updateStatsUI() {
     const w = document.getElementById('wins');
@@ -123,7 +121,7 @@ function startGame() {
     aiHitStack = [];
     turn = 'player';
     busy = false;
-    particles = [];
+    particles.clear();
     splashes = [];
     screenShake = 0;
     state = 'placing';
@@ -145,7 +143,7 @@ function fullReset() {
     aiShips = [];
     playerShots = emptyBoard();
     aiShots = emptyBoard();
-    particles = [];
+    particles.clear();
     splashes = [];
     document.getElementById('restartBtn').disabled = true;
     document.getElementById('gameOverPopup').style.display = 'none';
@@ -160,14 +158,13 @@ function spawnExplosion(x, y) {
     for (let i = 0; i < n; i++) {
         const ang = (Math.PI * 2 * i) / n + Math.random() * 0.4;
         const sp = 1.5 + Math.random() * 2.5;
-        particles.push({
-            x, y,
-            vx: Math.cos(ang) * sp,
-            vy: Math.sin(ang) * sp,
-            life: 1,
-            decay: 0.02 + Math.random() * 0.02,
-            r: 2 + Math.random() * 3,
-            hot: Math.random() < 0.6
+        /* the old per-frame `decay` becomes a lifetime in seconds */
+        const decay = 0.02 + Math.random() * 0.02;
+        particles.add(x, y, Math.cos(ang) * sp, Math.sin(ang) * sp, {
+            life: 1 / (decay * 60),
+            size: 2 + Math.random() * 3,
+            color: Math.random() < 0.6 ? '#ffd24a' : '#ff512f',
+            gravity: 0.05, shape: 'square'
         });
     }
 }
@@ -392,13 +389,7 @@ function draw(ts) {
 function updateEffects() {
     if (screenShake > 0) screenShake -= 0.6;
     if (screenShake < 0) screenShake = 0;
-    for (let i = particles.length - 1; i >= 0; i--) {
-        const p = particles[i];
-        p.x += p.vx; p.y += p.vy;
-        p.vy += 0.05;
-        p.life -= p.decay;
-        if (p.life <= 0) particles.splice(i, 1);
-    }
+    particles.update();
     for (let i = splashes.length - 1; i >= 0; i--) {
         const s = splashes[i];
         s.x += s.vx; s.y += s.vy;
@@ -573,25 +564,11 @@ function drawSunkShip(ship, bx, by, cell, own) {
     ctx.stroke();
 }
 
-function roundRectPath(x, y, w, h, r) {
-    r = Math.min(r, w / 2, h / 2);
-    ctx.beginPath();
-    ctx.moveTo(x + r, y);
-    ctx.arcTo(x + w, y, x + w, y + h, r);
-    ctx.arcTo(x + w, y + h, x, y + h, r);
-    ctx.arcTo(x, y + h, x, y, r);
-    ctx.arcTo(x, y, x + w, y, r);
-    ctx.closePath();
-}
+function roundRectPath(x, y, w, h, r) { GU.roundRectPath(ctx, x, y, w, h, r); }
 
 function drawEffects() {
     // partículas de explosión
-    for (let i = 0; i < particles.length; i++) {
-        const p = particles[i];
-        ctx.globalAlpha = Math.max(0, p.life);
-        ctx.fillStyle = p.hot ? '#ffd24a' : '#ff512f';
-        ctx.fillRect(p.x - p.r / 2, p.y - p.r / 2, p.r, p.r);
-    }
+    particles.draw(ctx);
     // gotas de agua
     for (let i = 0; i < splashes.length; i++) {
         const s = splashes[i];
@@ -632,12 +609,7 @@ function pointInBtn(x, y, btn) {
 }
 
 // ===== Input =====
-function canvasPos(e) {
-    const rect = canvas.getBoundingClientRect();
-    const cx = (e.touches ? e.touches[0].clientX : e.clientX) - rect.left;
-    const cy = (e.touches ? e.touches[0].clientY : e.clientY) - rect.top;
-    return { x: cx * (CW / rect.width), y: cy * (CH / rect.height) };
-}
+function canvasPos(e) { return GU.pointerPos(canvas, e); }
 
 function handlePointer(e) {
     if (state === 'idle') return;

@@ -14,7 +14,7 @@ let ballX = WIDTH/2 - BALL_SIZE/2;
 let ballY = HEIGHT/2 - BALL_SIZE/2;
 let ballSpeedX = 5, ballSpeedY = 3;
 let playerScore = 0, aiScore = 0;
-let highScore = localStorage.getItem('pongHighScore') || 0;
+let highScore = GameStore.getNum('pongHighScore', 0);
 let isPlaying = false, gameInterval;
 let speed = 1000/60;
 
@@ -49,7 +49,7 @@ const ballTrail = [];
 const TRAIL_LENGTH = 8;
 
 // Particles
-let particles = [];
+const particles = new Particles(180);   // pooled, see game-utils.js
 
 // Flash effect (al anotar)
 let flashSide = null;
@@ -61,13 +61,10 @@ function spawnPaddleParticles(x, y) {
     for (let i = 0; i < count; i++) {
         const angle = (Math.random() - 0.5) * Math.PI * 0.6 + (ballSpeedX > 0 ? 0 : Math.PI);
         const spd = 2 + Math.random() * 3;
-        particles.push({
-            x, y,
-            vx: Math.cos(angle) * spd,
-            vy: Math.sin(angle) * spd,
-            life: 1.0,
-            decay: 0.06 + Math.random() * 0.04,
-            radius: 2 + Math.random() * 2,
+        particles.add(
+            x, y, Math.cos(angle) * spd, Math.sin(angle) * spd, {
+            life: 1 / ((0.06 + Math.random() * 0.04) * 60),
+            size: 2 + Math.random() * 2,
             color: Math.random() > 0.5 ? '#00e5ff' : '#ffffff'
         });
     }
@@ -78,36 +75,21 @@ function spawnWallImpact(x, y) {
     // partículas pequeñas de pared
     for (let i = 0; i < 4; i++) {
         const angle = Math.random() * Math.PI * 2;
-        particles.push({
+        particles.add(
             x, y,
-            vx: Math.cos(angle) * (1 + Math.random() * 2),
-            vy: Math.sin(angle) * (1 + Math.random() * 2),
-            life: 0.7,
-            decay: 0.08 + Math.random() * 0.05,
-            radius: 1.5 + Math.random() * 1.5,
+            Math.cos(angle) * (1 + Math.random() * 2),
+            Math.sin(angle) * (1 + Math.random() * 2), {
+            life: 0.7 / ((0.08 + Math.random() * 0.05) * 60),
+            alpha: 0.7,                     /* old life0 was 0.7, not 1 */
+            size: 1.5 + Math.random() * 1.5,
             color: '#8fd3f4'
         });
     }
 }
 
-function updateParticles() {
-    particles = particles.filter(p => p.life > 0);
-    particles.forEach(p => {
-        p.x += p.vx; p.y += p.vy; p.life -= p.decay;
-    });
-}
+function updateParticles() { particles.update(); }
 
-function drawParticles() {
-    particles.forEach(p => {
-        ctx.save();
-        ctx.globalAlpha = Math.max(0, p.life);
-        ctx.fillStyle = p.color;
-        ctx.beginPath();
-        ctx.arc(p.x, p.y, p.radius, 0, Math.PI * 2);
-        ctx.fill();
-        ctx.restore();
-    });
-}
+function drawParticles() { particles.draw(ctx); }
 
 function updateImpactFlashes() {
     for (let i = impactFlashes.length - 1; i >= 0; i--) {
@@ -429,7 +411,7 @@ function updateScore() {
     document.getElementById('highScore').textContent = highScore;
     if (playerScore > highScore) {
         highScore = playerScore;
-        try { localStorage.setItem('pongHighScore', highScore); } catch (e) {}
+        GameStore.set('pongHighScore', highScore);
         document.getElementById('highScore').textContent = highScore;
     }
 }
@@ -442,7 +424,7 @@ function startGame() {
     aiScore = 0;
     rallyCount = 0;
     rallyMessage = null;
-    particles = [];
+    particles.clear();
     impactFlashes = [];
     ballTrail.length = 0;
     flashFrames = 0;

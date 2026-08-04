@@ -59,8 +59,8 @@ let dragging = false;
 let dragStart = null;   // {r,c}
 let dragEnd = null;     // {r,c}
 
-// Animaciones
-let particles = [];
+// Animaciones — pooled shared particle system (see game-utils.js)
+const particles = new Particles(200);
 let shake = 0;
 let lastFrameTs = 0;
 
@@ -170,26 +170,7 @@ function computeLayout() {
 }
 
 // ===== Coordenadas =====
-function getCanvasPos(evt) {
-    const rect = canvas.getBoundingClientRect();
-    const scaleX = canvas.width / rect.width;
-    const scaleY = canvas.height / rect.height;
-    let clientX, clientY;
-    if (evt.touches && evt.touches.length) {
-        clientX = evt.touches[0].clientX;
-        clientY = evt.touches[0].clientY;
-    } else if (evt.changedTouches && evt.changedTouches.length) {
-        clientX = evt.changedTouches[0].clientX;
-        clientY = evt.changedTouches[0].clientY;
-    } else {
-        clientX = evt.clientX;
-        clientY = evt.clientY;
-    }
-    return {
-        x: (clientX - rect.left) * scaleX,
-        y: (clientY - rect.top) * scaleY
-    };
-}
+function getCanvasPos(evt) { return GU.pointerPos(canvas, evt); }
 
 function cellAt(x, y) {
     const c = Math.floor((x - gridOffX) / cellSize);
@@ -256,12 +237,12 @@ function spawnFound(sol) {
         for (let i = 0; i < 4; i++) {
             const ang = Math.random() * Math.PI * 2;
             const spd = 1 + Math.random() * 2.5;
-            particles.push({
-                x: cx, y: cy,
-                vx: Math.cos(ang) * spd,
-                vy: Math.sin(ang) * spd,
-                life: 1, color: WORD_COLORS[sol.colorIdx % WORD_COLORS.length],
-                size: 2 + Math.random() * 2
+            /* life 0.5556s == the old `life: 1, decay: 0.03` at 60fps */
+            particles.add(cx, cy, Math.cos(ang) * spd, Math.sin(ang) * spd, {
+                life: 1 / (0.03 * 60),
+                color: WORD_COLORS[sol.colorIdx % WORD_COLORS.length],
+                size: 2 + Math.random() * 2,
+                gravity: 0.05, shape: 'square'
             });
         }
     }
@@ -303,7 +284,7 @@ function startGame() {
     state.score = 0;
     state.startTime = performance.now();
     state.elapsed = 0;
-    particles = [];
+    particles.clear();
     shake = 0;
     dragging = false; dragStart = null; dragEnd = null;
     document.getElementById('restartBtn').disabled = false;
@@ -321,7 +302,7 @@ function finishGame() {
     state.score += timeBonus;
     if (state.score > state.highScore) {
         state.highScore = state.score;
-        try { localStorage.setItem(HS_KEY, String(state.highScore)); } catch (e) {}
+        GameStore.set(HS_KEY, state.highScore);
     }
     updateHUD();
     if (typeof GameAudio !== 'undefined') GameAudio.win();
@@ -339,14 +320,7 @@ function update(ts) {
     if (state.running) {
         state.elapsed = (ts - state.startTime) / 1000;
     }
-    // partículas
-    for (let i = particles.length - 1; i >= 0; i--) {
-        const p = particles[i];
-        p.x += p.vx; p.y += p.vy;
-        p.vy += 0.05;
-        p.life -= 0.03;
-        if (p.life <= 0) particles.splice(i, 1);
-    }
+    particles.update();
     if (shake > 0) shake--;
 }
 
@@ -482,34 +456,14 @@ function draw() {
         col++;
     }
 
-    // partículas
-    for (const p of particles) {
-        ctx.globalAlpha = Math.max(0, p.life);
-        ctx.fillStyle = p.color;
-        ctx.fillRect(p.x - p.size / 2, p.y - p.size / 2, p.size, p.size);
-    }
-    ctx.globalAlpha = 1;
+    particles.draw(ctx);
 
     ctx.restore();
 }
 
-function roundRectPath(c, x, y, w, h, r) {
-    c.beginPath();
-    c.moveTo(x + r, y);
-    c.arcTo(x + w, y, x + w, y + h, r);
-    c.arcTo(x + w, y + h, x, y + h, r);
-    c.arcTo(x, y + h, x, y, r);
-    c.arcTo(x, y, x + w, y, r);
-    c.closePath();
-}
+function roundRectPath(c, x, y, w, h, r) { GU.roundRectPath(c, x, y, w, h, r); }
 
-function hexAlpha(hex, a) {
-    const h = hex.replace('#', '');
-    const r = parseInt(h.substring(0, 2), 16);
-    const g = parseInt(h.substring(2, 4), 16);
-    const b = parseInt(h.substring(4, 6), 16);
-    return 'rgba(' + r + ',' + g + ',' + b + ',' + a + ')';
-}
+function hexAlpha(hex, a) { return GU.rgba(hex, a); }
 
 function loop(ts) {
     if (ts - lastFrameTs < 15) { requestAnimationFrame(loop); return; }
@@ -571,7 +525,7 @@ document.getElementById('playAgainBtn').addEventListener('click', () => {
 
 // ===== Init =====
 function init() {
-    state.highScore = parseInt(localStorage.getItem(HS_KEY) || '0', 10) || 0;
+    state.highScore = GameStore.getNum(HS_KEY, 0) || 0;
     generateBoard();
     computeLayout();
     updateWordList();

@@ -37,7 +37,7 @@ var mobileScore = document.getElementById('mobileScore');
 
 /* ── Persistence ────────────────────────────────────────── */
 var HS_KEY    = 'pinball_highscore';
-var highScore = parseInt(localStorage.getItem(HS_KEY) || '0', 10);
+var highScore = GameStore.getNum(HS_KEY, 0);
 highScoreEl.textContent = highScore;
 
 /* ── Game state ─────────────────────────────────────────── */
@@ -626,7 +626,7 @@ function endGame() {
     var isNew = score > highScore;
     if (isNew) {
         highScore = score;
-        try { localStorage.setItem(HS_KEY, highScore); } catch (e) {}
+        GameStore.set(HS_KEY, highScore);
         highScoreEl.textContent = highScore;
         newRecordEl.style.display = 'block';
     } else {

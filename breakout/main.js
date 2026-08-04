@@ -28,7 +28,7 @@ const LEVEL_TRANSITION_FRAMES = 120;
 
 let bricks = [], rows = 5, cols = 10;
 const brickWidth = 54, brickHeight = 18, brickPadding = 8, brickOffsetTop = 40, brickOffsetLeft = 20;
-let score = 0, highScore = localStorage.getItem('breakoutHighScore') || 0;
+let score = 0, highScore = GameStore.getNum('breakoutHighScore', 0);
 let isPlaying = false, gameInterval;
 let speed = 1000/60;
 
@@ -41,7 +41,7 @@ const ballTrail = [];
 const TRAIL_LENGTH = 6;
 
 // Brick particles
-let brickParticles = [];
+const brickParticles = new Particles(200);   // pooled, see game-utils.js
 
 // Ripples on paddle bounce
 let ripples = [];
@@ -107,15 +107,11 @@ function spawnBrickParticles(brick) {
     for (let i = 0; i < count; i++) {
         const angle = Math.random() * Math.PI * 2;
         const spd = 1.5 + Math.random() * 3;
-        brickParticles.push({
-            x: cx, y: cy,
-            vx: Math.cos(angle) * spd,
-            vy: Math.sin(angle) * spd,
-            gravity: 0.08,
-            life: 1.0,
-            decay: 0.025 + Math.random() * 0.03,
-            radius: 2 + Math.random() * 3,
-            color: brick.color
+        brickParticles.add(
+            cx, cy, Math.cos(angle) * spd, Math.sin(angle) * spd, {
+            life: 1 / ((0.025 + Math.random() * 0.03) * 60),
+            size: 2 + Math.random() * 3,
+            color: brick.color, gravity: 0.08
         });
     }
 }
@@ -124,12 +120,7 @@ function spawnRipple(x, y) {
     ripples.push({ x, y, radius: 4, maxRadius: 24, life: 1.0 });
 }
 
-function updateBrickParticles() {
-    brickParticles = brickParticles.filter(p => p.life > 0);
-    brickParticles.forEach(p => {
-        p.x += p.vx; p.y += p.vy; p.vy += p.gravity; p.life -= p.decay;
-    });
-}
+function updateBrickParticles() { brickParticles.update(); }
 
 function updateRipples() {
     ripples = ripples.filter(r => r.life > 0);
@@ -139,17 +130,7 @@ function updateRipples() {
     });
 }
 
-function drawBrickParticles() {
-    brickParticles.forEach(p => {
-        ctx.save();
-        ctx.globalAlpha = Math.max(0, p.life);
-        ctx.fillStyle = p.color;
-        ctx.beginPath();
-        ctx.arc(p.x, p.y, p.radius, 0, Math.PI * 2);
-        ctx.fill();
-        ctx.restore();
-    });
-}
+function drawBrickParticles() { brickParticles.draw(ctx); }
 
 function drawRipples() {
     ripples.forEach(r => {
@@ -586,7 +567,7 @@ function updateScore() {
     document.getElementById('highScore').textContent = highScore;
     if (score > highScore) {
         highScore = score;
-        try { localStorage.setItem('breakoutHighScore', highScore); } catch (e) {}
+        GameStore.set('breakoutHighScore', highScore);
         document.getElementById('highScore').textContent = highScore;
     }
 }
@@ -599,7 +580,7 @@ function startGame() {
     lives = 3;
     currentLevel = 1;
     levelTransition = false;
-    brickParticles = [];
+    brickParticles.clear();
     ripples = [];
     powerUps = [];
     activePowerUps = {};

@@ -55,7 +55,7 @@ var targetCameraY   = 0;
 var discs           = [];        // {id, y, segments: [8 strings], passed: bool, breakT: num}
 var nextDiscId      = 0;
 var score           = 0;
-var best            = parseInt(localStorage.getItem('helicoidalHighScore') || '0', 10);
+var best            = GameStore.getNum('helicoidalHighScore', 0);
 var combo           = 0;
 var bestCombo       = 0;
 var isPlaying       = false;
@@ -87,8 +87,6 @@ highScoreEl.textContent = best;
 /* ─────────────────────── Utilidades ─────────────────────── */
 function rand(a, b) { return a + Math.random() * (b - a); }
 function randi(a, b) { return Math.floor(rand(a, b)); }
-function clamp(v, mn, mx) { return v < mn ? mn : v > mx ? mx : v; }
-function lerp(a, b, t) { return a + (b - a) * t; }
 
 /* Pre-cachear estrellas (evita Math.random en el render) */
 function buildStarField() {
@@ -253,7 +251,7 @@ function endGame() {
     if (typeof GameAudio !== 'undefined') GameAudio.gameOver();
     if (score > best) {
         best = score;
-        try { localStorage.setItem('helicoidalHighScore', String(best)); } catch (e) {}
+        GameStore.set('helicoidalHighScore', best);
         highScoreEl.textContent = best;
     }
     // popup con breve delay para mostrar shake y explosión
@@ -285,14 +283,7 @@ var pointerId = null;
 var lastPointerX = 0;
 var pointerStartT = 0;
 
-function getPointerX(e) {
-    var rect = canvas.getBoundingClientRect();
-    var clientX;
-    if (e.touches && e.touches.length) clientX = e.touches[0].clientX;
-    else if (e.changedTouches && e.changedTouches.length) clientX = e.changedTouches[0].clientX;
-    else clientX = e.clientX;
-    return (clientX - rect.left) * (W / rect.width);
-}
+function getPointerX(e) { return GU.pointerPos(canvas, e).x; }
 
 function pointerDown(e) {
     e.preventDefault();

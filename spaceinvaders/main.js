@@ -114,7 +114,7 @@ function resetGame() {
     fireTimer = 0;
     screenShake = 0;
     isPlaying = false;
-    highScore = parseInt(localStorage.getItem('invadersHighScore') || '0');
+    highScore = GameStore.getNum('invadersHighScore', 0);
     playerGrad = null;
     playerGradX = -1;
 
@@ -420,7 +420,7 @@ function endGame() {
     GameAudio.gameOver();
     if (score > highScore) {
         highScore = score;
-        try { localStorage.setItem('invadersHighScore', highScore); } catch (e) {}
+        GameStore.set('invadersHighScore', highScore);
     }
     updateScore();
     document.getElementById('gameOverPopup').style.display = 'flex';

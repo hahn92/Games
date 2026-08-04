@@ -9,7 +9,7 @@ const COLORS = [
 
 let board = Array.from({ length: ROWS }, () => Array(COLS).fill(0));
 let current, next, holdPiece = null;
-let score = 0, highScore = localStorage.getItem('tetrisHighScore') || 0;
+let score = 0, highScore = GameStore.getNum('tetrisHighScore', 0);
 let gameInterval, speed = 500, isPlaying = false;
 
 let totalLines = 0, level = 1;
@@ -369,7 +369,7 @@ function updateScoreDOM() {
     document.getElementById('highScore').textContent = highScore;
     if (score > highScore) {
         highScore = score;
-        try { localStorage.setItem('tetrisHighScore', highScore); } catch (e) {}
+        GameStore.set('tetrisHighScore', highScore);
         document.getElementById('highScore').textContent = highScore;
     }
 }

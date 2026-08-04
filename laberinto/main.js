@@ -99,12 +99,12 @@
     /* ── localStorage helpers ───────────────────────────────────── */
     var LS_KEY = 'laberinto_best';
     function loadBests() {
-        try { return JSON.parse(localStorage.getItem(LS_KEY)) || {}; } catch(e) { return {}; }
+        return GameStore.getJSON(LS_KEY, {}) || {};
     }
     function saveBest(lvl, ms) {
         var bests = loadBests();
         if (!bests[lvl] || ms < bests[lvl]) bests[lvl] = ms;
-        try { localStorage.setItem(LS_KEY, JSON.stringify(bests)); } catch(e) {}
+        GameStore.setJSON(LS_KEY, bests);
     }
     function getBest(lvl) {
         var bests = loadBests();
@@ -280,7 +280,6 @@
         if (winFlash > 0) winFlash--;
     }
 
-    function lerp(a, b, t) { return a + (b - a) * t; }
     function easeOut(t) { return 1 - (1 - t) * (1 - t); }
 
     /* ══════════════════════════════════════════════════════════════

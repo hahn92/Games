@@ -12,9 +12,9 @@ var board = [];
 var isPlaying = false;
 var aiThinking = false;
 var hoverCol = -1;
-var wins = parseInt(localStorage.getItem('c4wins') || '0', 10);
-var losses = parseInt(localStorage.getItem('c4losses') || '0', 10);
-var draws = parseInt(localStorage.getItem('c4draws') || '0', 10);
+var wins = GameStore.getNum('c4wins', 0);
+var losses = GameStore.getNum('c4losses', 0);
+var draws = GameStore.getNum('c4draws', 0);
 
 // Visual state
 var fallingPieces = []; // { col, toRow, currentY, player, done }
@@ -510,15 +510,15 @@ function endGame(result, winCells) {
     if (winCells) drawBoard(winCells); else drawBoard();
     var title, detail;
     if (result === 'win') {
-        wins++; try { localStorage.setItem('c4wins', wins); } catch (e) {}
+        wins++; GameStore.set('c4wins', wins);
         title = '¡Ganaste! 🎉'; detail = '¡Bien jugado!';
         GameAudio.win();
     } else if (result === 'loss') {
-        losses++; try { localStorage.setItem('c4losses', losses); } catch (e) {}
+        losses++; GameStore.set('c4losses', losses);
         title = 'Perdiste 😔'; detail = 'La IA ganó esta vez';
         GameAudio.gameOver();
     } else {
-        draws++; try { localStorage.setItem('c4draws', draws); } catch (e) {}
+        draws++; GameStore.set('c4draws', draws);
         title = '¡Empate!'; detail = 'Tablero lleno';
         GameAudio.noMatch();
     }

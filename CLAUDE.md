@@ -27,7 +27,7 @@ Or open `index.html` (root or per-game) directly in a browser.
 | `styles.css` | Shared design system (CSS variables, card layout, global rules) **and the shared game-page layout**: `.responsive-layout`, `.game-side`, `.info-side`, `.mobile-score` are defined here once — per-game `styles.css` must NOT redefine them (only override if a game truly needs a variant). Also holds the shared `@media (max-width: 900px)` collapse; games only declare their own deltas |
 | `audio.js` | Shared Web Audio API sound system — `GameAudio.*()` calls |
 | `mobile-layout.js` | Shared mobile-layout bootstrap — `MobileLayout({...})`. **Required in every game**, loaded before `main.js`. See "Mobile support pattern" below |
-| `game-utils.js` | Shared JS utilities: `rafInterval(fn, ms)` / `rafClear(handle)` — a `setInterval`-compatible fixed-tick loop built on `requestAnimationFrame`. Include it before `main.js` only in games that use it |
+| `game-utils.js` | Shared JS toolkit — loop helpers, math/color helpers, canvas pointer mapping, the `ctx.roundRect` polyfill, safe storage and a particle pool. **Required in every game**, loaded after `audio.js` and before `main.js`. See "Shared toolkit" below |
 | `fullscreen-btn.js` | Inter-game navigation bar (all devices) + fullscreen/landscape button (mobile only). **Required in every game** — see "Navigation bar" below |
 | `favicon.svg` | Shared favicon, referenced relatively (`./favicon.svg` from root, `../favicon.svg` from a game) |
 | `main.js` | Catalog filter, search and pagination with shareable URLs |
@@ -112,11 +112,71 @@ To include it, add the script tag **last**, after `audio.js` and `main.js`:
 ```html
 <script src="../mobile-layout.js"></script>
 <script src="../audio.js"></script>
+<script src="../game-utils.js"></script>
 <script src="./main.js"></script>
 <script src="../fullscreen-btn.js"></script>
 ```
 
 When adding or reviewing a game, verify this script tag is present in `index.html`. `/validate-game` should be run to confirm.
+
+## Shared toolkit (`game-utils.js`)
+
+Loaded by every game, after `audio.js` and before `main.js`. Everything is on the
+`GameUtils` namespace (aliased `GU`); a handful of names are also flat globals
+because games already called them unqualified.
+
+**Do not re-implement any of these in a game.** Each one replaced a per-game copy.
+
+| Group | API |
+|-------|-----|
+| Loop | `rafInterval(fn, ms)` / `rafClear(h)` — fixed-tick loop; `rafLoop(fn, minMs)` — free-running ~60fps loop, `fn(dt, ts)` with `dt` clamped so a backgrounded tab can't tunnel bodies through walls |
+| Math | `clamp`\*, `lerp`\*, `GU.dist`, `GU.dist2`, `GU.rand`, `GU.randInt`, `GU.pick`, `GU.shuffle`, `GU.angleDelta`, `GU.easeOutQuad` / `easeInQuad` / `easeInOutQuad` |
+| Collision | `GU.rectsOverlap(ax,ay,aw,ah, bx,by,bw,bh)`, `GU.circlesOverlap(x1,y1,r1, x2,y2,r2)` |
+| Color | `hexToRgb`\*, `shade(hex, ±d)`\* (additive), `GU.scaleColor(hex, f)` (multiplicative), `GU.rgba(hex, a)`, `GU.mixColor(a, b, t)` |
+| Canvas | `pointerPos(canvas, e)`\* → `{x, y}` in canvas space; `GU.roundRectPath(ctx, x,y,w,h,r)`; `GU.gradientMemo()` |
+| Storage | `GameStore.getNum/setNum/getJSON/setJSON/get/set/remove`\*, `GameStore.available` |
+| Particles | `new Particles(max)`\* with `.burst(x, y, n, opts)`, `.add(x, y, vx, vy, opts)`, `.update(dt)`, `.draw(ctx)`, `.clear()` |
+| HiDPI | automatic; `GU.upgradeCanvas(canvas)` / `GU.upgradeAllCanvases()` for canvases created at runtime |
+
+\* also available as a flat global.
+
+### Why these exist
+
+- **`ctx.roundRect` polyfill** — installed automatically when the browser lacks it
+  (Safari < 16.4). A dozen games call `ctx.roundRect()` directly; without the
+  polyfill that throws and takes the whole render loop down on older iOS.
+- **`pointerPos`** — every canvas game needs mouse/touch → canvas-space mapping,
+  and it must divide by `rect.width`, not just subtract `rect.left`: `mobile-layout.js`
+  resizes canvases via `style.width/height`, so the CSS box and the backing store differ.
+  Handles `touches`, `changedTouches`, plain mouse events and bare `Touch` objects,
+  and guards the divide on a zero-size (hidden) canvas.
+- **`GameStore`** — `localStorage` *throws* rather than returning null when site data
+  is blocked (Safari "Block All Cookies", sandboxed iframes). Games read their high
+  score at module top level, so an unguarded access kills `main.js` before anything
+  renders. Every accessor degrades to an in-memory map, so a session still keeps its
+  score. `GameStore` never throws — do not wrap it in `try`/`catch`.
+- **`Particles`** — pooled; dead particles are reused instead of being spliced out of
+  an array each frame, and `draw()` batches `fillStyle` changes. `burst()` picks angles
+  and speeds for you; `add()` takes an explicit velocity, for effects with a directional
+  bias or a jittered origin. **`life` is in seconds**: porting a per-frame
+  `life: 1, decay: d` loop means `life: 1 / (d * 60)`, which reproduces the lifetime and
+  the linear alpha ramp exactly at 60fps. Use `alpha` when the old code started below
+  full opacity (a `life: 0.8` peak becomes `alpha: 0.8`). `update()` moves before
+  integrating gravity, matching the hand-rolled loops it replaced.
+  Currently used by: breakout, batallanaval, dardos, hanoi, platformer, pong, sopaletras.
+  The other particle systems stay hand-rolled on purpose — they draw rotated ellipses,
+  hue-cycling sparks, trails or fragment shapes the shared pool does not render.
+- **HiDPI** — applied automatically to every canvas at load. `canvas.width`/`height`
+  keep reporting the LOGICAL size, so game logic, hit testing and `pointerPos()` are
+  unaffected; only the backing store and a base `scale(dpr)` transform change. Capped at
+  2×. Opt a canvas out with `data-no-hidpi`. Because of this, **never assume
+  `canvas.width` is the backing-store size** — and if a game ever needs to resize its
+  canvas, assigning `canvas.width` still works and the base transform is reinstalled.
+- **`gradientMemo`** — gradients are among the more expensive 2D calls. Key on
+  everything the gradient depends on, geometry and colour stops both, and make sure the
+  key is BOUNDED: keying on a scrolling or animated coordinate leaks a gradient per
+  frame. For per-object gradients that differ only by position, build at the origin and
+  `ctx.translate()` instead (see `chess/drawBoard`).
 
 ## Sound system (`audio.js`)
 
@@ -125,6 +185,7 @@ All games use a shared, file-free sound system built on the Web Audio API. Inclu
 ```html
 <script src="../mobile-layout.js"></script>
 <script src="../audio.js"></script>
+<script src="../game-utils.js"></script>
 <script src="./main.js"></script>
 <script src="../fullscreen-btn.js"></script>
 ```
@@ -363,6 +424,7 @@ Located in `.claude/agents/`:
    ```html
    <script src="../mobile-layout.js"></script>
    <script src="../audio.js"></script>
+   <script src="../game-utils.js"></script>
    <script src="./main.js"></script>
    <script src="../fullscreen-btn.js"></script>
    ```
@@ -392,5 +454,5 @@ Located in `.claude/agents/`:
    </div>
    ```
 9. Add a thumbnail drawing function to `thumbnails.js` under the game's folder name key
-10. Use `requestAnimationFrame` for the game loop, not `setInterval` — either a rAF loop throttled with `if (ts - lastFrameTs < 15) return;` (see `pinball/main.js`) or, for fixed-tick games, `rafInterval()` from `../game-utils.js` (include its script tag before `main.js`)
+10. Use `requestAnimationFrame` for the game loop, not `setInterval` — either a rAF loop throttled with `if (ts - lastFrameTs < 15) return;` (see `pinball/main.js`) or, for fixed-tick games, `rafInterval()` or `rafLoop()` from `game-utils.js`
 11. Run `/validate-game [name]` after finishing to confirm all criteria pass

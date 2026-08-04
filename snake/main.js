@@ -75,7 +75,7 @@ let pendingDirs = [];
 const OPPOSITE = { LEFT: 'RIGHT', RIGHT: 'LEFT', UP: 'DOWN', DOWN: 'UP' };
 let fruit = randomPosition();
 let score = 0;
-let highScore = Number(localStorage.getItem('snakeHighScore')) || 0;
+let highScore = GameStore.getNum('snakeHighScore', 0) || 0;
 let gameInterval = null;
 let speed = 250;
 
@@ -715,7 +715,7 @@ function gameOver() {
     rafClear(gameInterval);
     if (score > highScore) {
         highScore = score;
-        try { localStorage.setItem('snakeHighScore', highScore); } catch (e) {}
+        GameStore.set('snakeHighScore', highScore);
         GameAudio.scoreHigh();
     }
     GameAudio.gameOver();
