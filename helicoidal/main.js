@@ -63,6 +63,10 @@ var isOver          = false;
 var shake           = 0;
 var flashAlpha      = 0;
 var particles       = new Particles(200);   // pooled, see game-utils.js
+
+/* Cache de gradientes: el fondo y el poste ocupan la pantalla entera y son
+   constantes. Los discos ya usaban gradientes preconstruidos. */
+var gMemo = GU.gradientMemo();
 var pops            = [];
 var lastT           = 0;
 var animId          = null;
@@ -457,11 +461,13 @@ function updateMobileScore() {
 
 /* ─────────────────────── Render ─────────────────────── */
 function drawBackground() {
-    var g = ctx.createLinearGradient(0, 0, 0, H);
-    g.addColorStop(0, COL.bgTop);
-    g.addColorStop(0.55, COL.bgMid);
-    g.addColorStop(1, COL.bgBot);
-    ctx.fillStyle = g;
+    ctx.fillStyle = gMemo('bg', function () {
+        var g = ctx.createLinearGradient(0, 0, 0, H);
+        g.addColorStop(0, COL.bgTop);
+        g.addColorStop(0.55, COL.bgMid);
+        g.addColorStop(1, COL.bgBot);
+        return g;
+    });
     ctx.fillRect(0, 0, W, H);
 
     // estrellas (parallax suave con cámara)
@@ -480,11 +486,13 @@ function drawBackground() {
 function drawPole() {
     // poste central: rectángulo con gradiente, pintado antes que los discos superiores
     var px = POLE_X - 11;
-    var g = ctx.createLinearGradient(px, 0, px + 22, 0);
-    g.addColorStop(0, COL.poleB);
-    g.addColorStop(0.5, COL.poleA);
-    g.addColorStop(1, COL.poleB);
-    ctx.fillStyle = g;
+    ctx.fillStyle = gMemo('pole', function () {
+        var g = ctx.createLinearGradient(px, 0, px + 22, 0);
+        g.addColorStop(0, COL.poleB);
+        g.addColorStop(0.5, COL.poleA);
+        g.addColorStop(1, COL.poleB);
+        return g;
+    });
     ctx.fillRect(px, 0, 22, H);
     // luz lateral
     ctx.fillStyle = 'rgba(255,255,255,0.08)';

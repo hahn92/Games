@@ -527,6 +527,7 @@ function update(dt) {
 
 /* ───────── Rendering ───────── */
 var skyGrad = null;
+var groundGrad = null;
 function drawBackground() {
     if (!skyGrad) {
         skyGrad = ctx.createLinearGradient(0, 0, 0, HEIGHT);
@@ -573,12 +574,15 @@ function drawBackground() {
     ctx.lineTo(WIDTH, 480); ctx.lineTo(0, 480); ctx.closePath(); ctx.fill();
 
     // ground
-    var gg = ctx.createLinearGradient(0, GROUND_Y, 0, HEIGHT);
-    gg.addColorStop(0, '#5d7a3a');
-    gg.addColorStop(0.18, '#3d5a24');
-    gg.addColorStop(0.5, '#5a4226');
-    gg.addColorStop(1, '#3a2a18');
-    ctx.fillStyle = gg; ctx.fillRect(0, GROUND_Y, WIDTH, HEIGHT - GROUND_Y);
+    /* constante, igual que skyGrad: se construye una sola vez */
+    if (!groundGrad) {
+        groundGrad = ctx.createLinearGradient(0, GROUND_Y, 0, HEIGHT);
+        groundGrad.addColorStop(0, '#5d7a3a');
+        groundGrad.addColorStop(0.18, '#3d5a24');
+        groundGrad.addColorStop(0.5, '#5a4226');
+        groundGrad.addColorStop(1, '#3a2a18');
+    }
+    ctx.fillStyle = groundGrad; ctx.fillRect(0, GROUND_Y, WIDTH, HEIGHT - GROUND_Y);
 
     // grass cap
     ctx.fillStyle = '#6bbf52';

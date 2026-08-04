@@ -35,6 +35,11 @@ var hook = { angle: 0, angleT: 0, angleSpeed: 0.03, len: HOOK_MIN_LEN, state: 's
 var objects = [];
 /* Pool compartido (game-utils.js), semi-implícito como el bucle original. */
 var particles = new Particles(160, { semiImplicit: true });
+
+/* Cache de gradientes. El cielo y la tierra ocupan la pantalla entera y se
+   reconstruian cada frame; los objetos se dibujan en espacio local y su radio
+   sale de una tabla fija, asi que la clave por radio queda acotada. */
+var gMemo = GU.gradientMemo();
 var popups = [];
 var score = 0;
 var level = 1;
@@ -339,10 +344,12 @@ function endGame() {
 /* ──────────────────────── Render ────────────────────────────────── */
 function drawBackground() {
     // cielo
-    var gSky = ctx.createLinearGradient(0, 0, 0, GROUND_Y);
-    gSky.addColorStop(0, '#0f1f44');
-    gSky.addColorStop(1, '#3d5d99');
-    ctx.fillStyle = gSky;
+    ctx.fillStyle = gMemo('sky', function () {
+        var g = ctx.createLinearGradient(0, 0, 0, GROUND_Y);
+        g.addColorStop(0, '#0f1f44');
+        g.addColorStop(1, '#3d5d99');
+        return g;
+    });
     ctx.fillRect(0, 0, WIDTH, GROUND_Y);
     // estrellas (deterministas)
     ctx.fillStyle = 'rgba(255,255,255,0.55)';
@@ -363,11 +370,13 @@ function drawBackground() {
     ctx.fill();
 
     // tierra
-    var gDirt = ctx.createLinearGradient(0, GROUND_Y, 0, HEIGHT);
-    gDirt.addColorStop(0, '#6a3d1e');
-    gDirt.addColorStop(0.15, '#4a2a12');
-    gDirt.addColorStop(1, '#1a0f08');
-    ctx.fillStyle = gDirt;
+    ctx.fillStyle = gMemo('dirt', function () {
+        var g = ctx.createLinearGradient(0, GROUND_Y, 0, HEIGHT);
+        g.addColorStop(0, '#6a3d1e');
+        g.addColorStop(0.15, '#4a2a12');
+        g.addColorStop(1, '#1a0f08');
+        return g;
+    });
     ctx.fillRect(0, GROUND_Y, WIDTH, HEIGHT - GROUND_Y);
 
     // hierba
@@ -541,11 +550,13 @@ function drawGold(r) {
     ctx.ellipse(2, r + 2, r * 0.9, r * 0.2, 0, 0, Math.PI * 2);
     ctx.fill();
     // cuerpo de la pepita (polígono)
-    var g = ctx.createRadialGradient(-r * 0.3, -r * 0.3, r * 0.2, 0, 0, r * 1.1);
-    g.addColorStop(0, '#fff3a8');
-    g.addColorStop(0.5, '#f5c542');
-    g.addColorStop(1, '#9e7518');
-    ctx.fillStyle = g;
+    ctx.fillStyle = gMemo('gold:' + r, function () {
+        var g = ctx.createRadialGradient(-r * 0.3, -r * 0.3, r * 0.2, 0, 0, r * 1.1);
+        g.addColorStop(0, '#fff3a8');
+        g.addColorStop(0.5, '#f5c542');
+        g.addColorStop(1, '#9e7518');
+        return g;
+    });
     ctx.beginPath();
     var sides = 8;
     for (var i = 0; i < sides; i++) {
@@ -576,11 +587,13 @@ function drawDiamond(r) {
     ctx.ellipse(2, r + 2, r * 0.9, r * 0.2, 0, 0, Math.PI * 2);
     ctx.fill();
     // cuerpo rombo
-    var g = ctx.createLinearGradient(-r, -r, r, r);
-    g.addColorStop(0, '#e4faff');
-    g.addColorStop(0.5, '#58c7ff');
-    g.addColorStop(1, '#1f6fa0');
-    ctx.fillStyle = g;
+    ctx.fillStyle = gMemo('diamond:' + r, function () {
+        var g = ctx.createLinearGradient(-r, -r, r, r);
+        g.addColorStop(0, '#e4faff');
+        g.addColorStop(0.5, '#58c7ff');
+        g.addColorStop(1, '#1f6fa0');
+        return g;
+    });
     ctx.beginPath();
     ctx.moveTo(0, r);
     ctx.lineTo(r, 0);
@@ -608,10 +621,12 @@ function drawRock(r) {
     ctx.ellipse(2, r + 2, r * 0.9, r * 0.2, 0, 0, Math.PI * 2);
     ctx.fill();
     // cuerpo
-    var g = ctx.createRadialGradient(-r * 0.3, -r * 0.3, r * 0.2, 0, 0, r);
-    g.addColorStop(0, '#bdb6ae');
-    g.addColorStop(1, '#3f3a34');
-    ctx.fillStyle = g;
+    ctx.fillStyle = gMemo('rock:' + r, function () {
+        var g = ctx.createRadialGradient(-r * 0.3, -r * 0.3, r * 0.2, 0, 0, r);
+        g.addColorStop(0, '#bdb6ae');
+        g.addColorStop(1, '#3f3a34');
+        return g;
+    });
     ctx.beginPath();
     var sides = 10;
     for (var i = 0; i < sides; i++) {
@@ -642,10 +657,12 @@ function drawBag(r) {
     ctx.ellipse(2, r + 2, r * 0.9, r * 0.2, 0, 0, Math.PI * 2);
     ctx.fill();
     // cuerpo bolsa
-    var g = ctx.createLinearGradient(-r, -r, r, r);
-    g.addColorStop(0, '#c27a3b');
-    g.addColorStop(1, '#6e3e15');
-    ctx.fillStyle = g;
+    ctx.fillStyle = gMemo('bag:' + r, function () {
+        var g = ctx.createLinearGradient(-r, -r, r, r);
+        g.addColorStop(0, '#c27a3b');
+        g.addColorStop(1, '#6e3e15');
+        return g;
+    });
     ctx.beginPath();
     ctx.moveTo(-r * 0.95, r * 0.9);
     ctx.quadraticCurveTo(-r * 1.15, 0, -r * 0.5, -r * 0.6);
@@ -720,10 +737,12 @@ function drawHUD() {
     var pct = Math.min(1, score / quota);
     ctx.fillStyle = 'rgba(255,255,255,0.18)';
     ctx.fillRect(8, 30, WIDTH - 16, 4);
-    var gg = ctx.createLinearGradient(8, 0, WIDTH - 8, 0);
-    gg.addColorStop(0, '#8fd3f4');
-    gg.addColorStop(1, '#ffd93d');
-    ctx.fillStyle = gg;
+    ctx.fillStyle = gMemo('bar', function () {
+        var g = ctx.createLinearGradient(8, 0, WIDTH - 8, 0);
+        g.addColorStop(0, '#8fd3f4');
+        g.addColorStop(1, '#ffd93d');
+        return g;
+    });
     ctx.fillRect(8, 30, (WIDTH - 16) * pct, 4);
 }
 

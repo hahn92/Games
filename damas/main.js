@@ -327,20 +327,37 @@ function pal(color) { return color === 'r' ? RED : BLU; }
 
 function sqXY(r, c) { return { x: BX + c * SQ, y: BY + r * SQ }; }
 
+/* Cache de gradientes. El tablero y el HUD reconstruian ~70 gradientes por
+   frame y todos son estables en geometria y color, asi que se crean una vez. */
+var gMemo = GU.gradientMemo();
+
 function accentGrad(x0, y0, x1, y1) {
-    var g = ctx.createLinearGradient(x0, y0, x1, y1);
-    g.addColorStop(0, '#8fd3f4'); g.addColorStop(0.5, '#b07898'); g.addColorStop(1, '#ff512f');
-    return g;
+    return gMemo('accent:' + x0 + ',' + y0 + ',' + x1 + ',' + y1, function () {
+        var g = ctx.createLinearGradient(x0, y0, x1, y1);
+        g.addColorStop(0, '#8fd3f4'); g.addColorStop(0.5, '#b07898'); g.addColorStop(1, '#ff512f');
+        return g;
+    });
+}
+
+/* Las 64 casillas comparten la misma diagonal: dos gradientes en el origen
+   cubren el tablero entero, trasladando en vez de construir uno por casilla. */
+function squareGrad(isLight) {
+    return gMemo(isLight ? 'sq:light' : 'sq:dark', function () {
+        var g = ctx.createLinearGradient(0, 0, SQ, SQ);
+        if (isLight) { g.addColorStop(0, '#c8a858'); g.addColorStop(1, '#b49040'); }
+        else         { g.addColorStop(0, '#253a6a'); g.addColorStop(1, '#142248'); }
+        return g;
+    });
 }
 
 function drawBoard() {
     for (var r = 0; r < 8; r++) for (var c = 0; c < 8; c++) {
         var p = sqXY(r, c);
         var isLight = (r + c) % 2 === 0;
-        var g = ctx.createLinearGradient(p.x, p.y, p.x + SQ, p.y + SQ);
-        if (isLight) { g.addColorStop(0, '#c8a858'); g.addColorStop(1, '#b49040'); }
-        else         { g.addColorStop(0, '#253a6a'); g.addColorStop(1, '#142248'); }
-        ctx.fillStyle = g; ctx.fillRect(p.x, p.y, SQ, SQ);
+        ctx.translate(p.x, p.y);
+        ctx.fillStyle = squareGrad(isLight);
+        ctx.fillRect(0, 0, SQ, SQ);
+        ctx.translate(-p.x, -p.y);
     }
     ctx.strokeStyle = accentGrad(BX, BY, BX + 8 * SQ, BY + 8 * SQ);
     ctx.lineWidth = 2.5; ctx.strokeRect(BX + 1.25, BY + 1.25, 8 * SQ - 2.5, 8 * SQ - 2.5);
@@ -382,9 +399,11 @@ function drawPiece(piece, r, c) {
     ctx.beginPath(); ctx.ellipse(cx, cy + rad * 0.42, rad * 0.92, rad * 0.32, 0, 0, Math.PI * 2); ctx.fill();
 
     // disco base (anillo exterior)
-    var gr = ctx.createRadialGradient(cx - rad * 0.30, cy - rad * 0.32, rad * 0.08, cx, cy, rad);
-    gr.addColorStop(0, C.hi); gr.addColorStop(0.55, C.mid); gr.addColorStop(1, C.lo);
-    ctx.fillStyle = gr;
+    ctx.fillStyle = gMemo('piece:' + cx + ':' + cy + ':' + piece.c, function () {
+        var g = ctx.createRadialGradient(cx - rad * 0.30, cy - rad * 0.32, rad * 0.08, cx, cy, rad);
+        g.addColorStop(0, C.hi); g.addColorStop(0.55, C.mid); g.addColorStop(1, C.lo);
+        return g;
+    });
     ctx.beginPath(); ctx.arc(cx, cy, rad, 0, Math.PI * 2); ctx.fill();
 
     // anillo grabado interior
@@ -438,9 +457,11 @@ function drawCrown(cx, cy, s, C) {
 
 /* ── HUD superior e inferior ── */
 function drawHUD() {
-    var gTop = ctx.createLinearGradient(0, 0, W, 0);
-    gTop.addColorStop(0, '#08101e'); gTop.addColorStop(1, '#140810');
-    ctx.fillStyle = gTop; ctx.fillRect(0, 0, W, BY);
+    ctx.fillStyle = gMemo('hud:top', function () {
+        var g = ctx.createLinearGradient(0, 0, W, 0);
+        g.addColorStop(0, '#08101e'); g.addColorStop(1, '#140810');
+        return g;
+    }); ctx.fillRect(0, 0, W, BY);
     ctx.strokeStyle = accentGrad(0, BY, W, BY); ctx.lineWidth = 1.5;
     ctx.beginPath(); ctx.moveTo(0, BY - 0.75); ctx.lineTo(W, BY - 0.75); ctx.stroke();
 
@@ -461,25 +482,31 @@ function drawHUD() {
 
     // Barra inferior: contador de fichas
     var botY = BY + 8 * SQ;
-    var gBot = ctx.createLinearGradient(0, botY, 0, H);
-    gBot.addColorStop(0, '#140810'); gBot.addColorStop(1, '#08101e');
-    ctx.fillStyle = gBot; ctx.fillRect(0, botY, W, H - botY);
+    ctx.fillStyle = gMemo('hud:bot', function () {
+        var g = ctx.createLinearGradient(0, botY, 0, H);
+        g.addColorStop(0, '#140810'); g.addColorStop(1, '#08101e');
+        return g;
+    }); ctx.fillRect(0, botY, W, H - botY);
     ctx.strokeStyle = accentGrad(0, botY, W, botY); ctx.lineWidth = 1.5;
     ctx.beginPath(); ctx.moveTo(0, botY + 0.75); ctx.lineTo(W, botY + 0.75); ctx.stroke();
 
     var nr = countPieces(gs.board, 'r'), nb = countPieces(gs.board, 'b');
     // mini ficha roja
     var ry = botY + 22;
-    var rg = ctx.createRadialGradient(W / 2 - 70, ry - 4, 2, W / 2 - 70, ry, 12);
-    rg.addColorStop(0, RED.hi); rg.addColorStop(1, RED.lo);
-    ctx.fillStyle = rg; ctx.beginPath(); ctx.arc(W / 2 - 70, ry, 12, 0, Math.PI * 2); ctx.fill();
+    ctx.fillStyle = gMemo('mini:red', function () {
+        var g = ctx.createRadialGradient(W / 2 - 70, ry - 4, 2, W / 2 - 70, ry, 12);
+        g.addColorStop(0, RED.hi); g.addColorStop(1, RED.lo);
+        return g;
+    }); ctx.beginPath(); ctx.arc(W / 2 - 70, ry, 12, 0, Math.PI * 2); ctx.fill();
     ctx.strokeStyle = RED.glow; ctx.lineWidth = 1.4; ctx.stroke();
     ctx.fillStyle = '#fff'; ctx.font = 'bold 14px monospace'; ctx.textAlign = 'left'; ctx.textBaseline = 'middle';
     ctx.fillText(nr, W / 2 - 52, ry);
     // mini ficha azul
-    var bg = ctx.createRadialGradient(W / 2 + 30, ry - 4, 2, W / 2 + 30, ry, 12);
-    bg.addColorStop(0, BLU.hi); bg.addColorStop(1, BLU.lo);
-    ctx.fillStyle = bg; ctx.beginPath(); ctx.arc(W / 2 + 30, ry, 12, 0, Math.PI * 2); ctx.fill();
+    ctx.fillStyle = gMemo('mini:blue', function () {
+        var g = ctx.createRadialGradient(W / 2 + 30, ry - 4, 2, W / 2 + 30, ry, 12);
+        g.addColorStop(0, BLU.hi); g.addColorStop(1, BLU.lo);
+        return g;
+    }); ctx.beginPath(); ctx.arc(W / 2 + 30, ry, 12, 0, Math.PI * 2); ctx.fill();
     ctx.strokeStyle = BLU.glow; ctx.lineWidth = 1.4; ctx.stroke();
     ctx.fillStyle = '#fff'; ctx.fillText(nb, W / 2 + 48, ry);
     ctx.textAlign = 'left'; ctx.textBaseline = 'alphabetic';
