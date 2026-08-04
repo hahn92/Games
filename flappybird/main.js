@@ -202,7 +202,13 @@ function update() {
             score++;
             scorePopScale = 1.3;
             scorePopFrame = 10;
-            GameAudio.score();
+            /* Milestone chime when a new medal tier is reached, plain point
+               sound otherwise — the medal thresholds are the game's own. */
+            if (score === 10 || score === 20 || score === 35 || score === 50) {
+                GameAudio.scoreHigh();
+            } else {
+                GameAudio.score();
+            }
         }
     }
 

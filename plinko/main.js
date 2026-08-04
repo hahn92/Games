@@ -515,12 +515,17 @@
     }
 
     /* ── listeners de botones ──────────────────────────────────── */
-    if (startBtn)   startBtn.addEventListener('click', startGame);
+    if (startBtn)   startBtn.addEventListener('click', function () {
+        GameAudio.click();
+        startGame();
+    });
     if (restartBtn) restartBtn.addEventListener('click', function () {
+        GameAudio.click();
         running = false;
         startGame();
     });
     if (playAgain)  playAgain.addEventListener('click', function () {
+        GameAudio.click();
         gameOverPop.style.display = 'none';
         startGame();
     });

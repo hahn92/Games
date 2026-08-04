@@ -342,6 +342,8 @@ function gameOver(won) {
         highScore = score;
         GameStore.set('memoramaHighScore', highScore);
     }
+    /* Losing was the one outcome with no audio feedback. */
+    if (!won) GameAudio.gameOver();
 
     const popup = document.getElementById('gameOverPopup');
     popup.style.display = 'none';

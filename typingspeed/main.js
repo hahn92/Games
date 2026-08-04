@@ -200,7 +200,13 @@ function updateStreakBadge() {
 
 // ===================== NEXT WORD =====================
 function nextWord() {
-    GameAudio.score();
+    /* Every 5th word of a streak gets the milestone chime instead of the plain
+       point sound — the streak badge already appears from 3 onwards. */
+    if (currentStreak > 0 && (currentStreak + 1) % 5 === 0) {
+        GameAudio.scoreHigh();
+    } else {
+        GameAudio.score();
+    }
     showCheckFlash();
     currentWordIndex++;
     wordCount++;
