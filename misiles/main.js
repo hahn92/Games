@@ -33,7 +33,7 @@
         enemies: [],
         antis: [],
         blasts: [],
-        particles: [],
+        particles: new Particles(220),   // pooled, see game-utils.js
         toSpawn: 0,          // misiles enemigos restantes por lanzar en esta oleada
         spawnTimer: 0,
         spawnInterval: 60,
@@ -105,7 +105,7 @@
         state.enemies = [];
         state.antis = [];
         state.blasts = [];
-        state.particles = [];
+        state.particles.clear();
         state.shake = 0;
         state.flash = 0;
         makeCities();
@@ -194,12 +194,13 @@
         for (var i = 0; i < n; i++) {
             var a = (i / n) * Math.PI * 2 + Math.random() * 0.4;
             var sp = 1 + Math.random() * 2.5;
-            state.particles.push({
-                x: x, y: y,
-                vx: Math.cos(a) * sp, vy: Math.sin(a) * sp,
-                life: 1, decay: 0.02 + Math.random() * 0.02,
-                r: 1.5 + Math.random() * 2,
-                col: i % 2 === 0 ? '#ffd166' : '#ff7b3d'
+            /* the old per-frame `decay` becomes a lifetime in seconds */
+            var decay = 0.02 + Math.random() * 0.02;
+            state.particles.add(x, y, Math.cos(a) * sp, Math.sin(a) * sp, {
+                life: 1 / (decay * 60),
+                size: 1.5 + Math.random() * 2,
+                color: i % 2 === 0 ? '#ffd166' : '#ff7b3d',
+                drag: 0.96, shape: 'square'
             });
         }
     }
@@ -208,12 +209,13 @@
         for (var i = 0; i < 14; i++) {
             var a = -Math.PI / 2 + (Math.random() - 0.5) * 2.2;
             var sp = 1.5 + Math.random() * 3;
-            state.particles.push({
-                x: x + (Math.random() - 0.5) * 24, y: GROUND_Y - 6,
-                vx: Math.cos(a) * sp, vy: Math.sin(a) * sp,
-                life: 1, decay: 0.015 + Math.random() * 0.015,
-                r: 1.5 + Math.random() * 2.5,
-                col: i % 2 === 0 ? '#8fd3f4' : '#ff512f', grav: 0.08
+            var decay = 0.015 + Math.random() * 0.015;
+            state.particles.add(x + (Math.random() - 0.5) * 24, GROUND_Y - 6,
+                Math.cos(a) * sp, Math.sin(a) * sp, {
+                life: 1 / (decay * 60),
+                size: 1.5 + Math.random() * 2.5,
+                color: i % 2 === 0 ? '#8fd3f4' : '#ff512f',
+                gravity: 0.08, drag: 0.96, shape: 'square'
             });
         }
     }
@@ -317,16 +319,7 @@
         if (alive === 0 && !state.over) gameOver();
     }
 
-    function updateParticles() {
-        for (var p = state.particles.length - 1; p >= 0; p--) {
-            var pt = state.particles[p];
-            pt.x += pt.vx; pt.y += pt.vy;
-            if (pt.grav) pt.vy += pt.grav;
-            pt.vx *= 0.96; pt.vy *= 0.96;
-            pt.life -= pt.decay;
-            if (pt.life <= 0) state.particles.splice(p, 1);
-        }
-    }
+    function updateParticles() { state.particles.update(); }
 
     function impactGround(x) {
         // destruye ciudad más cercana si está en rango
@@ -520,15 +513,7 @@
         }
     }
 
-    function drawParticles() {
-        for (var i = 0; i < state.particles.length; i++) {
-            var p = state.particles[i];
-            ctx.globalAlpha = Math.max(0, p.life);
-            ctx.fillStyle = p.col;
-            ctx.fillRect(p.x - p.r * 0.5, p.y - p.r * 0.5, p.r, p.r);
-        }
-        ctx.globalAlpha = 1;
-    }
+    function drawParticles() { state.particles.draw(ctx); }
 
     function drawHud() {
         ctx.fillStyle = 'rgba(143,211,244,0.95)';

@@ -516,14 +516,23 @@
         p.r = opts.size == null ? 2 : opts.size;
         p.col = opts.color || '#fff';
         p.grav = opts.gravity || 0;
-        p.drag = opts.drag == null ? 1 : opts.drag;
+        setDrag(p, opts.drag);
         p.square = opts.shape === 'square';
         p.alpha = opts.alpha == null ? 1 : opts.alpha;
         return true;
     };
 
+    /* drag: a number for both axes, or [x, y] — several games damp only the
+     * horizontal component so the spray still falls at full speed. */
+    function setDrag(p, drag) {
+        if (drag == null) { p.dragX = p.dragY = 1; return; }
+        if (typeof drag === 'number') { p.dragX = p.dragY = drag; return; }
+        p.dragX = drag[0] == null ? 1 : drag[0];
+        p.dragY = drag[1] == null ? 1 : drag[1];
+    }
+
     /* opts: color | colors[], speed [min,max], size [min,max], life [min,max],
-     *       gravity, drag, spread (radians), angle (radians),
+     *       gravity, drag (number or [x, y]), spread (radians), angle (radians),
      *       shape 'circle'|'square', alpha (peak opacity, default 1) */
     Particles.prototype.burst = function (x, y, n, opts) {
         opts = opts || {};
@@ -546,7 +555,7 @@
             p.r = rand(size[0], size[1]);
             p.col = colors.length === 1 ? colors[0] : pick(colors);
             p.grav = opts.gravity || 0;
-            p.drag = opts.drag == null ? 1 : opts.drag;
+            setDrag(p, opts.drag);
             p.square = opts.shape === 'square';
             p.alpha = opts.alpha == null ? 1 : opts.alpha;
         }
@@ -568,7 +577,8 @@
             p.x += p.vx * step;
             p.y += p.vy * step;
             p.vy += p.grav * step;
-            if (p.drag !== 1) { p.vx *= p.drag; p.vy *= p.drag; }
+            if (p.dragX !== 1) p.vx *= p.dragX;
+            if (p.dragY !== 1) p.vy *= p.dragY;
             this.count++;
         }
     };
@@ -593,6 +603,14 @@
             }
         }
         ctx.globalAlpha = prevAlpha;
+    };
+
+    /* Visit every live particle. For effects that have to be nudged from the
+     * outside — a camera scroll shifting the whole spray, say. */
+    Particles.prototype.each = function (fn) {
+        for (var i = 0; i < this.pool.length; i++) {
+            if (this.pool[i].life > 0) fn(this.pool[i]);
+        }
     };
 
     Particles.prototype.clear = function () {

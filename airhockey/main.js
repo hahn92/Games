@@ -48,27 +48,19 @@ const puck = { x: W / 2, y: H / 2, vx: 0, vy: 0 };
 const player = { x: W / 2, y: H * 0.78, px: W / 2, py: H * 0.78 };
 const cpu = { x: W / 2, y: H * 0.18, vx: 0, vy: 0 };
 
-// Pool de partículas precomputado
-const particles = [];
+// Pool de partículas compartido (game-utils.js)
 const MAX_PARTICLES = 60;
-for (let i = 0; i < MAX_PARTICLES; i++) {
-    particles.push({ x: 0, y: 0, vx: 0, vy: 0, life: 0, maxLife: 1, color: '#fff', size: 2 });
-}
+const particles = new Particles(MAX_PARTICLES);
 function spawnParticles(x, y, n, color) {
-    let spawned = 0;
-    for (let i = 0; i < MAX_PARTICLES && spawned < n; i++) {
-        const p = particles[i];
-        if (p.life > 0) continue;
+    for (let i = 0; i < n; i++) {
         const ang = Math.random() * Math.PI * 2;
         const spd = 1 + Math.random() * 3.5;
-        p.x = x; p.y = y;
-        p.vx = Math.cos(ang) * spd;
-        p.vy = Math.sin(ang) * spd;
-        p.maxLife = 18 + Math.random() * 16;
-        p.life = p.maxLife;
-        p.color = color;
-        p.size = 1.5 + Math.random() * 2.5;
-        spawned++;
+        /* 18-34 frames at 60fps; both axes damped, no gravity */
+        if (!particles.add(x, y, Math.cos(ang) * spd, Math.sin(ang) * spd, {
+            life: (18 + Math.random() * 16) / 60,
+            size: 1.5 + Math.random() * 2.5,
+            color: color, drag: 0.93, shape: 'square'
+        })) break;
     }
 }
 
@@ -159,7 +151,7 @@ function startGame() {
     player.x = W / 2; player.y = H * 0.78;
     player.px = player.x; player.py = player.y;
     cpu.x = W / 2; cpu.y = H * 0.18; cpu.vx = 0; cpu.vy = 0;
-    for (const p of particles) p.life = 0;
+    particles.clear();
     resetPuck(Math.random() < 0.5);
     state.serveTimer = 60;
     popup.style.display = 'none';
@@ -462,15 +454,7 @@ function update() {
     }
 
     // partículas
-    for (let i = 0; i < MAX_PARTICLES; i++) {
-        const p = particles[i];
-        if (p.life <= 0) continue;
-        p.x += p.vx;
-        p.y += p.vy;
-        p.vx *= 0.93;
-        p.vy *= 0.93;
-        p.life--;
-    }
+    particles.update();
 
     if (state.flash > 0) state.flash--;
     if (state.shake > 0) state.shake--;
@@ -574,14 +558,7 @@ function drawPuck() {
 
 function drawParticles() {
     // batch: una sola pasada, alpha por partícula
-    for (let i = 0; i < MAX_PARTICLES; i++) {
-        const p = particles[i];
-        if (p.life <= 0) continue;
-        ctx.globalAlpha = p.life / p.maxLife;
-        ctx.fillStyle = p.color;
-        ctx.fillRect(p.x - p.size / 2, p.y - p.size / 2, p.size, p.size);
-    }
-    ctx.globalAlpha = 1;
+    particles.draw(ctx);
 }
 
 function drawScoreOnTable() {

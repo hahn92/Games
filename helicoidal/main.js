@@ -62,7 +62,7 @@ var isPlaying       = false;
 var isOver          = false;
 var shake           = 0;
 var flashAlpha      = 0;
-var particles       = [];
+var particles       = new Particles(200);   // pooled, see game-utils.js
 var pops            = [];
 var lastT           = 0;
 var animId          = null;
@@ -216,7 +216,7 @@ function resetGame() {
     difficulty = 0;
     shake = 0;
     flashAlpha = 0;
-    particles = [];
+    particles.clear();
     pops = [];
     comboFlashT = 0;
     ensureDiscs();
@@ -327,11 +327,10 @@ function spawnBounce(x, y) {
     for (var i = 0; i < 6; i++) {
         var a = rand(-Math.PI, 0);
         var sp = rand(1.5, 3.5);
-        particles.push({
-            x: x, y: y,
-            vx: Math.cos(a) * sp, vy: Math.sin(a) * sp,
-            life: 18, maxLife: 18,
-            size: rand(1.5, 3), color: '#ffd866'
+        /* 18 frames at 60fps; vx damped, vy left alone, as before */
+        particles.add(x, y, Math.cos(a) * sp, Math.sin(a) * sp, {
+            life: 18 / 60, size: rand(1.5, 3), color: '#ffd866',
+            gravity: 0.18, drag: [0.97, 1], shape: 'square'
         });
     }
 }
@@ -339,11 +338,10 @@ function spawnPass(x, y) {
     for (var i = 0; i < 10; i++) {
         var a = rand(0, Math.PI * 2);
         var sp = rand(1.2, 3.2);
-        particles.push({
-            x: x, y: y,
-            vx: Math.cos(a) * sp, vy: Math.sin(a) * sp * 0.8,
-            life: 22, maxLife: 22,
-            size: rand(1.5, 3), color: i % 2 ? '#8fd3f4' : '#ffffff'
+        particles.add(x, y, Math.cos(a) * sp, Math.sin(a) * sp * 0.8, {
+            life: 22 / 60, size: rand(1.5, 3),
+            color: i % 2 ? '#8fd3f4' : '#ffffff',
+            gravity: 0.18, drag: [0.97, 1], shape: 'square'
         });
     }
 }
@@ -351,24 +349,18 @@ function spawnExplosion(x, y, n) {
     for (var i = 0; i < n; i++) {
         var a = rand(0, Math.PI * 2);
         var sp = rand(2.5, 6);
-        particles.push({
-            x: x, y: y,
-            vx: Math.cos(a) * sp, vy: Math.sin(a) * sp,
-            life: rand(26, 40), maxLife: 40,
-            size: rand(2, 4.5),
-            color: i % 3 === 0 ? '#ffd866' : (i % 3 === 1 ? '#ff512f' : '#ff9f45')
+        /* these spawn with life < maxLife, i.e. below full opacity —
+           `alpha` reproduces that starting point exactly */
+        var lf = rand(26, 40);
+        particles.add(x, y, Math.cos(a) * sp, Math.sin(a) * sp, {
+            life: lf / 60, alpha: lf / 40, size: rand(2, 4.5),
+            color: i % 3 === 0 ? '#ffd866' : (i % 3 === 1 ? '#ff512f' : '#ff9f45'),
+            gravity: 0.18, drag: [0.97, 1], shape: 'square'
         });
     }
 }
 function updateParticles() {
-    for (var i = particles.length - 1; i >= 0; i--) {
-        var p = particles[i];
-        p.x += p.vx; p.y += p.vy;
-        p.vy += 0.18;
-        p.vx *= 0.97;
-        p.life--;
-        if (p.life <= 0) particles.splice(i, 1);
-    }
+    particles.update();
     for (var j = pops.length - 1; j >= 0; j--) {
         pops[j].t--;
         pops[j].y -= 0.7;
@@ -637,13 +629,7 @@ function drawBall() {
 }
 
 function drawParticles() {
-    for (var i = 0; i < particles.length; i++) {
-        var p = particles[i];
-        ctx.globalAlpha = clamp(p.life / p.maxLife, 0, 1);
-        ctx.fillStyle = p.color;
-        ctx.fillRect(p.x - p.size / 2, p.y - p.size / 2, p.size, p.size);
-    }
-    ctx.globalAlpha = 1;
+    particles.draw(ctx);
     for (var j = 0; j < pops.length; j++) {
         var po = pops[j];
         ctx.globalAlpha = clamp(po.t / 50, 0, 1);
@@ -729,7 +715,7 @@ function loop(t) {
 
     ctx.restore();
 
-    if (isPlaying || shake > 0.5 || particles.length > 0 || pops.length > 0 || flashAlpha > 0.02) {
+    if (isPlaying || shake > 0.5 || particles.count > 0 || pops.length > 0 || flashAlpha > 0.02) {
         animId = requestAnimationFrame(loop);
     } else {
         animId = null;

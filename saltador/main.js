@@ -55,27 +55,19 @@ const player = {
 
 let platforms = [];
 
-// Partículas precomputadas
-const particles = [];
+// Pool de partículas compartido (game-utils.js)
 const MAX_PARTICLES = 50;
-for (let i = 0; i < MAX_PARTICLES; i++) {
-    particles.push({ x: 0, y: 0, vx: 0, vy: 0, life: 0, maxLife: 1, color: '#fff', size: 2 });
-}
+const particles = new Particles(MAX_PARTICLES);
 function spawnParticles(x, y, n, color, spread) {
-    let spawned = 0;
-    for (let i = 0; i < MAX_PARTICLES && spawned < n; i++) {
-        const p = particles[i];
-        if (p.life > 0) continue;
+    for (let i = 0; i < n; i++) {
         const ang = Math.random() * Math.PI * 2;
         const spd = 0.5 + Math.random() * (spread || 3);
-        p.x = x; p.y = y;
-        p.vx = Math.cos(ang) * spd;
-        p.vy = Math.sin(ang) * spd - 1;
-        p.maxLife = 16 + Math.random() * 14;
-        p.life = p.maxLife;
-        p.color = color;
-        p.size = 2 + Math.random() * 2.5;
-        spawned++;
+        /* 16-30 frames at 60fps; only vx is damped, so the spray still falls */
+        if (!particles.add(x, y, Math.cos(ang) * spd, Math.sin(ang) * spd - 1, {
+            life: (16 + Math.random() * 14) / 60,
+            size: 2 + Math.random() * 2.5,
+            color: color, gravity: 0.12, drag: [0.96, 1], shape: 'square'
+        })) break;
     }
 }
 
@@ -217,7 +209,7 @@ function startGame() {
     player.blink = 0;
     player.blinkTimer = 60;
     keyLeft = keyRight = touchLeft = touchRight = false;
-    for (const p of particles) p.life = 0;
+    particles.clear();
     buildInitialPlatforms();
     popup.style.display = 'none';
     restartBtn.disabled = false;
@@ -312,9 +304,7 @@ function update() {
         state.cameraY += dy;
         // mueve plataformas y partículas hacia abajo
         for (let i = 0; i < platforms.length; i++) platforms[i].y += dy;
-        for (let i = 0; i < MAX_PARTICLES; i++) {
-            if (particles[i].life > 0) particles[i].y += dy;
-        }
+        particles.each(function (p) { p.y += dy; });
         // puntuación = altura (en decímetros aprox)
         const h = Math.floor(state.cameraY / 5);
         if (h > state.score) {
@@ -336,15 +326,7 @@ function update() {
     }
 
     // partículas
-    for (let i = 0; i < MAX_PARTICLES; i++) {
-        const p = particles[i];
-        if (p.life <= 0) continue;
-        p.x += p.vx;
-        p.y += p.vy;
-        p.vy += 0.12;
-        p.vx *= 0.96;
-        p.life--;
-    }
+    particles.update();
 
     if (state.shake > 0) state.shake--;
 
@@ -489,14 +471,7 @@ function drawPlayer() {
 }
 
 function drawParticles() {
-    for (let i = 0; i < MAX_PARTICLES; i++) {
-        const p = particles[i];
-        if (p.life <= 0) continue;
-        ctx.globalAlpha = p.life / p.maxLife;
-        ctx.fillStyle = p.color;
-        ctx.fillRect(p.x - p.size / 2, p.y - p.size / 2, p.size, p.size);
-    }
-    ctx.globalAlpha = 1;
+    particles.draw(ctx);
 }
 
 function draw() {
