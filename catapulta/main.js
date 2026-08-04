@@ -31,7 +31,9 @@ var projectile = null;
 var dragStart  = null;
 var dragCur    = null;
 var blocks     = [];      // [{x,y,w,h,alive,type,hue,shake,vy,resting,flash}]
-var particles  = [];
+/* Pool compartido (game-utils.js). Semi-implícito: aplicaba la gravedad
+   antes de mover. Velocidades px/s -> px/frame (/60), gravedad px/s² (/3600). */
+var particles  = new Particles(260, { semiImplicit: true });
 var trails     = [];
 var floatTexts = [];
 var score      = 0;
@@ -153,7 +155,7 @@ function resetGame() {
     level = 1;
     combo = 0;
     trails = [];
-    particles = [];
+    particles.clear();
     floatTexts = [];
     projectile = null;
     dragStart = null;
@@ -252,12 +254,12 @@ function spawnBlockParticles(b) {
     for (var i = 0; i < 16; i++) {
         var a = rand(0, Math.PI * 2);
         var sp = rand(70, 230);
-        particles.push({
-            x: b.x + b.w / 2, y: b.y + b.h / 2,
-            vx: Math.cos(a) * sp, vy: Math.sin(a) * sp - 50,
-            life: rand(0.4, 1.0), maxLife: 1.0,
-            col: 'hsl(' + base + ',' + Math.floor(rand(38, 64)) + '%)',
-            size: rand(2, 5)
+        var lf = rand(0.4, 1.0);
+        particles.add(b.x + b.w / 2, b.y + b.h / 2,
+            Math.cos(a) * sp / 60, (Math.sin(a) * sp - 50) / 60, {
+            life: lf, alpha: lf / 1.0, size: rand(2, 5),
+            color: 'hsl(' + base + ',' + Math.floor(rand(38, 64)) + '%)',
+            gravity: GRAVITY * 0.55 / 3600, shape: 'square'
         });
     }
 }
@@ -266,12 +268,11 @@ function spawnExplosion(cx, cy) {
     for (var i = 0; i < 34; i++) {
         var a = rand(0, Math.PI * 2);
         var sp = rand(120, 380);
-        particles.push({
-            x: cx, y: cy,
-            vx: Math.cos(a) * sp, vy: Math.sin(a) * sp - 40,
-            life: rand(0.4, 1.0), maxLife: 1.0,
-            col: ['#ffd24a', '#ff8a2a', '#ff4520', '#fff1b0'][i % 4],
-            size: rand(3, 7)
+        var lf = rand(0.4, 1.0);
+        particles.add(cx, cy, Math.cos(a) * sp / 60, (Math.sin(a) * sp - 40) / 60, {
+            life: lf, alpha: lf / 1.0, size: rand(3, 7),
+            color: ['#ffd24a', '#ff8a2a', '#ff4520', '#fff1b0'][i % 4],
+            gravity: GRAVITY * 0.55 / 3600, shape: 'square'
         });
     }
 }
@@ -279,11 +280,10 @@ function spawnExplosion(cx, cy) {
 function spawnDust(x, y) {
     var dy = (y == null) ? GROUND_Y : y;
     for (var m = 0; m < 7; m++) {
-        particles.push({
-            x: x, y: dy,
-            vx: rand(-110, 110), vy: rand(-170, -30),
-            life: rand(0.3, 0.7), maxLife: 0.7,
-            col: '#b39b72', size: rand(2, 4)
+        var lf = rand(0.3, 0.7);
+        particles.add(x, dy, rand(-110, 110) / 60, rand(-170, -30) / 60, {
+            life: lf, alpha: lf / 0.7, size: rand(2, 4),
+            color: '#b39b72', gravity: GRAVITY * 0.55 / 3600, shape: 'square'
         });
     }
 }
@@ -449,14 +449,9 @@ function update(dt) {
     updateBlocks(dt);
 
     // particles
-    for (var i = particles.length - 1; i >= 0; i--) {
-        var p = particles[i];
-        p.vy += GRAVITY * 0.55 * dt;
-        p.x  += p.vx * dt;
-        p.y  += p.vy * dt;
-        p.life -= dt;
-        if (p.life <= 0 || p.y > HEIGHT + 20) particles.splice(i, 1);
-    }
+    particles.update(dt);
+    /* el bucle original también mataba las que caían fuera de pantalla */
+    particles.each(function (p) { if (p.y > HEIGHT + 20) p.life = 0; });
     // float text
     for (var k = floatTexts.length - 1; k >= 0; k--) {
         var ft = floatTexts[k];
@@ -916,13 +911,7 @@ function drawProjectile() {
 }
 
 function drawParticles() {
-    for (var i = 0; i < particles.length; i++) {
-        var p = particles[i];
-        ctx.globalAlpha = Math.max(0, p.life / p.maxLife);
-        ctx.fillStyle = p.col;
-        ctx.fillRect(p.x - p.size / 2, p.y - p.size / 2, p.size, p.size);
-    }
-    ctx.globalAlpha = 1;
+    particles.draw(ctx);
 }
 
 function drawFloatTexts() {

@@ -18,7 +18,8 @@ var TARGET_TOP     = 90;      // cuando la torre crece, la parte superior se des
 var stack = [];                // bloques ya colocados: {x, w, y, hue, bounceAmp, bounceTime}
 var activeBlock = null;        // bloque en movimiento horizontal
 var fallingPieces = [];        // fragmentos que caen al fallar
-var particles = [];            // chispas de éxito
+/* Pool compartido (game-utils.js), semi-implícito como el bucle original. */
+var particles = new Particles(140, { semiImplicit: true });
 var perfectPops = [];          // texto flotante "¡Perfecto!"
 var cameraY = 0;               // desplazamiento de la cámara (world y → screen y = world_y + cameraY)
 var targetCameraY = 0;
@@ -49,7 +50,7 @@ highScoreEl.textContent = bestScore;
 function resetGame() {
     stack = [];
     fallingPieces = [];
-    particles = [];
+    particles.clear();
     perfectPops = [];
     cameraY = 0;
     targetCameraY = 0;
@@ -146,14 +147,13 @@ function spawnParticles(cx, cy, hue, n) {
     for (var i = 0; i < n; i++) {
         var ang = Math.random() * Math.PI * 2;
         var spd = 1 + Math.random() * 3;
-        particles.push({
-            x: cx, y: cy,
-            vx: Math.cos(ang) * spd,
-            vy: Math.sin(ang) * spd - 0.8,
-            life: 28 + Math.random() * 14,
-            age: 0,
-            hue: hue,
-            size: 2 + Math.random() * 2
+        /* el hue se resolvía en el draw dentro de un hsla(); precomputar el
+           color y dejar el fundido a globalAlpha da el mismo compuesto */
+        particles.add(cx, cy, Math.cos(ang) * spd, Math.sin(ang) * spd - 0.8, {
+            life: (28 + Math.random() * 14) / 60,
+            size: 2 + Math.random() * 2,
+            color: 'hsl(' + hue + ', 90%, 65%)',
+            gravity: 0.12, shape: 'square'
         });
     }
 }
@@ -219,14 +219,8 @@ function update(dt) {
     }
 
     // partículas
-    for (var k = particles.length - 1; k >= 0; k--) {
-        var pt = particles[k];
-        pt.age += dt;
-        pt.vy += 0.12 * dt;
-        pt.x += pt.vx * dt;
-        pt.y += pt.vy * dt;
-        if (pt.age >= pt.life) particles.splice(k, 1);
-    }
+    /* dt aquí está normalizado a frames; el pool espera segundos */
+    particles.update(dt / 60);
 
     // pop "¡Perfecto!"
     for (var m = perfectPops.length - 1; m >= 0; m--) {
@@ -338,12 +332,11 @@ function render() {
     }
 
     // partículas
-    for (var k = 0; k < particles.length; k++) {
-        var pt = particles[k];
-        var a = 1 - pt.age / pt.life;
-        ctx.fillStyle = 'hsla(' + pt.hue + ', 90%, 65%, ' + a.toFixed(3) + ')';
-        ctx.fillRect(pt.x - pt.size / 2, pt.y - pt.size / 2 + cameraY, pt.size, pt.size);
-    }
+    /* las partículas viven en coordenadas de mundo; el desplazamiento de
+       cámara que antes se sumaba por partícula es ahora un translate */
+    ctx.translate(0, cameraY);
+    particles.draw(ctx);
+    ctx.translate(0, -cameraY);
 
     // "¡Perfecto!" popups
     for (var m = 0; m < perfectPops.length; m++) {

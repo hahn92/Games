@@ -135,7 +135,7 @@ because games already called them unqualified.
 | Color | `hexToRgb`\*, `shade(hex, ±d)`\* (additive), `GU.scaleColor(hex, f)` (multiplicative), `GU.rgba(hex, a)`, `GU.mixColor(a, b, t)` |
 | Canvas | `pointerPos(canvas, e)`\* → `{x, y}` in canvas space; `GU.roundRectPath(ctx, x,y,w,h,r)`; `GU.gradientMemo()` |
 | Storage | `GameStore.getNum/setNum/getJSON/setJSON/get/set/remove`\*, `GameStore.available` |
-| Particles | `new Particles(max)`\* with `.burst(x, y, n, opts)`, `.add(x, y, vx, vy, opts)`, `.update(dt)`, `.draw(ctx)`, `.clear()` |
+| Particles | `new Particles(max, {semiImplicit})`\* with `.burst(x, y, n, opts)`, `.add(x, y, vx, vy, opts)`, `.update(dt)`, `.draw(ctx)`, `.each(fn)`, `.clear()` |
 | HiDPI | automatic; `GU.upgradeCanvas(canvas, {maxScale, pinCss})` for canvases sized at runtime |
 
 \* also available as a flat global.
@@ -163,7 +163,11 @@ because games already called them unqualified.
   the linear alpha ramp exactly at 60fps. Use `alpha` when the old code started below
   full opacity (a `life: 0.8` peak becomes `alpha: 0.8`). `update()` moves before
   integrating gravity, matching the hand-rolled loops it replaced.
-  Currently used by: breakout, batallanaval, dardos, hanoi, platformer, pong, sopaletras.
+  `new Particles(max, {semiImplicit: true})` accelerates before moving, which is what
+  the delta-time loops did; the default moves first, like the per-frame loops. Getting
+  this backwards shifts a particle's path by a few pixels over its life.
+  Currently used by: airhockey, batallanaval, billar, breakout, catapulta, dardos,
+  hanoi, helicoidal, minero, misiles, platformer, pong, saltador, sopaletras, stacktower.
   The other particle systems stay hand-rolled on purpose — they draw rotated ellipses,
   hue-cycling sparks, trails or fragment shapes the shared pool does not render.
 - **HiDPI** — applied automatically at load to every canvas **whose size is declared in

@@ -478,10 +478,19 @@
      *   fx.burst(x, y, 20, { color: '#ff512f', speed: [1, 4], gravity: 0.15 });
      *   fx.update();  fx.draw(ctx);
      */
-    function Particles(max) {
+    /* opts: { semiImplicit }
+     *
+     * The games split cleanly in two on integration order. The per-frame loops
+     * move first and then apply gravity/drag (explicit Euler) — that is the
+     * default. The delta-time loops apply gravity/drag first and then move
+     * (semi-implicit). The difference is a few pixels over a particle's life,
+     * which is enough to change how an effect reads, so a pool follows whichever
+     * convention the game it replaced used. */
+    function Particles(max, opts) {
         this.max = max || 200;
         this.pool = [];
         this.count = 0;
+        this.semiImplicit = !!(opts && opts.semiImplicit);
     }
 
     Particles.prototype._acquire = function () {
@@ -564,21 +573,27 @@
     Particles.prototype.update = function (dt) {
         if (dt == null) dt = 1 / 60;
         var step = dt * 60; /* keep the tuning in per-frame units */
+        var semi = this.semiImplicit;
         this.count = 0;
         for (var i = 0; i < this.pool.length; i++) {
             var p = this.pool[i];
             if (p.life <= 0) continue;
             p.life -= dt;
-            /* Move first, then integrate the velocity — explicit Euler, the
-             * order every hand-rolled particle loop in this repo used. Doing
-             * gravity first (semi-implicit) is marginally more accurate but
-             * shifts a particle's path by a few pixels over its lifetime,
-             * which would change the look of the effects this replaced. */
-            p.x += p.vx * step;
-            p.y += p.vy * step;
-            p.vy += p.grav * step;
-            if (p.dragX !== 1) p.vx *= p.dragX;
-            if (p.dragY !== 1) p.vy *= p.dragY;
+            if (semi) {
+                /* accelerate, then move */
+                p.vy += p.grav * step;
+                if (p.dragX !== 1) p.vx *= p.dragX;
+                if (p.dragY !== 1) p.vy *= p.dragY;
+                p.x += p.vx * step;
+                p.y += p.vy * step;
+            } else {
+                /* move, then accelerate */
+                p.x += p.vx * step;
+                p.y += p.vy * step;
+                p.vy += p.grav * step;
+                if (p.dragX !== 1) p.vx *= p.dragX;
+                if (p.dragY !== 1) p.vy *= p.dragY;
+            }
             this.count++;
         }
     };

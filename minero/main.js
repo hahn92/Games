@@ -33,7 +33,8 @@ var OBJECT_TYPES = {
 // estado
 var hook = { angle: 0, angleT: 0, angleSpeed: 0.03, len: HOOK_MIN_LEN, state: 'swing', grabbed: null };
 var objects = [];
-var particles = [];
+/* Pool compartido (game-utils.js), semi-implícito como el bucle original. */
+var particles = new Particles(160, { semiImplicit: true });
 var popups = [];
 var score = 0;
 var level = 1;
@@ -125,7 +126,7 @@ function resetGame() {
     score = 0;
     level = 1;
     quota = 700;
-    particles = [];
+    particles.clear();
     popups = [];
     shake = 0;
     flashAlpha = 0;
@@ -273,14 +274,8 @@ function update(dt) {
     }
 
     // partículas
-    for (var p = particles.length - 1; p >= 0; p--) {
-        var pt = particles[p];
-        pt.age += dt;
-        pt.vy += 0.12 * dt;
-        pt.x += pt.vx * dt;
-        pt.y += pt.vy * dt;
-        if (pt.age >= pt.life) particles.splice(p, 1);
-    }
+    /* dt aquí está normalizado a frames; el pool espera segundos */
+    particles.update(dt / 60);
     // popups
     for (var q = popups.length - 1; q >= 0; q--) {
         popups[q].age += dt;
@@ -308,14 +303,11 @@ function spawnParticles(cx, cy, color, n) {
     for (var i = 0; i < n; i++) {
         var ang = Math.random() * Math.PI * 2;
         var spd = 1.2 + Math.random() * 2.4;
-        particles.push({
-            x: cx, y: cy,
-            vx: Math.cos(ang) * spd,
-            vy: Math.sin(ang) * spd - 0.8,
-            life: 26 + Math.random() * 14,
-            age: 0,
-            color: color,
-            size: 1.6 + Math.random() * 2
+        /* la vida iba en frames; el pool la lleva en segundos */
+        particles.add(cx, cy, Math.cos(ang) * spd, Math.sin(ang) * spd - 0.8, {
+            life: (26 + Math.random() * 14) / 60,
+            size: 1.6 + Math.random() * 2,
+            color: color, gravity: 0.12, shape: 'square'
         });
     }
 }
@@ -736,15 +728,7 @@ function drawHUD() {
 }
 
 function drawParticles() {
-    for (var k = 0; k < particles.length; k++) {
-        var pt = particles[k];
-        var a = 1 - pt.age / pt.life;
-        if (a < 0) a = 0;
-        ctx.globalAlpha = a;
-        ctx.fillStyle = pt.color;
-        ctx.fillRect(pt.x - pt.size / 2, pt.y - pt.size / 2, pt.size, pt.size);
-    }
-    ctx.globalAlpha = 1;
+    particles.draw(ctx);
 }
 
 function drawPopups() {

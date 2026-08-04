@@ -77,7 +77,9 @@ var screenShake = 0;
 
 var balls = [];      // {x,y,vx,vy,r,num,color,pocketed,sinkScale}
 var cue = null;      // referencia a la bola blanca
-var particles = [];  // pool de partículas {x,y,vx,vy,life,maxLife,col,size}
+/* Pool compartido (game-utils.js). Semi-implícito: este bucle amortiguaba
+   la velocidad antes de mover, y ese orden cambia la trayectoria. */
+var particles = new Particles(180, { semiImplicit: true });
 
 /* ── Apuntado ───────────────────────────────────────────── */
 var aiming = false;
@@ -146,25 +148,17 @@ function spawnSink(x, y, color) {
     for (var i = 0; i < 14; i++) {
         var ang = (Math.PI * 2 * i) / 14 + Math.random() * 0.4;
         var spd = 40 + Math.random() * 90;
-        particles.push({
-            x: x, y: y,
-            vx: Math.cos(ang) * spd,
-            vy: Math.sin(ang) * spd,
-            life: 0.5 + Math.random() * 0.3,
-            maxLife: 0.8,
-            col: color,
-            size: 2 + Math.random() * 2.5
+        /* px/s -> px/frame; alpha arranca en life/maxLife como antes */
+        var lf = 0.5 + Math.random() * 0.3;
+        particles.add(x, y, Math.cos(ang) * spd / 60, Math.sin(ang) * spd / 60, {
+            life: lf, alpha: lf / 0.8,
+            size: 2 + Math.random() * 2.5,
+            color: color, drag: 0.92, shape: 'square'
         });
     }
 }
 function updateParticles(dt) {
-    for (var i = particles.length - 1; i >= 0; i--) {
-        var p = particles[i];
-        p.life -= dt;
-        if (p.life <= 0) { particles.splice(i, 1); continue; }
-        p.vx *= 0.92; p.vy *= 0.92;
-        p.x += p.vx * dt; p.y += p.vy * dt;
-    }
+    particles.update(dt);
 }
 
 /* ═══════════════════════════════════════════════════════════
@@ -463,14 +457,7 @@ function drawAim() {
 }
 
 function drawParticles() {
-    for (var i = 0; i < particles.length; i++) {
-        var p = particles[i];
-        var a = p.life / p.maxLife;
-        ctx.globalAlpha = Math.max(0, a);
-        ctx.fillStyle = p.col;
-        ctx.fillRect(p.x - p.size / 2, p.y - p.size / 2, p.size, p.size);
-    }
-    ctx.globalAlpha = 1;
+    particles.draw(ctx);
 }
 
 function drawHud() {
@@ -522,7 +509,7 @@ function updateHud() {
 ═══════════════════════════════════════════════════════════ */
 function startGame() {
     score = 0;
-    particles = [];
+    particles.clear();
     sunkThisTurn = [];
     foulMsg = 0;
     screenShake = 0;
