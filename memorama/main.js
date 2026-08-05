@@ -105,6 +105,8 @@ function render() {
             card.appendChild(back);
 
             if (!cardData.matched) {
+                /* la carta es un <div>: hay que darle foco y Enter/Espacio */
+                GU.keyActivate(card, `Carta fila ${r + 1}, columna ${c + 1}`);
                 card.addEventListener('click', () => flipCard(r, c));
             }
             container.appendChild(card);

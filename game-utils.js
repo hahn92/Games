@@ -358,6 +358,27 @@
         };
     }
 
+    /* Make a non-<button> element operable from the keyboard: focusable,
+     * announced as a button, and activated by Enter or Space.
+     *
+     * Several DOM games build their board out of plain <div>s with a click
+     * listener, which leaves them playable with a mouse only — a WCAG 2.1.1
+     * failure. This gives those cells what a real <button> would have given
+     * them for free, without restructuring the markup. */
+    function keyActivate(el, label) {
+        if (!el || el.__guKeyed) return el;
+        el.__guKeyed = true;
+        if (!el.hasAttribute('tabindex')) el.tabIndex = 0;
+        if (!el.hasAttribute('role')) el.setAttribute('role', 'button');
+        if (label) el.setAttribute('aria-label', label);
+        el.addEventListener('keydown', function (e) {
+            if (e.key !== 'Enter' && e.key !== ' ' && e.key !== 'Spacebar') return;
+            e.preventDefault();   /* Space would scroll the page */
+            el.click();
+        });
+        return el;
+    }
+
     /* Trace a rounded rect on `ctx` (does not fill or stroke). Prefer
      * ctx.roundRect() directly — the polyfill above makes it universally
      * available; this stays for games whose helper took the ctx explicitly. */
@@ -657,7 +678,7 @@
         rectsOverlap: rectsOverlap, circlesOverlap: circlesOverlap,
         hexToRgb: hexToRgb, shade: shade, scaleColor: scaleColor,
         rgba: rgba, mixColor: mixColor,
-        pointerPos: pointerPos, roundRectPath: roundRectPath,
+        pointerPos: pointerPos, roundRectPath: roundRectPath, keyActivate: keyActivate,
         gradientMemo: gradientMemo,
         upgradeCanvas: upgradeCanvas, upgradeAllCanvases: upgradeAllCanvases,
         Store: Store, Particles: Particles

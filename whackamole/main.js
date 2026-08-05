@@ -105,6 +105,7 @@ function initGrid() {
         const mole = createMoleDom();
         hole.appendChild(mole);
 
+        GU.keyActivate(hole, `Agujero ${i + 1}`);
         hole.addEventListener('click', function() { whack(i); });
         hole.addEventListener('touchstart', function(e) {
             e.preventDefault();

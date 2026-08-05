@@ -150,6 +150,7 @@ function renderBoard() {
                 cell.innerHTML = '<span class="flag-icon">🚩</span>';
             }
 
+            GU.keyActivate(cell, 'Casilla ' + (r + 1) + ', ' + (c + 1));
             cell.addEventListener('click', onCellClick);
             cell.addEventListener('contextmenu', onCellRightClick);
             cell.addEventListener('touchstart', onCellTouch, { passive: false });

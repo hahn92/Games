@@ -339,6 +339,9 @@ function startGame() {
 
 // ---- Event listeners ----
 document.querySelectorAll('.ttt-cell').forEach(function(cell) {
+    /* son <div>: sin esto el tablero solo se puede jugar con raton */
+    var i = parseInt(cell.dataset.index);
+    GU.keyActivate(cell, 'Casilla ' + (Math.floor(i / 3) + 1) + ', ' + ((i % 3) + 1));
     cell.addEventListener('click', function() {
         playerMove(parseInt(this.dataset.index));
     });
