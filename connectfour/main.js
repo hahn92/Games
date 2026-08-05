@@ -32,11 +32,19 @@ function newBoard() {
 
 function cellSize() { return canvas.width / COLS; }
 
+/* Cache de gradientes. El fondo del tablero y los 42 huecos vacíos se
+   reconstruían cada frame; las fichas se construyen ahora en el origen y se
+   trasladan, porque su `cy` es continua mientras la ficha cae. */
+var gMemo = GU.gradientMemo();
+
 // Draw a single piece with 3D radial gradient effect
 function drawPiece(cx, cy, radius, player, alpha) {
     alpha = (alpha === undefined) ? 1 : alpha;
     ctx.save();
     ctx.globalAlpha = alpha;
+    /* dibujado en espacio local: los gradientes ya no dependen de dónde
+       esté la ficha, así que se cachean por (radio, jugador) */
+    ctx.translate(cx, cy);
 
     var baseColor = COLORS[player];
     var darkColor = COLORS_DARK[player];
@@ -48,32 +56,35 @@ function drawPiece(cx, cy, radius, player, alpha) {
     ctx.shadowOffsetY = 3;
 
     // Main circle with radial gradient for 3D sphere effect
-    var grad = ctx.createRadialGradient(
-        cx - radius * 0.3, cy - radius * 0.35, radius * 0.05,
-        cx, cy, radius
-    );
-    grad.addColorStop(0, lightColor);
-    grad.addColorStop(0.35, baseColor);
-    grad.addColorStop(1, darkColor);
-
+    ctx.fillStyle = gMemo('piece:' + radius + ':' + player, function () {
+        var g = ctx.createRadialGradient(
+            -radius * 0.3, -radius * 0.35, radius * 0.05,
+            0, 0, radius
+        );
+        g.addColorStop(0, lightColor);
+        g.addColorStop(0.35, baseColor);
+        g.addColorStop(1, darkColor);
+        return g;
+    });
     ctx.beginPath();
-    ctx.arc(cx, cy, radius, 0, Math.PI * 2);
-    ctx.fillStyle = grad;
+    ctx.arc(0, 0, radius, 0, Math.PI * 2);
     ctx.fill();
 
     ctx.shadowBlur = 0;
     ctx.shadowOffsetY = 0;
 
     // Specular highlight (small bright spot top-left)
-    var specGrad = ctx.createRadialGradient(
-        cx - radius * 0.3, cy - radius * 0.35, 0,
-        cx - radius * 0.3, cy - radius * 0.35, radius * 0.45
-    );
-    specGrad.addColorStop(0, 'rgba(255,255,255,0.65)');
-    specGrad.addColorStop(1, 'rgba(255,255,255,0)');
+    ctx.fillStyle = gMemo('spec:' + radius, function () {
+        var g = ctx.createRadialGradient(
+            -radius * 0.3, -radius * 0.35, 0,
+            -radius * 0.3, -radius * 0.35, radius * 0.45
+        );
+        g.addColorStop(0, 'rgba(255,255,255,0.65)');
+        g.addColorStop(1, 'rgba(255,255,255,0)');
+        return g;
+    });
     ctx.beginPath();
-    ctx.arc(cx, cy, radius, 0, Math.PI * 2);
-    ctx.fillStyle = specGrad;
+    ctx.arc(0, 0, radius, 0, Math.PI * 2);
     ctx.fill();
 
     ctx.restore();
@@ -84,21 +95,25 @@ function drawBoard(winCells) {
     var radius = cs * 0.4;
 
     // Board background with gradient (lighter top, darker bottom)
-    var bgGrad = ctx.createLinearGradient(0, 0, 0, canvas.height);
-    bgGrad.addColorStop(0, '#1e88e5');
-    bgGrad.addColorStop(1, '#0d2e6b');
     ctx.beginPath();
     ctx.roundRect(0, 0, canvas.width, canvas.height, 10);
-    ctx.fillStyle = bgGrad;
+    ctx.fillStyle = gMemo('board:bg', function () {
+        var g = ctx.createLinearGradient(0, 0, 0, canvas.height);
+        g.addColorStop(0, '#1e88e5');
+        g.addColorStop(1, '#0d2e6b');
+        return g;
+    });
     ctx.fill();
 
     // Subtle top reflection band
-    var reflGrad = ctx.createLinearGradient(0, 0, 0, canvas.height * 0.18);
-    reflGrad.addColorStop(0, 'rgba(255,255,255,0.10)');
-    reflGrad.addColorStop(1, 'rgba(255,255,255,0)');
     ctx.beginPath();
     ctx.roundRect(0, 0, canvas.width, canvas.height * 0.18, [10, 10, 0, 0]);
-    ctx.fillStyle = reflGrad;
+    ctx.fillStyle = gMemo('board:refl', function () {
+        var g = ctx.createLinearGradient(0, 0, 0, canvas.height * 0.18);
+        g.addColorStop(0, 'rgba(255,255,255,0.10)');
+        g.addColorStop(1, 'rgba(255,255,255,0)');
+        return g;
+    });
     ctx.fill();
 
     // Hover column highlight with pulsing opacity
@@ -120,12 +135,15 @@ function drawBoard(winCells) {
 
             if (val === 0) {
                 // Empty hole — dark inset circle
-                var holeGrad = ctx.createRadialGradient(cx + 2, cy + 2, 1, cx, cy, radius);
-                holeGrad.addColorStop(0, '#0a2050');
-                holeGrad.addColorStop(1, '#0d47a1');
+                /* rejilla fija de 7x6: la clave está acotada */
                 ctx.beginPath();
                 ctx.arc(cx, cy, radius, 0, Math.PI * 2);
-                ctx.fillStyle = holeGrad;
+                ctx.fillStyle = gMemo('hole:' + cx + ':' + cy + ':' + radius, function () {
+                    var g = ctx.createRadialGradient(cx + 2, cy + 2, 1, cx, cy, radius);
+                    g.addColorStop(0, '#0a2050');
+                    g.addColorStop(1, '#0d47a1');
+                    return g;
+                });
                 ctx.fill();
             } else {
                 // Check if this cell is being animated (skip if falling piece covers it)

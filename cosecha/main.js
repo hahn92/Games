@@ -73,6 +73,10 @@ var plots = [];         // 9 plots; cada uno: { seedId, plantedAt, matureAt } o 
 var coins = START_COINS;
 var earned = START_COINS;  // monedas totales ganadas (score)
 var best = GameStore.getNum('cosechaHighScore', 0);
+
+/* Cache de gradientes: el cielo ocupa la pantalla entera y las parcelas
+   tienen una `y` de rejilla, así que la clave queda acotada. */
+var gMemo = GU.gradientMemo();
 var selectedSeed = 0;   // índice de SEEDS
 var timeLeft = GAME_LEN;
 var isPlaying = false;
@@ -316,12 +320,14 @@ function hidePopup() { popup.style.display = 'none'; }
 
 function drawBackground() {
     // cielo en la parte superior, tierra abajo
-    var g = ctx.createLinearGradient(0, 0, 0, H);
-    g.addColorStop(0, '#2e4a74');
-    g.addColorStop(0.22, '#7a5b3a');
-    g.addColorStop(0.35, COL.bgTop);
-    g.addColorStop(1, COL.bgBot);
-    ctx.fillStyle = g;
+    ctx.fillStyle = gMemo('sky', function () {
+        var g = ctx.createLinearGradient(0, 0, 0, H);
+        g.addColorStop(0, '#2e4a74');
+        g.addColorStop(0.22, '#7a5b3a');
+        g.addColorStop(0.35, COL.bgTop);
+        g.addColorStop(1, COL.bgBot);
+        return g;
+    });
     ctx.fillRect(0, 0, W, H);
 
     // sol en la parte alta
@@ -407,10 +413,13 @@ function drawPlotBase(x, y, w, h, hover) {
     roundRect(x + 2, y + 4, w, h, 10); ctx.fill();
 
     // fondo tierra
-    var g = ctx.createLinearGradient(0, y, 0, y + h);
-    g.addColorStop(0, hover ? COL.plotHover : COL.soil0);
-    g.addColorStop(1, COL.soil1);
-    ctx.fillStyle = g;
+    /* gradiente vertical: la x no influye, y la `y` es la de la rejilla */
+    ctx.fillStyle = gMemo('plot:' + y + ':' + h + ':' + hover, function () {
+        var g = ctx.createLinearGradient(0, y, 0, y + h);
+        g.addColorStop(0, hover ? COL.plotHover : COL.soil0);
+        g.addColorStop(1, COL.soil1);
+        return g;
+    });
     roundRect(x, y, w, h, 10); ctx.fill();
 
     // borde superior iluminado

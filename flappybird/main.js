@@ -18,6 +18,10 @@ let pipeGap = GAP_EASY;
 
 // --- Visual extras ---
 let particles = [];
+
+/* Cache de gradientes: el cuerpo del pájaro se dibuja en espacio local con
+   coordenadas y colores constantes, y se reconstruía en cada frame. */
+const gMemo = GU.gradientMemo();
 let scorePopScale = 1;
 let scorePopFrame = 0;
 
@@ -489,11 +493,13 @@ function drawBird() {
     ctx.restore();
 
     // Body
-    const bodyGrad = ctx.createRadialGradient(-4, -4, 2, 0, 0, BIRD_SIZE / 2);
-    bodyGrad.addColorStop(0, '#ffe57a');
-    bodyGrad.addColorStop(0.5, '#ffb300');
-    bodyGrad.addColorStop(1, '#e65100');
-    ctx.fillStyle = bodyGrad;
+    ctx.fillStyle = gMemo('bird:body', function () {
+        const g = ctx.createRadialGradient(-4, -4, 2, 0, 0, BIRD_SIZE / 2);
+        g.addColorStop(0, '#ffe57a');
+        g.addColorStop(0.5, '#ffb300');
+        g.addColorStop(1, '#e65100');
+        return g;
+    });
     ctx.beginPath();
     ctx.ellipse(0, 0, BIRD_SIZE / 2, BIRD_SIZE / 2 - 3, 0, 0, Math.PI * 2);
     ctx.fill();
