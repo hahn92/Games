@@ -1,0 +1,59 @@
+# Puzzle y lógica
+
+Tableros por turnos, sin bucle de física.
+
+## Tetris (`tetris/`)
+- `randomPiece` is **uniform random, not a 7-bag** — long droughts of one piece are
+  expected behaviour here, not a bug.
+- `rotate()` has **no wall kicks**: the rotated matrix is tested once and discarded if
+  it collides. A piece flush against a wall or resting on stack simply will not turn.
+- Line clearing is two-phase on purpose — `clearLines` marks and starts the animation,
+  `executeClearLines` removes the rows and awards the score.
+- Speed is `max(80, 500 - (level-1) * 48)`; both the line score and the combo bonus
+  multiply by `level`, so changing the level curve rescales the whole score.
+
+## 2048 (`2048/`)
+- `board` is initialised full of zeros at module level because the `render()` at the
+  bottom of the file runs on load, before `startGame` ever builds a board.
+- In `slide`, the merge animation index is `out.length - 1` — the tile's position
+  *after* compaction. Using the pre-compaction loop index marks the wrong cell whenever
+  a line merges twice (`[2,2,2,2] → [4,4]` lit an empty cell).
+- The floating `+points` is appended to `gameSide`, not to `#game2048`: `render()`
+  wipes the board container's `innerHTML` on every move and would delete it mid-animation.
+- Swipes are captured on the whole `gameSide` — on a phone the grid is a fraction of
+  the screen and gestures starting off it were being lost.
+
+## Slidingpuzzle (`slidingpuzzle/`)
+- The board is shuffled by **1000 random legal moves from the solved state**, never by
+  permuting the tiles. Half of all permutations of a 15-puzzle are unsolvable; this
+  construction cannot produce one.
+- Arrow keys move the *empty* cell, so they read inverted against the tile: `ArrowUp`
+  pulls the tile below the gap upward.
+- `SIZE` is mutable (3/4/5) and records are stored per size.
+- The size selector, hint button and records panel are injected from JS.
+
+## Sokoban (`sokoban/`)
+- Levels are standard Sokoban notation (`#$.*+@` and space), so puzzles from elsewhere
+  paste in unchanged.
+- Statics and dynamics share ONE grid: 2 = target, 4 = box on target, 6 = player on
+  target. That encoding is what lets a cell restore to 2 instead of 0 when something
+  steps off it. There is no separate target layer to consult.
+- `checkWin` tests "no cell is 3" — no box *off* a target — not "every target is
+  filled". **Levels 4, 5 and 6 ship with one more target than boxes** and are winnable
+  precisely because of that; a win check written the other way would make them
+  impossible.
+- Undo pushes a deep grid copy per move, capped at 200.
+- `animating` is declared and never set — the guard on it is dead.
+
+## Laberinto (`laberinto/`)
+- `dfsMaze` is **recursive**, one frame per cell in the worst case: 675 deep at level
+  10 (25×27). Fine today, but that is the ceiling on level size — a much larger grid
+  needs an explicit stack.
+- The `LEVELS` comment claims odd dimensions are needed "so DFS borders work cleanly".
+  That is vestigial: this is a cell-based backtracker where each cell carries its own
+  `t/r/b/l` walls, not a grid-of-walls algorithm. Even sizes would work.
+- Start is always `(0,0)`, exit always `(cols-1, rows-1)`.
+- The clock starts on the **first move**, not on Iniciar.
+- `checkWin` detects a record by comparing the fresh time against the stored best with
+  `< 50ms` tolerance — it works only because `saveBest` already ran, making them equal
+  on a real record. Tying an old time to within 50ms reports a false record.

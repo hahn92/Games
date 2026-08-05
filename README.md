@@ -68,9 +68,20 @@ por juego.
 
 ## Contribuir
 
-`CLAUDE.md` es la guía técnica: convenciones, reglas de rendimiento de canvas,
-patrón de soporte móvil, notas por juego y los pasos para añadir uno nuevo. Léela
-antes de tocar código; recoge varias trampas que ya costaron tiempo una vez.
+La guía técnica está en **[`docs/`](./docs/indice.md)**, dividida por tema:
+
+| | |
+|---|---|
+| [Arquitectura](./docs/arquitectura.md) | Raíz, estructura de un juego, catálogo |
+| [Toolkit](./docs/toolkit.md) | `game-utils.js` y por qué existe cada pieza |
+| [Sonido](./docs/audio.md) · [Móvil](./docs/movil.md) | Los dos sistemas compartidos |
+| [Rendimiento](./docs/rendimiento.md) | Reglas de canvas, medidas no intuidas |
+| [Trampas](./docs/trampas.md) | Tres formas de romper un juego sin error en consola |
+| [Notas por juego](./docs/juegos/indice.md) | Los 49, con lo que no es evidente |
+| [Añadir un juego](./docs/nuevo-juego.md) | Los pasos, en orden |
+
+Antes de tocar un juego, busca su fila en las notas: registran invariantes que se
+rompen sin avisar. `CLAUDE.md` en la raíz es el índice de todo esto.
 
 ## Licencia
 

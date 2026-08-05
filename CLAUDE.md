@@ -1,590 +1,54 @@
 # CLAUDE.md
 
-This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+Guía para Claude Code (claude.ai/code) al trabajar en este repositorio.
 
-## Overview
-
-A collection of 49 classic browser-based games built with vanilla JavaScript, HTML5 Canvas, and CSS. No build system or dependencies — open any `index.html` directly in a browser to run. Deployed at https://games.hahndev.com (see `CNAME`).
-
-## Running the project
-
-Since this is pure static HTML/JS/CSS, there's no build step. To run locally, use any static file server:
+Colección de 49 juegos clásicos de navegador en JavaScript, HTML5 Canvas y CSS.
+Sin build y sin dependencias: se abre cualquier `index.html` y funciona.
+Desplegado en https://games.hahndev.com (ver `CNAME`).
 
 ```bash
-npx serve .          # serve the root catalog
-npx serve ./snake    # serve a specific game
+npx serve .          # el catálogo
+npx serve ./snake    # un juego suelto
 ```
 
-Or open `index.html` (root or per-game) directly in a browser.
-
-## Architecture
-
-### Root-level shared files
-
-| File | Purpose |
-|------|---------|
-| `index.html` | Game catalog/landing page |
-| `styles.css` | Shared design system (CSS variables, card layout, global rules) **and the shared game-page layout**: `.responsive-layout`, `.game-side`, `.info-side`, `.mobile-score` are defined here once — per-game `styles.css` must NOT redefine them (only override if a game truly needs a variant). Also holds the shared `@media (max-width: 900px)` collapse; games only declare their own deltas |
-| `audio.js` | Shared Web Audio API sound system — `GameAudio.*()` calls |
-| `mobile-layout.js` | Shared mobile-layout bootstrap — `MobileLayout({...})`. **Required in every game**, loaded before `main.js`. See "Mobile support pattern" below |
-| `game-utils.js` | Shared JS toolkit — loop helpers, math/color helpers, canvas pointer mapping, the `ctx.roundRect` polyfill, safe storage and a particle pool. **Required in every game**, loaded after `audio.js` and before `main.js`. See "Shared toolkit" below |
-| `fullscreen-btn.js` | Inter-game navigation bar (all devices) + fullscreen/landscape button (mobile only). **Required in every game** — see "Navigation bar" below |
-| `favicon.svg` | Shared favicon, referenced relatively (`./favicon.svg` from root, `../favicon.svg` from a game) |
-| `main.js` | Catalog filter, search and pagination with shareable URLs |
-| `thumbnails.js` | One canvas-drawing function per game, keyed by folder name. Each thumbnail is drawn the first time its card is actually on screen — see "Catalog thumbnails" below |
-
-### Per-game structure
-Each game lives in its own folder with:
-- `index.html` — game page; inline mobile layout script + script tags for `audio.js`, `main.js`, `fullscreen-btn.js`
-- `main.js` — all game logic (canvas rendering loop, input handling, game state, `GameAudio` calls)
-- `styles.css` — game-specific styles; starts with `@import url('../styles.css')`. The shared layout (`.responsive-layout`, `.game-side`, `.info-side`, `.mobile-score`) comes from the root stylesheet — do not duplicate it here
-- Thumbnails are drawn via canvas in `thumbnails.js` — no `image.png` needed
-
-### Shared CSS variables (defined in `styles.css`)
-```
---primary-color: #8fd3f4
---accent-color:  #ff512f
---bg-dark:       #181818
---card-bg:       #242424
---grad-primary:  linear-gradient(90deg, #8fd3f4 0%, #ff512f 100%)
---grad-bg:       linear-gradient(135deg, #1a2980 0%, #26d0ce 100%)
-```
-
-## Complete game list
-
-| Folder | Title | Type | Canvas? |
-|--------|-------|------|---------|
-| `snake/` | Snake Clásico | Arcade | Canvas |
-| `tetris/` | Tetris JS | Puzzle | Canvas |
-| `pong/` | Pong Clásico | Arcade | Canvas |
-| `breakout/` | Breakout | Arcade | Canvas |
-| `2048/` | 2048 | Puzzle | DOM |
-| `memorama/` | Memorama | Puzzle | DOM |
-| `flappybird/` | Flappy Bird | Arcade | Canvas |
-| `spaceinvaders/` | Space Invaders | Shooter | Canvas |
-| `whackamole/` | Whack-a-Mole | Arcade | DOM |
-| `simon/` | Simon Dice | Memoria | DOM |
-| `runner/` | Endless Runner | Arcade | Canvas |
-| `minesweeper/` | Buscaminas | Puzzle | DOM |
-| `tictactoe/` | Tres en Raya | Estrategia | DOM |
-| `connectfour/` | Conecta 4 | Estrategia | Canvas |
-| `asteroids/` | Asteroids | Shooter | Canvas |
-| `frogger/` | Frogger | Arcade | Canvas |
-| `wordle/` | Wordle | Palabras | DOM |
-| `typingspeed/` | Velocidad de Escritura | Habilidad | DOM |
-| `slidingpuzzle/` | Puzzle 15 | Puzzle | DOM |
-| `fruitcatcher/` | Atrapa Frutas | Arcade | Canvas |
-| `pacman/` | Pac-Man | Arcade | Canvas |
-| `bubbleshooter/` | Bubble Shooter | Arcade | Canvas |
-| `hangman/` | Ahorcado | Palabras | DOM |
-| `carrace/` | Carrera de Autos | Arcade | Canvas |
-| `platformer/` | Plataformero | Plataformas | Canvas |
-| `stacktower/` | Apilador de Bloques | Arcade | Canvas |
-| `catapulta/` | Catapulta | Física | Canvas |
-| `helicoidal/` | Helicoidal | Física | Canvas |
-| `ritmo/` | Ritmo | Ritmo | Canvas |
-| `cambiocolor/` | Cambio de Color | Reflejos | Canvas |
-| `cosecha/` | La Cosecha | Gestión | Canvas |
-| `chess/` | Ajedrez | Estrategia | Canvas |
-| `plinko/` | Plinko | Física | Canvas |
-| `dardos/` | Dardos Giratorios | Física | Canvas |
-| `gemas/` | Gemas | Puzzle | Canvas |
-| `minero/` | Minero de Oro | Habilidad | Canvas |
-| `laberinto/` | Laberinto Neón | Laberinto | Canvas |
-| `sokoban/` | Empuja Cajas | Lógica | Canvas |
-| `pinball/` | Pinball Neón | Arcade | Canvas |
-| `billar/` | Billar | Física | Canvas |
-| `airhockey/` | Air Hockey | Arcade | Canvas |
-| `damas/` | Damas | Estrategia | Canvas |
-| `reversi/` | Reversi | Estrategia | Canvas |
-| `misiles/` | Comando Misil | Shooter | Canvas |
-| `saltador/` | Saltador | Arcade | Canvas |
-| `batallanaval/` | Batalla Naval | Estrategia | Canvas |
-| `blackjack/` | Blackjack | Cartas | Canvas |
-| `sopaletras/` | Sopa de Letras | Palabras | Canvas |
-| `hanoi/` | Torres de Hanói | Lógica | Canvas |
-
-## Catalog thumbnails
-
-All 49 thumbnail canvases live in the DOM at once, but the catalog paginates by
-toggling `display` on the cards, so only 8 are shown at a time. `thumbnails.js`
-therefore draws each one lazily, through an `IntersectionObserver`: a hidden card
-has no layout box and never intersects, and paginating or filtering to it gives it
-one. Drawing all 49 up front spent ~85% of the work on canvases nobody could see —
-and since they render at device pixel density, each is a 440x440 backing store.
-
-Two consequences when touching this:
-
-- A thumbnail is drawn **once**. The canvas keeps its pixels when the card is
-  hidden again, so there is nothing to redraw on the way back.
-- These canvases are sized from script, not from markup, so the automatic HiDPI
-  pass skips them. `thumbnails.js` opts in with
-  `GU.upgradeCanvas(canvas, { pinCss: false })` after setting width/height and
-  before `getContext`. `pinCss: false` matters: the cards size the canvas with
-  `width:100%` + `aspect-ratio:1/1`, and pinning an explicit height would win over
-  that aspect ratio and squash the image.
-
-## Navigation bar (`fullscreen-btn.js`)
-
-**Every game MUST include the inter-game navigation bar.** It is provided by `fullscreen-btn.js`, which renders the navigation bar on all devices (and the fullscreen/landscape button on mobile). There are no exceptions — any new or existing game without it is considered incomplete.
-
-To include it, add the script tag **last**, after `audio.js` and `main.js`:
-
-```html
-<script src="../mobile-layout.js"></script>
-<script src="../audio.js"></script>
-<script src="../game-utils.js"></script>
-<script src="./main.js"></script>
-<script src="../fullscreen-btn.js"></script>
-```
-
-When adding or reviewing a game, verify this script tag is present in `index.html`. `/validate-game` should be run to confirm.
-
-## Shared toolkit (`game-utils.js`)
-
-Loaded by every game, after `audio.js` and before `main.js`. Everything is on the
-`GameUtils` namespace (aliased `GU`); a handful of names are also flat globals
-because games already called them unqualified.
-
-**Do not re-implement any of these in a game.** Each one replaced a per-game copy.
-
-| Group | API |
-|-------|-----|
-| Loop | `rafInterval(fn, ms)` / `rafClear(h)` — fixed-tick loop; `rafLoop(fn, minMs)` — free-running ~60fps loop, `fn(dt, ts)` with `dt` clamped so a backgrounded tab can't tunnel bodies through walls |
-| Math | `clamp`\*, `lerp`\*, `GU.dist`, `GU.dist2`, `GU.rand`, `GU.randInt`, `GU.pick`, `GU.shuffle`, `GU.angleDelta`, `GU.easeOutQuad` / `easeInQuad` / `easeInOutQuad` |
-| Collision | `GU.rectsOverlap(ax,ay,aw,ah, bx,by,bw,bh)`, `GU.circlesOverlap(x1,y1,r1, x2,y2,r2)` |
-| Color | `hexToRgb`\*, `shade(hex, ±d)`\* (additive), `GU.scaleColor(hex, f)` (multiplicative), `GU.rgba(hex, a)`, `GU.mixColor(a, b, t)` |
-| Canvas | `pointerPos(canvas, e)`\* → `{x, y}` in canvas space; `GU.roundRectPath(ctx, x,y,w,h,r)`; `GU.gradientMemo()` |
-| Storage | `GameStore.getNum/setNum/getJSON/setJSON/get/set/remove`\*, `GameStore.available` |
-| Particles | `new Particles(max, {semiImplicit})`\* with `.burst(x, y, n, opts)`, `.add(x, y, vx, vy, opts)`, `.update(dt)`, `.draw(ctx)`, `.each(fn)`, `.clear()` |
-| HiDPI | automatic; `GU.upgradeCanvas(canvas, {maxScale, pinCss})` for canvases sized at runtime |
-| Accessibility | `GU.keyActivate(el, label)` — makes a non-`<button>` cell focusable and Enter/Space-operable; `GU.gridKeyboard(container, cols, selector)` — roving tabindex + arrow navigation over a board; `GU.wirePopups()` — automatic, turns the `.popup` overlays into announced dialogs |
-
-\* also available as a flat global.
-
-### Why these exist
-
-- **`ctx.roundRect` polyfill** — installed automatically when the browser lacks it
-  (Safari < 16.4). A dozen games call `ctx.roundRect()` directly; without the
-  polyfill that throws and takes the whole render loop down on older iOS.
-- **`pointerPos`** — every canvas game needs mouse/touch → canvas-space mapping,
-  and it must divide by `rect.width`, not just subtract `rect.left`: `mobile-layout.js`
-  resizes canvases via `style.width/height`, so the CSS box and the backing store differ.
-  Handles `touches`, `changedTouches`, plain mouse events and bare `Touch` objects,
-  and guards the divide on a zero-size (hidden) canvas.
-- **`GameStore`** — `localStorage` *throws* rather than returning null when site data
-  is blocked (Safari "Block All Cookies", sandboxed iframes). Games read their high
-  score at module top level, so an unguarded access kills `main.js` before anything
-  renders. Every accessor degrades to an in-memory map, so a session still keeps its
-  score. `GameStore` never throws — do not wrap it in `try`/`catch`.
-- **`Particles`** — pooled; dead particles are reused instead of being spliced out of
-  an array each frame, and `draw()` batches `fillStyle` changes. `burst()` picks angles
-  and speeds for you; `add()` takes an explicit velocity, for effects with a directional
-  bias or a jittered origin. **`life` is in seconds**: porting a per-frame
-  `life: 1, decay: d` loop means `life: 1 / (d * 60)`, which reproduces the lifetime and
-  the linear alpha ramp exactly at 60fps. Use `alpha` when the old code started below
-  full opacity (a `life: 0.8` peak becomes `alpha: 0.8`). `update()` moves before
-  integrating gravity, matching the hand-rolled loops it replaced.
-  `new Particles(max, {semiImplicit: true})` accelerates before moving, which is what
-  the delta-time loops did; the default moves first, like the per-frame loops. Getting
-  this backwards shifts a particle's path by a few pixels over its life.
-  Currently used by: airhockey, batallanaval, billar, breakout, catapulta, dardos,
-  hanoi, helicoidal, minero, misiles, platformer, pong, saltador, sopaletras, stacktower.
-  The other particle systems stay hand-rolled on purpose — they draw rotated ellipses,
-  hue-cycling sparks, trails or fragment shapes the shared pool does not render.
-- **HiDPI** — applied automatically at load to every canvas **whose size is declared in
-  the markup**. `canvas.width`/`height` keep reporting the LOGICAL size, so game logic,
-  hit testing and `pointerPos()` are unaffected; only the backing store and a base
-  `scale(dpr)` transform change. Capped at 2×. Opt a canvas out with `data-no-hidpi`.
-  Because of this, **never assume `canvas.width` is the backing-store size** — and if a
-  game ever needs to resize its canvas, assigning `canvas.width` still works and the base
-  transform is reinstalled.
-  A canvas sized from script instead (the catalog thumbnails) is skipped by the automatic
-  pass — its real size is not known yet — and must call `GU.upgradeCanvas()` itself right
-  after setting width/height and before `getContext()`. Pass `{pinCss: false}` when a
-  stylesheet already sizes it: the CSS pin sets an explicit height, which would override
-  an `aspect-ratio` that nothing else constrains and squash the element.
-- **`keyActivate` / `gridKeyboard`** — several DOM games build their board out of
-  plain `<div>`s with only a click listener, which made them unplayable without a
-  mouse (WCAG 2.1.1, level A). `keyActivate` gives a cell what a real `<button>`
-  would have: focus, a button role and Enter/Space. `gridKeyboard` then keeps only
-  ONE cell in the tab order and moves with the arrows — without it a hard
-  minesweeper board is 480 separate tab stops. Call `gridKeyboard` again after each
-  render: these games rebuild their cells every move, and it re-seats the tabbable
-  cell and restores focus to the square the player was on.
-  Used by memorama, minesweeper, tictactoe and whackamole. A cell that overrides
-  `outline` needs its own `:focus-visible` rule, as `.ttt-cell` does.
-- **`wirePopups`** — runs on its own, no game calls it. The 45 end-of-game overlays
-  are divs toggled with `display`, so a screen reader never learned the game had
-  ended. It marks them as `alertdialog`, names them from their heading and moves
-  focus into them when they appear. Careful with visibility checks here:
-  `offsetParent` is null for `position: fixed`, which every one of these popups is.
-- **`gradientMemo`** — gradients are among the more expensive 2D calls. Key on
-  everything the gradient depends on, geometry and colour stops both, and make sure the
-  key is BOUNDED: keying on a scrolling or animated coordinate leaks a gradient per
-  frame. For per-object gradients that differ only by position, build at the origin and
-  `ctx.translate()` instead (see `chess/drawBoard`).
-
-## Sound system (`audio.js`)
-
-All games use a shared, file-free sound system built on the Web Audio API. Include it **before** `main.js`:
-
-```html
-<script src="../mobile-layout.js"></script>
-<script src="../audio.js"></script>
-<script src="../game-utils.js"></script>
-<script src="./main.js"></script>
-<script src="../fullscreen-btn.js"></script>
-```
-
-### Key API calls
-
-| Event | Call |
-|-------|------|
-| Game starts | `GameAudio.start()` |
-| Point scored | `GameAudio.score()` |
-| Milestone / combo | `GameAudio.scoreHigh()` |
-| Win / level complete | `GameAudio.win()` |
-| Game over | `GameAudio.gameOver()` |
-| Jump | `GameAudio.jump()` |
-| Frog hop | `GameAudio.hop()` |
-| Paddle hit | `GameAudio.paddle()` |
-| Wall bounce | `GameAudio.hit()` |
-| Brick broken | `GameAudio.brick()` |
-| Piece lands (Tetris) | `GameAudio.place()` |
-| Line cleared | `GameAudio.lineClear()` |
-| Shoot / laser | `GameAudio.shoot()` |
-| Explosion | `GameAudio.explode()` |
-| Water death (Frogger) | `GameAudio.splash()` |
-| Reach goal | `GameAudio.goal()` |
-| Card flip | `GameAudio.flip()` |
-| Cards match | `GameAudio.match()` |
-| Cards don't match | `GameAudio.noMatch()` |
-| Tile slide | `GameAudio.slide()` |
-| Tiles merge (2048) | `GameAudio.merge()` |
-| Simon button | `GameAudio.simon(0-3)` |
-| Mole hit | `GameAudio.whack()` |
-| Mole escaped | `GameAudio.miss()` |
-| Mine explodes | `GameAudio.mine()` |
-| Safe cell revealed | `GameAudio.reveal()` |
-| Letter typed | `GameAudio.type()` |
-| Green tile (Wordle) | `GameAudio.correct()` |
-| Yellow tile (Wordle) | `GameAudio.present()` |
-| Grey tile (Wordle) | `GameAudio.absent()` |
-| Fruit caught | `GameAudio.powerUp()` |
-| Bomb caught | `GameAudio.bomb()` |
-| Timer warning | `GameAudio.tick()` |
-| Button click | `GameAudio.click()` |
-
-**Rules:** Never call `GameAudio.*()` inside draw/render functions or loops. One call per event trigger.
-
-The AudioContext is unlocked automatically on the first `touchstart`, `mousedown`, or `keydown` (iOS requirement).
-
-## Mobile support pattern
-
-The whole pattern lives in **`mobile-layout.js`**. A game declares only what differs:
-
-```html
-<script src="../mobile-layout.js"></script>
-<script>
-MobileLayout({
-    show: { mobileScore: 'block' },          // ids revealed on mobile, hidden on reset
-    fit: function (vHeight) {                 // size the canvas/board
-        var canvas = document.getElementById('myCanvas');
-        var ratio = 400 / 620;
-        var availableWidth  = window.innerWidth - 8;
-        var availableHeight = vHeight - (isMobile() ? 50 : 0);
-        var newHeight = Math.min(availableHeight, availableWidth / ratio);
-        canvas.style.width  = newHeight * ratio + 'px';
-        canvas.style.height = newHeight + 'px';
-    },
-    reset: function () {                      // undo `fit` on desktop
-        var canvas = document.getElementById('myCanvas');
-        canvas.style.width = ''; canvas.style.height = '';
-    },
-});
-</script>
-```
-
-Optional keys: `onMobile(gameSide, vHeight)` / `onReset(gameSide)` for extra `gameSide`
-setup (wordle), `mobileOnly: true` to skip the `innerWidth < 900` branch (snake, hangman),
-`background` for a custom backdrop (pacman uses `'#000'`), `startBtn: false` to never
-reveal `#mobileStartBtn` (hangman), `stopPropagation: true` (flappybird).
-
-The module handles, once, for every game:
-
-- `isMobile()` UA detection — exposed as the `window.isMobile` global (`snake/main.js` uses it)
-- `adjustMobileLayout()` sets `gameSide` to `position: fixed`, fills the screen, hides `infoSide` — exposed as a global (`minesweeper/main.js` uses it)
-- **Always uses `window.innerWidth + 'px'`** (not `'100vw'`) — on iOS Safari `100vw` can exceed the visual viewport
-- Uses `window.visualViewport.height` (not `window.innerHeight`) for true mobile viewport height
-- `resize` + `visualViewport.resize` + `DOMContentLoaded` listeners, and the `#mobileStartBtn` → `#startBtn` wiring
-
-Remaining per-game conventions:
-
-- **Canvas height offset ≤ 50px** — touch button panels are hidden globally via CSS; no large space reservation needed
-- `#mobileScore` (absolute positioned) shows score overlay; uses `left: 5px; right: 5px` to stretch safely
-- `#mobileStartBtn` overlays the canvas on initial load
-- `fullscreen-btn.js` adds a floating ⛶ button (bottom-right) that triggers `requestFullscreen()` + `screen.orientation.lock('landscape')` (Android) or full-screen without lock (iOS)
-- Bottom-anchored elements use `bottom: calc(20px + env(safe-area-inset-bottom))` for iPhone notch safety
-- Touch controls (`.touch-controls`, `.touch-cols`) are **hidden globally** via `styles.css` with `display: none !important`; all games use swipe/tap gestures on canvas instead
-
-## Critical: Never use emoji on canvas
-
-**Emoji rendered via `ctx.fillText()` on canvas causes transparency/rendering bugs in some browsers.** Always draw game elements as canvas shapes. This applies to:
-- Characters/sprites (dino, frog, bird, etc.) → draw with `ctx.arc`, `ctx.roundRect`, paths
-- Fruit/food items → custom canvas shapes
-- Hearts/lives indicators → draw with bezier curves
-- Any game-critical visual
-
-## A game can load cleanly and still never draw
-
-`snake` shipped visually dead for weeks. `renderLoop` was defined and only ever
-referenced from inside itself, so nothing started it. The one `draw()` at init did
-not survive either: `MobileLayout`'s `reset` reassigns `canvas.width` right after,
-which clears the canvas.
-
-What made it hard to notice is that the **game logic kept running** on its
-`rafInterval` tick — the score in the side panel advanced normally while the board
-stayed black. It looks like a rendering glitch, not a dead game.
-
-Nothing in the usual checks catches this: the page loads, the console is clean,
-`GameUtils` and the canvas are present, and HiDPI applies. **Loading is not drawing.**
-
-When touching a game's loop, confirm the render entry point is actually reached:
-
-- `requestAnimationFrame(loop)` must appear somewhere *outside* `loop` itself —
-  or the loop must be a named function expression handed straight to rAF, as in
-  `requestAnimationFrame(function loop(ts) { ... })`, which chess and damas use.
-  A grep for "loop referenced only inside itself" flags that second form as a
-  false positive.
-- The only reliable verification is looking at the canvas. Load the game in a
-  visible iframe (offscreen iframes get their rAF throttled by Chrome, and a
-  narrow one flips `MobileLayout` into its mobile branch), let a few frames run,
-  and take a screenshot. Reading pixels back with `getImageData` from a parent
-  frame is **not** trustworthy: it returned all-black for games that were plainly
-  rendering on screen.
-
-## Never call `adjustMobileLayout()` by hand
-
-Several games register their own `resize` listener beside the one
-`mobile-layout.js` installs, and they depend on running **after** it. `snake` is
-the clearest case: `MobileLayout`'s `onMobile` reassigns `canvas.width` to fit the
-viewport, and snake's own `syncCanvasLogicSize` then re-reads it into `canvasSize`
-and rescales the snake and the fruit onto the new grid. Because `index.html` runs
-before `main.js`, the listeners already fire in that order on a real resize.
-
-Calling `adjustMobileLayout()` directly resizes the canvas without the second half
-of that pair. Snake's logic then keeps using the old board size: the snake can walk
-outside the visible canvas and fruit can spawn where it is unreachable — exactly
-the failure `rescaleCoord` exists to prevent.
-
-So when testing orientation changes, resize and **dispatch a real `resize` event**;
-do not invoke the layout function yourself. Verified across all 40 canvas games,
-portrait → landscape → portrait: nothing overflows, aspect ratios hold, every game
-recovers its original size, and snake's grid stays consistent (box 9 → 8 with the
-snake and fruit rescaled onto matching cells).
-
-## Canvas performance rules
-
-These rules exist because past optimization work identified them as the biggest bottlenecks:
-
-1. **Never use `ctx.shadowBlur` per-alien/per-element in a loop** — shadow compositing is the most expensive canvas operation. Reserve it for the player, bullets, and UI. Set it once before a batch, reset after.
-2. **Batch draw state changes** — set `fillStyle`, `globalAlpha`, `shadowBlur` once before drawing a group of similar objects, not inside each iteration.
-3. **Use `requestAnimationFrame` not `setInterval`** — rAF syncs with the monitor refresh rate. With rAF, throttle to 60fps via timestamp delta: `if (dt < 15) return;`
-4. **Never call `ctx.save()/ctx.restore()` inside tight loops** — only use save/restore when you truly need to isolate a transform.
-5. **No `Math.random()` in the render path** — pre-compute random values (particle offsets, jitter) when spawning, not while drawing.
-6. **Stars and small particles: use `fillRect` not `arc`** — rectangle draws are faster than circle draws for small elements.
-7. **Cache gradients** — `createLinearGradient`/`createRadialGradient` are expensive. Cache them and only rebuild when position changes.
-8. **Pre-cache per-object data** — store color, pre-computed offsets, and other derived values on the object when spawning, not on every draw call.
-
-## AI patterns used
-
-- **Tic-tac-toe**: full minimax (no depth limit, 3×3 board is always tractable)
-- **Connect Four**: minimax with alpha-beta pruning, depth 5; scoring by 4-cell windows in all directions, center column preference
-- Both AIs respond after a short delay (300ms) for better UX
-
-## Developer tools
-
-### Skills (slash commands)
-Located in `.claude/commands/`:
-
-- `/validate-game [name]` — checks all quality criteria (sound, graphics, mobile, touch, code) for one or all games
-- `/add-sounds [name]` — guides adding `GameAudio` calls to a specific game
-
-### Subagents
-Located in `.claude/agents/`:
-
-- `game-validator` — validates a game against the full quality checklist
-- `sound-auditor` — audits `GameAudio` coverage across all games
-- `mobile-auditor` — audits mobile layout, canvas scaling, and touch handling
-
-### Hooks
-`.claude/settings.json` runs a code quality check after every `Edit`/`Write` on a `main.js` file. It warns about:
-- `ctx.shadowBlur` inside a loop
-- Emoji inside `ctx.fillText()`
-- `setInterval` used as game loop without `requestAnimationFrame`
-- `Math.random()` called inside a render function
-- Missing `GameAudio` integration
-
-## Game-specific notes
-
-### Runner (`runner/`)
-- Dino is fully canvas-drawn (body, head, snout, eye with blink, tail, legs). **Do not use emoji for the character.**
-- Animation system: `squishX/squishY` lerp for jump/land impact, `blinkTimer` for eye blink, tail with `Math.sin` bezier wave, dust particle array on jump/land/run
-- Horizontal movement: player can move left/right within `PLAYER_MAX_X = 320`
-- Death: `deathAngle` + `deathVY` spin-fall animation + `screenShake` (14 frames)
-- Touch: tap = jump, hold left 38% of canvas > 130ms = move left
-
-### Space Invaders (`spaceinvaders/`)
-- 3 alien types: Type A (rows 0-1, cyan, antenna+legs), Type B (rows 2-3, magenta, crab+claws), Type C (row 4, orange, octopus+tentacles)
-- Bunkers: 4 destructible pixel-grid bunkers between player and aliens
-- **No `shadowBlur` on alien draw functions** — this was the main performance bottleneck (40 aliens × multiple shapes = too expensive)
-- Tentacle jitter offsets pre-computed on invader creation, not in render loop
-
-### Frogger (`frogger/`)
-- Frog is canvas-drawn with `drawFrogShape(cx, cy, r, moving, pose)`. No emoji. It is built as ONE
-  continuous bezier silhouette via `frogBodyPath()` (snout → cheeks → pinched waist → hips → rump),
-  not stacked ellipses — keep it that way, the old ellipse pile read as a green blob
-- Frog limbs: `drawHindLeg(s, e, ...)` / `drawFrontLeg(s, e, ...)` where `e` = 0 coiled … 1 extended.
-  Hind legs are LONG and fold into a `Z` at rest; keep their lateral reach near the hip width
-  (a wide reach reads as a skirt). Feet come from `drawWebbedFoot()` — narrow fan (~1.05 rad)
-- `pose` = `{ ext, squash, stretch }`. `drawFrog()` drives `ext` from hop phase (out fast, tucked to
-  land), `stretch` at take-off and `squash` from `landSquash`. Keep squash ≤ ~0.13 or landing splays sideways
-- Eyes are domes only just proud of the head outline. Oversized eyes swamp the silhouette
-- The cast shadow is drawn at the GROUND position (`shadowX/shadowY`), never the arced position, and
-  shrinks with `hopLift` — that shadow is what sells the jump height, not the scale change
-- Idle tongue flick on safe rows (5, 11) every ~300 frames. It must start AT the snout tip
-  (`-frogR * 0.96`); starting further back draws a pink stripe across the head
-- Log riding: `frogRidingX` tracks world X position as a float, updated each frame by `lane.speed * lane.dir`
-- Turtles (rows 2 & 4): groups created by `makeTurtles()`; `turtleState(o)` cycles up → warn (blink) → down using `(frame + o.phase) % o.cycle`. Submerged turtles don't hold the frog (`getFrogOnLog` skips state `'down'`)
-- Frog rotation: `frogAngle` lerps (shortest path) toward `frogTargetAngle` set per move direction; after `frogUprightTimer` idle frames it returns to face up (never stays tipped sideways)
-- River jumps are straight: while mid-hop (`frogHop.t < duration`) there is NO log drift, death check, or goal check — all resolve on landing. Vertical river jumps preserve the exact pixel X; `frog.col` is re-derived from `frogRidingX` at jump time (it goes stale while riding)
-- Input buffering: a key pressed in the last 6 frames of a hop is stored in `queuedMove` and executed when the hop ends
-- Cars: seen from above — cast shadow, then wheels (BEFORE the body, so they peek past the flanks,
-  never on top), tapered nose / squarer tail body path, an inset roof panel in a darker tint of the
-  body colour, and glass ONLY as windscreen + rear window + side slits. A large translucent
-  rectangle across the whole roof reads as a pale blob, not a car. `shade(hex, d)` tints the body colour
-- Turtles: domed carapace with a rim ellipse and five central scutes. A full grid of plate lines is
-  too busy at this size
-- 5 lily-pad goal slots; all must be filled to advance wave
-- Death animations via `triggerDeathAnim(cause)`: water = blue flash + expanding ripple rings + rising bubbles; car = squashed frog with splayed legs, X eyes and orbiting stars
-- Hop animation: `frogHop` tween with parabolic arc; logs/turtles bob (`o.bob`) and the frog inherits the bob while riding
-- Idle tongue flick on safe rows (5, 11) every ~300 frames
-
-### Pinball (`pinball/`)
-- **The plunger lane is a closed chute with no drain.** A ball that stops in it can never
-  end, so the game locks up. Two things keep that from happening and both must stay:
-  `launchBall()`'s minimum velocity always clears the ceiling guide (needs ≥ ~980 px/s for the
-  511 px rise), and the stall watchdog in `updateBall()` returns a stalled ball in the lane to
-  `STATE.LAUNCH` without costing a life. The ball can also roll back into the lane from the
-  playfield, so the launch floor alone is not enough
-- The launch range tops out at `MAX_SPEED`; asking for more is clamped on the first sub-step,
-  which would make the top of the charge meter do nothing
-- Stall watchdog skips the nudge while a flipper is held, so cradling the ball still works.
-  After 3 nudges elsewhere on the table it drains the ball rather than leaving it wedged
-- `FL_PIVOT_LX/RX` are `TABLE_MID ± DRAIN_GAP / 2` — `DRAIN_GAP` is the pivot-to-pivot
-  distance, so any other divisor breaks the intended 24 px tip gap (dividing by 1.8 opened it
-  to 45 px, wide enough to swallow the ball straight down the middle)
-- Flippers are stepped **inside** `updateBall()`'s sub-step loop. `collideFlipper` divides the
-  angle delta by `sdt`, so stepping them once per frame made omega read 3× high, pinning
-  `kickMag` at its clamp and removing all control over shot strength
-- Level is `Math.floor(score / 5000) + 1`. It multiplies every award, so an offset here scales
-  the whole score curve
-
-### Asteroids (`asteroids/`)
-- Thrust fire particles: orange/yellow particles spawned at ship tail when thrusting
-- Asteroid trails: last 5 positions stored in `trail[]` array, drawn faded
-- Explosion: triangular fragment particles (`spawnFragments()`) that spin and fade
-- Screen shake on ship death via translate offset
-
-### Fruit Catcher (`fruitcatcher/`)
-- All 10 fruit types + bomb drawn as custom canvas shapes. **No emoji.**
-- Items spin as they fall (`rot` + `rotSpeed` per item)
-- Lives drawn as custom canvas hearts
-
-### Connect Four (`connectfour/`)
-- Discs use radial gradient for 3D sphere look + specular highlight
-- Gravity-accelerated fall animation for piece placement
-- Win particles burst from each of the 4 winning cells
-
-### Wordle (`wordle/`)
-- On mobile: keyboard width set explicitly via JS (`Math.min(window.innerWidth - 16, 390) + 'px'`) to avoid iOS Safari overflow
-- `gameSide.overflowX = 'hidden'` and `overflowY = 'auto'` set separately (shorthand `overflow` not supported everywhere)
-
-### Snake (`snake/`)
-- `renderLoop` must be started explicitly; it only ever references itself. It went
-  unstarted for weeks and the board stayed black while the score kept climbing.
-- Its `onMobile` reassigns `canvas.width`, which clears the canvas — harmless only
-  because the render loop repaints. It also resizes the logical board, so
-  `syncCanvasLogicSize` re-reads it and `rescaleCoord` moves the snake and fruit onto
-  the new grid. Both listeners fire on the same `resize`, in that order.
-- Caches its background, fruit and star gradients by key; the head is built at the
-  origin and translated, since it moves.
-
-### Chess (`chess/`) and Damas (`damas/`)
-- Both draw a 64-square board. The squares share one diagonal, so two origin-space
-  gradients cover the whole board and each square is translated into place — building
-  one per square meant ~70 gradients every frame.
-- Piece gradients are memoised on `(cx, cy, size, colour)`. That is only safe because
-  neither game animates pieces between squares: the coordinates are discrete.
-- Their render loop is `requestAnimationFrame(function loop(ts) {...})`, a named
-  function expression. A search for "loop referenced only inside itself" flags it as
-  dead code; it is not.
-
-### Gemas (`gemas/`) and Plinko (`plinko/`)
-- Both use `ctx.setTransform` for screen shake. That is the one call HiDPI has to
-  intercept — the shared toolkit premultiplies it so the device-pixel scale survives.
-- gemas integrates gravity *before* moving its particles, the opposite of every other
-  per-frame loop here, which is why its particle system was left hand-rolled.
-
-### Grid games played with the keyboard
-`memorama`, `minesweeper`, `tictactoe` and `whackamole` build their boards from
-`<div>`s. Each cell is wired with `GU.keyActivate`, and the board with
-`GU.gridKeyboard` **after every render** — these games rebuild their cells on each
-move, which destroys the focused element. `tictactoe` needs its own
-`:focus-visible` rule because `.ttt-cell` overrides `outline`.
-
-### Games on the shared particle pool
-`airhockey`, `batallanaval`, `billar`, `breakout`, `catapulta`, `dardos`, `hanoi`,
-`helicoidal`, `minero`, `misiles`, `platformer`, `pong`, `saltador`, `sopaletras`
-and `stacktower`.
-
-- Unit conversion differs per game. Loops with `dt` in seconds need velocity ÷60 and
-  gravity ÷3600 — once for the velocity unit and once for the time unit. Loops with
-  `dt` normalised to frames pass both through unchanged.
-- `billar`, `catapulta`, `minero` and `stacktower` accelerate before moving, so their
-  pools are `{semiImplicit: true}`.
-- `saltador` and `helicoidal` damp only the horizontal velocity: `drag: [x, 1]`.
-- `platformer` and `stacktower` draw their particles through a camera translate
-  rather than offsetting each one.
-- `misiles` keeps its state inside an IIFE, so nothing there is reachable from the
-  console.
-
-### Games whose particles stay hand-rolled
-Not an oversight — the shared pool draws plain circles and squares with a linear
-fade, and these need more: `fruitcatcher` shrinks each particle's radius with its
-life, `spaceinvaders` nests particles per explosion and removes the explosion when
-its array empties, `cosecha` draws a coin icon and other per-type shapes, `gemas`
-integrates in the opposite order, `connectfour` and `flappybird` rotate their
-particles, and `asteroids` and `pinball` use fragment shapes and per-particle glow.
-
-### Carrace (`carrace/`)
-- Calls `ctx.roundRect()` 66 times, more than any other game. It is the clearest
-  reason the polyfill in `game-utils.js` exists: without it the whole render loop
-  throws on Safari below 16.4.
-
-### Games whose canvas is sized by their own `fit`
-`damas`, `hanoi` and `reversi` compute the available width as
-`window.innerWidth - 8`. The 8 is not decoration: their canvas carries a 3px border
-per side with `content-box`, so using the raw `innerWidth` made the element 6px wider
-than the viewport and the page scrolled sideways on a phone. `chess` uses the raw
-value on purpose — its canvas only has a bottom border.
-
-## Adding a new game
-
-1. Create a new folder with `index.html`, `main.js`, `styles.css`
-2. Copy `runner/index.html` as template (most complete mobile pattern)
-3. Script tag order in `index.html`:
+## Dónde está cada cosa
+
+La documentación vive en [`docs/`](./docs/indice.md), dividida por tema. Las
+secciones de abajo se importan aquí, así que las tienes cargadas igualmente —
+los enlaces son para navegar, no porque falte nada.
+
+| Documento | Cuándo lo necesitas |
+|-----------|---------------------|
+| [Arquitectura](./docs/arquitectura.md) | Raíz, estructura de un juego, catálogo completo |
+| [Toolkit compartido](./docs/toolkit.md) | `game-utils.js` y por qué existe cada pieza |
+| [Sonido](./docs/audio.md) | Qué `GameAudio.*()` corresponde a cada evento |
+| [Móvil y navegación](./docs/movil.md) | `MobileLayout({...})`, barra entre juegos, pantalla completa |
+| [Rendimiento](./docs/rendimiento.md) | Reglas de canvas y miniaturas del catálogo |
+| [Trampas conocidas](./docs/trampas.md) | Tres formas de romper un juego sin error en consola |
+| [Herramientas](./docs/herramientas.md) | Comandos, subagentes, hooks, patrones de IA |
+| [Añadir un juego](./docs/nuevo-juego.md) | Los pasos, en orden |
+| [Notas por juego](./docs/juegos/indice.md) | Los 49, con lo que no es evidente en cada uno |
+
+## Reglas que no se negocian
+
+Estas cuatro rompen cosas en silencio. El detalle está en los documentos
+enlazados; aquí queda lo que hay que recordar sí o sí.
+
+1. **Nunca emoji en canvas.** `ctx.fillText()` con emoji provoca fallos de
+   transparencia en algunos navegadores. Todo elemento de juego se dibuja con
+   formas. → [Trampas](./docs/trampas.md)
+
+2. **Cargar no es dibujar.** Un juego puede arrancar sin errores, con la lógica
+   corriendo y la puntuación subiendo, y no pintar un solo frame. Confirma que
+   el punto de entrada del render se alcanza de verdad. → [Trampas](./docs/trampas.md)
+
+3. **Nunca llames a `adjustMobileLayout()` a mano.** Varios juegos registran su
+   propio listener de `resize` y dependen de correr *después* del de
+   `mobile-layout.js`. Redimensiona y lanza un evento `resize` real.
+   → [Trampas](./docs/trampas.md)
+
+4. **Los cinco scripts, en este orden, en todos los juegos.** Sin excepciones:
+   un juego al que le falte alguno está incompleto.
    ```html
    <script src="../mobile-layout.js"></script>
    <script src="../audio.js"></script>
@@ -592,35 +56,25 @@ value on purpose — its canvas only has a bottom border.
    <script src="./main.js"></script>
    <script src="../fullscreen-btn.js"></script>
    ```
-4. Call `MobileLayout({ ... })` (see "Mobile support pattern") — do NOT hand-roll an inline
-   `adjustMobileLayout`. Use `≤ 50px` height offset in `fit`.
-5. **`styles.css`** — copy from `minero/styles.css` and replace `minero-canvas` with your canvas class. Required sections:
-   - `@import url('../styles.css')` at the top — this brings in the shared layout (`.responsive-layout`, `.game-side`, `.info-side`, `.mobile-score`); **do NOT redefine those blocks locally**
-   - the shared `@media (max-width: 900px)` collapse comes from the root stylesheet —
-     add a local block ONLY for game-specific deltas
-   - `body { background: var(--grad-bg); ... }`
-   - `#startBtn, #restartBtn` button styles
-   - `#playAgainBtn` (or equivalent end-of-game button) styles
-   - `.popup` and `.popup-content` overlay styles
-   - Game-specific canvas class (border: `3px solid var(--accent-color)`, border-radius, box-shadow)
-6. Add `GameAudio.*()` calls for all key game events (never inside render loops)
-7. Never use emoji for game-critical visuals — always use canvas shapes
-7b. If the board is built from `<div>`s rather than `<button>`s, wire it with
-   `GU.keyActivate` per cell and `GU.gridKeyboard` after each render — otherwise the
-   game cannot be played without a mouse. The end-of-game popup needs nothing: as long
-   as it carries `class="popup"` and has a heading, `wirePopups` announces it
-8. Add a game card in the root `index.html` — use `<canvas data-game="FOLDER">` (not `<img>`):
-   ```html
-   <div class="game-card">
-       <canvas aria-hidden="true" data-game="FOLDER"></canvas>
-       <div class="game-info">
-           <div class="game-title">Título</div>
-           <div class="game-category">Categoría</div>
-           <div class="game-desc">Descripción breve.</div>
-           <a class="game-link" aria-label="Jugar a Título" href="./FOLDER/index.html" target="_blank">Jugar</a>
-       </div>
-   </div>
-   ```
-9. Add a thumbnail drawing function to `thumbnails.js` under the game's folder name key
-10. Use `requestAnimationFrame` for the game loop, not `setInterval` — either a rAF loop throttled with `if (ts - lastFrameTs < 15) return;` (see `pinball/main.js`) or, for fixed-tick games, `rafInterval()` or `rafLoop()` from `game-utils.js`
-11. Run `/validate-game [name]` after finishing to confirm all criteria pass
+
+Y una de método: **no reimplementes nada que ya esté en `game-utils.js`**. Cada
+función de ahí sustituyó a una copia por juego, y varias existen porque la
+versión ingenua falla en Safari o con las cookies bloqueadas.
+→ [Toolkit](./docs/toolkit.md)
+
+## Contenido importado
+
+@./docs/arquitectura.md
+@./docs/toolkit.md
+@./docs/audio.md
+@./docs/movil.md
+@./docs/rendimiento.md
+@./docs/trampas.md
+@./docs/herramientas.md
+@./docs/juegos/arcade.md
+@./docs/juegos/accion.md
+@./docs/juegos/puzzle.md
+@./docs/juegos/mesa.md
+@./docs/juegos/reflejos.md
+@./docs/juegos/transversales.md
+@./docs/nuevo-juego.md

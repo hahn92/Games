@@ -345,16 +345,10 @@ function drawTiles() {
             ctx.globalAlpha = 1;
             continue;
         }
-        // cuerpo del tile (gradient cacheado por tile al primer draw)
-        if (!t._grad) {
-            var gg = ctx.createLinearGradient(0, t.y, 0, t.y + TILE_H);
-            gg.addColorStop(0, palette.a);
-            gg.addColorStop(1, palette.b);
-            t._gradA = palette.a;
-            t._gradB = palette.b;
-        }
-        // el gradient depende de Y, así que debemos reconstruirlo
-        // (pero SOLO una vez por tile y frame — no por sub-elementos)
+        // El gradiente va de t.y a t.y+TILE_H y el tile cae cada frame, así que
+        // la clave sería la posición: no se puede memoizar sin fugar un gradiente
+        // por frame. Se reconstruye, pero UNA sola vez por tile — los sub-elementos
+        // (borde, brillo, onda) reutilizan colores planos.
         var g2 = ctx.createLinearGradient(0, t.y, 0, t.y + TILE_H);
         g2.addColorStop(0, palette.a);
         g2.addColorStop(1, palette.b);
