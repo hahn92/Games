@@ -299,6 +299,34 @@ Remaining per-game conventions:
 - Hearts/lives indicators → draw with bezier curves
 - Any game-critical visual
 
+## A game can load cleanly and still never draw
+
+`snake` shipped visually dead for weeks. `renderLoop` was defined and only ever
+referenced from inside itself, so nothing started it. The one `draw()` at init did
+not survive either: `MobileLayout`'s `reset` reassigns `canvas.width` right after,
+which clears the canvas.
+
+What made it hard to notice is that the **game logic kept running** on its
+`rafInterval` tick — the score in the side panel advanced normally while the board
+stayed black. It looks like a rendering glitch, not a dead game.
+
+Nothing in the usual checks catches this: the page loads, the console is clean,
+`GameUtils` and the canvas are present, and HiDPI applies. **Loading is not drawing.**
+
+When touching a game's loop, confirm the render entry point is actually reached:
+
+- `requestAnimationFrame(loop)` must appear somewhere *outside* `loop` itself —
+  or the loop must be a named function expression handed straight to rAF, as in
+  `requestAnimationFrame(function loop(ts) { ... })`, which chess and damas use.
+  A grep for "loop referenced only inside itself" flags that second form as a
+  false positive.
+- The only reliable verification is looking at the canvas. Load the game in a
+  visible iframe (offscreen iframes get their rAF throttled by Chrome, and a
+  narrow one flips `MobileLayout` into its mobile branch), let a few frames run,
+  and take a screenshot. Reading pixels back with `getImageData` from a parent
+  frame is **not** trustworthy: it returned all-black for games that were plainly
+  rendering on screen.
+
 ## Canvas performance rules
 
 These rules exist because past optimization work identified them as the biggest bottlenecks:
