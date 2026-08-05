@@ -774,6 +774,7 @@ function loop(tsMs) {
     drawHUD();
     drawFooter();
     drawFlash();
+    drawCursor();
 
     ctx.restore();
 
@@ -785,10 +786,40 @@ function loop(tsMs) {
 /* ─────────────────────── Input ─────────────────────── */
 function canvasPoint(e) { return GU.pointerPos(canvas, e); }
 
+/* ── Cursor de teclado ──
+ * Dos grupos de objetivos: las 3 ranuras de la tienda arriba y las 9 parcelas.
+ * Como la navegación es geométrica, bajar desde la tienda entra en la parcela
+ * que queda debajo sin que haya que declarar la relación en ningún sitio. */
+var cursor = GU.canvasCursor(canvas, {
+    label: 'La Cosecha. Flechas para moverte entre semillas y parcelas, Enter para elegir o plantar.',
+    targets: function () {
+        if (!isPlaying || isOver) return [];
+        var out = [], i, r;
+        for (i = 0; i < 3; i++) { r = slotRect(i); out.push({ x: r.x, y: r.y, w: r.w, h: r.h, id: 's' + i }); }
+        for (i = 0; i < 9; i++) { r = plotRect(i); out.push({ x: r.x, y: r.y, w: r.w, h: r.h, id: 'p' + i }); }
+        return out;
+    },
+    activate: function (t) { handleAt(t.x + t.w / 2, t.y + t.h / 2); }
+});
+
+function drawCursor() {
+    var t = cursor && cursor.target(); if (!t) return;
+    ctx.strokeStyle = '#fff'; ctx.lineWidth = 2.5;
+    GU.roundRectPath(ctx, t.x + 1.25, t.y + 1.25, t.w - 2.5, t.h - 2.5, 6);
+    ctx.stroke();
+}
+
 function handleTap(e) {
+    var p = canvasPoint(e);
+    handleAt(p.x, p.y);
+}
+
+/* Separado del evento para que el cursor de teclado entre por el mismo sitio
+ * con el centro de su objetivo, sin fabricar un evento de ratón. */
+function handleAt(px, py) {
     if (!isPlaying && !isOver) return;
     if (isOver) return;
-    var p = canvasPoint(e);
+    var p = { x: px, y: py };
 
     // Shop?
     var si = slotAtPoint(p.x, p.y);

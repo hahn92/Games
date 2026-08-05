@@ -441,6 +441,24 @@ function dispatch(b) {
     }
 }
 
+/* ── Cursor de teclado ──
+ * game.buttons ya son rectángulos con id, reconstruidos cada frame por
+ * buildButtons(). El cursor los consume tal cual y despacha por el mismo
+ * dispatch() que el ratón; los deshabilitados se omiten para que no se pueda
+ * enfocar algo que no hace nada. */
+const cursor = GU.canvasCursor(canvas, {
+    label: 'Blackjack. Flechas para moverte entre fichas y acciones, Enter para elegir.',
+    targets: () => game.buttons.filter(b => b.enabled),
+    activate: (t) => dispatch(t)
+});
+
+function drawCursor() {
+    const t = cursor && cursor.target(); if (!t) return;
+    ctx.strokeStyle = '#fff'; ctx.lineWidth = 3;
+    roundRectPath(t.x - 3, t.y - 3, t.w + 6, t.h + 6, 12);
+    ctx.stroke();
+}
+
 canvas.addEventListener('mousedown', (e) => { handleClick(canvasPoint(e)); });
 canvas.addEventListener('touchstart', (e) => { e.preventDefault(); handleClick(canvasPoint(e)); }, { passive: false });
 
@@ -463,6 +481,7 @@ function draw() {
     drawMessage();
     drawBankBar();
     drawButtons();
+    drawCursor();
 }
 
 function drawTableMarkings() {

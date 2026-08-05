@@ -381,6 +381,7 @@ function draw(ts) {
         drawEffects();
         drawHeader();
         if (state === 'placing') drawPlacingControls();
+        drawCursor();
     }
 
     ctx.restore();
@@ -615,6 +616,13 @@ function handlePointer(e) {
     if (state === 'idle') return;
     e.preventDefault();
     const { x, y } = canvasPos(e);
+    handleAt(x, y);
+}
+
+/* Separado del evento para que el cursor de teclado entre por aquí con el
+ * centro de su objetivo, en vez de fabricar un evento de ratón falso. */
+function handleAt(x, y) {
+    if (state === 'idle') return;
 
     if (state === 'placing') {
         if (pointInBtn(x, y, placeBtns.shuffle)) {
@@ -637,6 +645,37 @@ function handlePointer(e) {
             playerFire(r, c);
         }
     }
+}
+
+/* ── Cursor de teclado ──
+ * Los objetivos cambian con la fase: colocando son los dos botones, en combate
+ * son las 100 casillas del tablero enemigo. targets() se consulta en cada
+ * pulsación, así que basta con devolver lo que toque en ese momento. */
+const cursor = GU.canvasCursor(canvas, {
+    label: 'Batalla Naval. Flechas para moverte, Enter para disparar.',
+    targets: function () {
+        if (state === 'placing') {
+            return [placeBtns.shuffle, placeBtns.ready].map(function (b) {
+                return { x: b.x, y: b.y, w: b.w, h: b.h, id: b.label, btn: b };
+            });
+        }
+        if (state !== 'playing' || turn !== 'player' || busy) return [];
+        const b = ENEMY_BOARD, out = [];
+        for (let r = 0; r < GRID; r++) for (let c = 0; c < GRID; c++) {
+            out.push({ x: b.x + c * b.cell, y: b.y + r * b.cell, w: b.cell, h: b.cell,
+                       id: r + ',' + c, r: r, c: c });
+        }
+        return out;
+    },
+    activate: function (t) { handleAt(t.x + t.w / 2, t.y + t.h / 2); }
+});
+
+function drawCursor() {
+    const t = cursor && cursor.target(); if (!t) return;
+    ctx.strokeStyle = '#fff'; ctx.lineWidth = 3;
+    ctx.strokeRect(t.x + 1.5, t.y + 1.5, t.w - 3, t.h - 3);
+    ctx.strokeStyle = '#181818'; ctx.lineWidth = 1;
+    ctx.strokeRect(t.x + 3.5, t.y + 3.5, t.w - 7, t.h - 7);
 }
 
 canvas.addEventListener('mousedown', handlePointer);

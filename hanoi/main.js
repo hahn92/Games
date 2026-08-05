@@ -262,6 +262,7 @@ function draw() {
     var names = ['A', 'B', 'C'];
     for (var t = 0; t < 3; t++) ctx.fillText(names[t], TOWER_X[t], BASE_Y + 26);
 
+    drawCursor();
     ctx.restore();
 
     // HUD superior (movimientos / óptimo)
@@ -359,6 +360,28 @@ function pegFromX(px) {
 }
 function canvasPeg(clientX, clientY) {
     return pegFromX(GU.pointerPos(canvas, { clientX: clientX, clientY: clientY }).x);
+}
+
+/* ── Cursor de teclado ──
+ * Tres objetivos, uno por poste. handlePeg ya es la jugada completa (coger o
+ * soltar según haya disco en la mano), así que el cursor entra por ahí igual
+ * que el clic. */
+var cursor = GU.canvasCursor(canvas, {
+    label: 'Torres de Hanói. Flechas para elegir poste, Enter para coger o soltar el disco.',
+    targets: function () {
+        return [0, 1, 2].map(function (p) {
+            var w = W * 0.26;
+            return { x: TOWER_X[p] - w / 2, y: PEG_TOP - 10, w: w, h: BASE_Y - PEG_TOP + 26, id: p, peg: p };
+        });
+    },
+    activate: function (t) { handlePeg(t.peg); }
+});
+
+function drawCursor() {
+    var t = cursor && cursor.target(); if (!t) return;
+    ctx.strokeStyle = '#fff'; ctx.lineWidth = 2.5;
+    GU.roundRectPath(ctx, t.x + 1.5, t.y + 1.5, t.w - 3, t.h - 3, 8);
+    ctx.stroke();
 }
 
 canvas.addEventListener('click', function (e) {

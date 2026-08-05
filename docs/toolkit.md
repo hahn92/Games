@@ -16,7 +16,7 @@ because games already called them unqualified.
 | Storage | `GameStore.getNum/setNum/getJSON/setJSON/get/set/remove`\*, `GameStore.available` |
 | Particles | `new Particles(max, {semiImplicit})`\* with `.burst(x, y, n, opts)`, `.add(x, y, vx, vy, opts)`, `.update(dt)`, `.draw(ctx)`, `.each(fn)`, `.clear()` |
 | HiDPI | automatic; `GU.upgradeCanvas(canvas, {maxScale, pinCss})` for canvases sized at runtime |
-| Accessibility | `GU.keyActivate(el, label)` — makes a non-`<button>` cell focusable and Enter/Space-operable; `GU.gridKeyboard(container, cols, selector)` — roving tabindex + arrow navigation over a board; `GU.wirePopups()` — automatic, turns the `.popup` overlays into announced dialogs |
+| Accessibility | `GU.keyActivate(el, label)` — makes a non-`<button>` cell focusable and Enter/Space-operable; `GU.gridKeyboard(container, cols, selector)` — roving tabindex + arrow navigation over a board; `GU.canvasCursor(canvas, opts)` — the same idea for a canvas; `GU.wirePopups()` — automatic, turns the `.popup` overlays into announced dialogs |
 
 \* also available as a flat global.
 
@@ -72,6 +72,45 @@ because games already called them unqualified.
   cell and restores focus to the square the player was on.
   Used by memorama, minesweeper, tictactoe and whackamole. A cell that overrides
   `outline` needs its own `:focus-visible` rule, as `.ttt-cell` does.
+- **`canvasCursor`** — the canvas counterpart of `gridKeyboard`. A group of canvas
+  games were pointer-only: their whole interaction was a click handler mapping a
+  pixel to a square, a tower or a button, so nothing in them was reachable without
+  a mouse.
+
+  It knows nothing about the game's topology. The game returns a flat list of
+  targets in canvas coordinates and the arrows pick the nearest one in that
+  direction geometrically — which is why one implementation covers an 8×8 board,
+  three Hanoi towers and a row of blackjack buttons. Sideways drift is weighted
+  ×3 so a straight neighbour always beats a closer diagonal, or a board reads as
+  wandering instead of stepping.
+
+  ```js
+  var cursor = GU.canvasCursor(canvas, {
+      label:    'Tablero. Flechas para moverte, Enter para elegir.',
+      targets:  function () { return [{x, y, w, h, id}, ...]; },  // se consulta fresco
+      activate: function (t) { handleClick(t.x + SQ/2, t.y + SQ/2); },
+      onChange: draw            // sólo si el juego no repinta en bucle
+  });
+  ```
+
+  Things that are load-bearing here:
+
+  - **Call the game's own click path from `activate`.** Every game wired so far
+    reuses its existing handler, most after splitting `handleAt(x, y)` out of the
+    event handler. No game logic is duplicated, so the two input modes cannot
+    drift apart.
+  - **`targets()` is re-read on every keypress**, so a game that rebuilds its list
+    each frame (blackjack) needs no bookkeeping. Identity is by `id`, and a
+    remembered id is NOT forgotten when it is transiently missing — blackjack
+    empties its button list entirely while dealing.
+  - **Visibility follows `:focus-visible`, not focus.** Hiding the ring on
+    `mousedown` alone is wrong: clicking a canvas that already has focus fires no
+    new `focus` event, so the ring never returns and the arrows drive something
+    invisible. That bug shipped briefly and was only caught by looking at the
+    canvas. Tab in → ring shows; click → ring hides; next arrow → ring returns.
+  - The game still draws the ring itself, from `cursor.target()`. Draw it **after**
+    the pieces: it is a focus indicator, not a board decoration.
+
 - **`wirePopups`** — runs on its own, no game calls it. The 45 end-of-game overlays
   are divs toggled with `display`, so a screen reader never learned the game had
   ended. It marks them as `alertdialog`, names them from their heading and moves

@@ -490,6 +490,147 @@
         });
     }
 
+    /* Keyboard cursor over a canvas — the canvas counterpart of gridKeyboard().
+     *
+     * A pile of canvas games are pointer-only: the entire interaction is a
+     * click handler that maps a pixel to a square, a tower or a button, so
+     * nothing in them is reachable without a mouse (WCAG 2.1.1, level A).
+     *
+     * This deliberately knows NOTHING about the game's topology. The game
+     * hands over a flat list of targets in canvas coordinates and the arrows
+     * pick the nearest one in that direction geometrically, which covers an
+     * 8x8 board, three Hanoi towers and a row of blackjack buttons with one
+     * implementation. `targets()` is called fresh every time, so a game that
+     * rebuilds its list every frame (blackjack) needs no extra bookkeeping.
+     *
+     * The game keeps doing its own drawing: read `cursor.target()` in the
+     * render pass and outline whatever comes back. The cursor reports itself
+     * hidden until the canvas is focused, so mouse players never see it.
+     *
+     * The canvas is made focusable rather than listening on document: these
+     * games have no other keyboard handlers today, but stealing the arrows
+     * globally would break the moment one grows a shortcut, and a real focus
+     * stop is what lets a keyboard user reach the board in the first place. */
+    function canvasCursor(canvas, opts) {
+        if (!canvas || !opts || typeof opts.targets !== 'function') return null;
+
+        /* `focused` and `keyed` are separate on purpose — this is the
+         * :focus-visible rule, and getting it wrong makes the cursor invisible
+         * while it is still moving. Hiding the ring on mousedown alone does not
+         * work: clicking a canvas that ALREADY has focus fires no new focus
+         * event, so the ring would never come back and the arrows would drive
+         * something the player cannot see. */
+        var idx = -1, lastId = null, focused = false, keyed = false, byPointer = false;
+
+        function list()      { return opts.targets() || []; }
+        function mid(t)      { return { x: t.x + (t.w || 0) / 2, y: t.y + (t.h || 0) / 2 }; }
+
+        /* The list is rebuilt by the game, so an index alone goes stale.
+         * Re-find the target by id; fall back to clamping the index.
+         *
+         * On a miss the remembered id is deliberately NOT overwritten. These
+         * lists come and go — blackjack empties its button list entirely while
+         * dealing and swaps it wholesale between phases — and a cursor that
+         * forgot its target the moment it blinked out would land somewhere
+         * arbitrary when it came back. The clamped index only decides where
+         * the cursor sits meanwhile; `lastId` changes when the player moves. */
+        function sync() {
+            var l = list();
+            if (!l.length) { idx = -1; return l; }
+            if (lastId !== null) {
+                for (var i = 0; i < l.length; i++) {
+                    if (l[i].id === lastId) { idx = i; return l; }
+                }
+            }
+            if (idx >= l.length) idx = l.length - 1;
+            if (idx < 0) idx = 0;
+            return l;
+        }
+
+        /* Not every game runs a render loop: several of these repaint only when
+         * something changes, so moving the cursor has to say so or it simply
+         * would not appear. onChange fires on focus, blur and every move. */
+        function changed(t) { if (opts.onChange) opts.onChange(t || null); }
+
+        function select(i, l) {
+            idx = i; lastId = l[i].id;
+            if (opts.onMove) opts.onMove(l[i]);
+            changed(l[i]);
+        }
+
+        function step(dx, dy) {
+            var l = sync();
+            if (!l.length) return;
+            if (idx < 0) { select(0, l); return; }
+
+            var from = mid(l[idx]);
+            var best = -1, bestScore = Infinity;
+            for (var i = 0; i < l.length; i++) {
+                if (i === idx) continue;
+                var c = mid(l[i]);
+                var along  = (c.x - from.x) * dx + (c.y - from.y) * dy;
+                if (along <= 0.5) continue;                  /* behind us */
+                var across = Math.abs((c.x - from.x) * dy - (c.y - from.y) * dx);
+                /* weight sideways drift so a straight neighbour always wins
+                 * over a closer diagonal one — otherwise a board reads as
+                 * wandering rather than stepping */
+                var score = along + across * 3;
+                if (score < bestScore) { bestScore = score; best = i; }
+            }
+            if (best >= 0) select(best, l);
+        }
+
+        canvas.tabIndex = 0;
+        if (!canvas.getAttribute('role')) canvas.setAttribute('role', 'application');
+        if (opts.label && !canvas.getAttribute('aria-label')) {
+            canvas.setAttribute('aria-label', opts.label);
+        }
+
+        canvas.addEventListener('focus', function () {
+            focused = true;
+            /* Arriving with Tab is keyboard use and should show the ring at
+             * once; arriving via a click should not. mousedown runs first, so
+             * that flag tells the two apart. */
+            keyed = !byPointer;
+            byPointer = false;
+            var l = sync();
+            if (idx < 0 && l.length) select(0, l);
+            else changed(idx < 0 ? null : l[idx]);
+        });
+        canvas.addEventListener('blur', function () { focused = false; changed(null); });
+
+        canvas.addEventListener('keydown', function (e) {
+            var d = { ArrowRight: [1, 0], ArrowLeft: [-1, 0],
+                      ArrowDown: [0, 1], ArrowUp: [0, -1] }[e.key];
+            var act = (e.key === 'Enter' || e.key === ' ' || e.key === 'Spacebar');
+            if (!d && !act) return;
+            /* the first navigation key is what reveals the cursor */
+            if (!keyed) { keyed = true; changed(null); }
+            if (d) { e.preventDefault(); step(d[0], d[1]); return; }
+            var l = sync();
+            if (idx < 0 || !l.length) return;
+            e.preventDefault();
+            if (opts.activate) opts.activate(l[idx]);
+        });
+
+        /* Reaching for the mouse hides the ring, so the two input modes never
+         * both claim to be "the" selection. Focus is left alone: the canvas may
+         * legitimately keep it, and the next key press brings the ring back. */
+        canvas.addEventListener('mousedown', function () {
+            byPointer = true;
+            if (keyed) { keyed = false; changed(null); }
+        });
+
+        function shown() { return focused && keyed && idx >= 0; }
+
+        return {
+            target:  function () { if (!focused || !keyed) return null; var l = sync(); return idx < 0 ? null : l[idx]; },
+            visible: shown,
+            set:     function (id) { lastId = id; sync(); },
+            hide:    function () { keyed = false; }
+        };
+    }
+
     /* Trace a rounded rect on `ctx` (does not fill or stroke). Prefer
      * ctx.roundRect() directly — the polyfill above makes it universally
      * available; this stays for games whose helper took the ctx explicitly. */
@@ -789,7 +930,8 @@
         rectsOverlap: rectsOverlap, circlesOverlap: circlesOverlap,
         hexToRgb: hexToRgb, shade: shade, scaleColor: scaleColor,
         rgba: rgba, mixColor: mixColor,
-        pointerPos: pointerPos, roundRectPath: roundRectPath, keyActivate: keyActivate, gridKeyboard: gridKeyboard, wirePopups: wirePopups,
+        pointerPos: pointerPos, roundRectPath: roundRectPath, keyActivate: keyActivate, gridKeyboard: gridKeyboard,
+        canvasCursor: canvasCursor, wirePopups: wirePopups,
         gradientMemo: gradientMemo,
         upgradeCanvas: upgradeCanvas, upgradeAllCanvases: upgradeAllCanvases,
         Store: Store, Particles: Particles

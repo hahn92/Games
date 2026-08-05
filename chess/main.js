@@ -933,6 +933,7 @@ function render() {
         for (var r=0;r<8;r++) for (var c=0;c<8;c++)
             if (gs.board[r][c]) drawPiece(gs.board[r][c],r,c);
         drawCoords();
+        drawCursor();          // encima de las piezas: es un anillo de foco
     } else { drawIdleOverlay(); }
     drawHUD();
 }
@@ -967,6 +968,31 @@ function handleClick(px,py) {
         gs.sel=sq; gs.moves=getLegal(gs.board,sq.r,sq.c,gs.ep,gs.castle);
         if (gs.moves.length) GameAudio.click();
     } else { gs.sel=null; gs.moves=[]; }
+}
+
+/* ── Cursor de teclado ──
+ * El juego era sólo de ratón. El cursor no repite nada de la lógica: se limita
+ * a llamar a handleClick con el centro de la casilla, así que seleccionar y
+ * mover siguen exactamente el mismo camino que con el puntero. */
+var cursor = GU.canvasCursor(canvas, {
+    label: 'Tablero de ajedrez. Flechas para moverte, Enter para elegir pieza y destino.',
+    targets: function () {
+        var out=[];
+        for (var r=0;r<8;r++) for (var c=0;c<8;c++) {
+            var p=sqXY(r,c);
+            out.push({x:p.x, y:p.y, w:SQ, h:SQ, id:r+','+c});
+        }
+        return out;
+    },
+    activate: function (t) { handleClick(t.x+SQ/2, t.y+SQ/2); }
+});
+
+function drawCursor() {
+    var t = cursor && cursor.target(); if (!t) return;
+    ctx.strokeStyle='#fff'; ctx.lineWidth=3;
+    ctx.strokeRect(t.x+1.5, t.y+1.5, SQ-3, SQ-3);
+    ctx.strokeStyle='#181818'; ctx.lineWidth=1;
+    ctx.strokeRect(t.x+3.5, t.y+3.5, SQ-7, SQ-7);   // doble trazo: visible sobre casilla clara y oscura
 }
 
 /* ── Events ── */

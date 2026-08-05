@@ -417,6 +417,31 @@ function draw() {
         var ly = BY + gs.lastMove.r * SQ;
         ctx.strokeRect(lx + 2, ly + 2, SQ - 4, SQ - 4);
     }
+
+    drawCursor();
+}
+
+/* ── Cursor de teclado ──
+ * Reversi expone tryHumanMove(r, c), así que el cursor no necesita fabricar
+ * coordenadas: llama al mismo punto de entrada que el clic, con la celda. */
+var cursor = GU.canvasCursor(canvas, {
+    label: 'Tablero de Reversi. Flechas para moverte, Enter para colocar ficha.',
+    targets: function () {
+        var out = [];
+        for (var r = 0; r < 8; r++) for (var c = 0; c < 8; c++) {
+            out.push({ x: BX + c * SQ, y: BY + r * SQ, w: SQ, h: SQ, id: r + ',' + c, r: r, c: c });
+        }
+        return out;
+    },
+    activate: function (t) { tryHumanMove(t.r, t.c); }
+});
+
+function drawCursor() {
+    var t = cursor && cursor.target(); if (!t) return;
+    ctx.strokeStyle = '#fff'; ctx.lineWidth = 3;
+    ctx.strokeRect(t.x + 1.5, t.y + 1.5, SQ - 3, SQ - 3);
+    ctx.strokeStyle = '#181818'; ctx.lineWidth = 1;
+    ctx.strokeRect(t.x + 3.5, t.y + 3.5, SQ - 7, SQ - 7);
 }
 
 /* ── Animación / loop ── */

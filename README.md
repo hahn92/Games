@@ -59,12 +59,18 @@ Biblioteca común a los 49 juegos. Lo relevante:
 - Los tableros construidos con `<div>` (memorama, buscaminas, tres en raya,
   whack-a-mole) se manejan con teclado: una sola parada de tabulación por tablero,
   flechas para moverse y Enter o Espacio para actuar.
+- Siete juegos de canvas que sólo respondían al ratón (ajedrez, damas, reversi,
+  batalla naval, torres de Hanói, la cosecha y blackjack) se manejan con teclado:
+  el canvas es una parada de tabulación, las flechas mueven un cursor visible y
+  Enter juega. Cada uno entra por su propio manejador de clic, así que teclado y
+  ratón no pueden divergir.
 - Los diálogos de fin de partida se anuncian y reciben el foco.
 - Contraste verificado contra WCAG AA.
 
-**Pendiente:** los 40 juegos de canvas no tienen alternativa accesible. Etiquetar un
-canvas no lo hace jugable — haría falta alternativa de teclado y anuncios de estado
-por juego.
+**Pendiente:** siguen sin alternativa de teclado los juegos que dependen de apuntar
+de forma continua (air hockey, billar, bubble shooter, catapulta, sopa de letras y
+comando misil) y los de acción en tiempo real. Apuntar con teclado no es una
+traducción mecánica del ratón: hay que diseñar cómo se ajusta ángulo y fuerza.
 
 ## Contribuir
 
