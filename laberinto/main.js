@@ -231,17 +231,23 @@
             won = true;
             timerActive = false;
             elapsedMs = performance.now() - startMs;
+
+            /* El récord se decide contra la marca ANTERIOR, leída antes de
+             * guardar. Comparar después contra la ya actualizada obliga a una
+             * tolerancia, y con `< 50ms` bastaba con empatar tu propio tiempo
+             * por poco para que anunciara un récord que no era. */
+            var prevBest = getBest(level);
+            var newRecord = prevBest === null || elapsedMs < prevBest;
+
             saveBest(level, elapsedMs);
             winFlash = 40;
             GameAudio.win();
             updateHUD();
 
-            var best = getBest(level);
-            var newRecord = best !== null && Math.abs(best - elapsedMs) < 50;
             winTitle.textContent = newRecord ? '¡Nuevo record!' : 'Laberinto superado!';
             winTimeEl.textContent = 'Tiempo: ' + fmtTime(elapsedMs);
             var b = getBest(level);
-            winBestEl.textContent = b ? 'Mejor: ' + fmtTime(b) : '';
+            winBestEl.textContent = b !== null ? 'Mejor: ' + fmtTime(b) : '';
             nextLvlBtn.textContent = level >= MAX_LEVEL ? 'Volver al inicio' : 'Siguiente nivel';
             setTimeout(function () {
                 winPopup.style.display = 'flex';

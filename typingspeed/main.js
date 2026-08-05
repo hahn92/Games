@@ -309,13 +309,8 @@ function endGame() {
         (wpm >= highScore && wpm > 0 ? '<p style="color:#ffd700;font-size:1rem;margin:0.5rem 0">¡Nuevo récord!</p>' : '') +
         '<button id="playAgainBtn">Jugar de nuevo</button>';
 
-    // Re-attach event
-    content.querySelector('#playAgainBtn').addEventListener('click', function() {
-        GameAudio.click();
-        popup.style.display = 'none';
-        startGame();
-    });
-
+    // El botón nuevo lo recoge el listener delegado del popup; no hay que
+    // volver a enganchar nada aquí.
     popup.style.display = 'flex';
     // Trigger animation
     void content.offsetWidth;
@@ -365,7 +360,13 @@ document.getElementById('wordInput').addEventListener('keydown', function(e) {
 
 document.getElementById('startBtn').addEventListener('click', function() { GameAudio.click(); startGame(); });
 document.getElementById('restartBtn').addEventListener('click', function() { GameAudio.click(); startGame(); });
-document.getElementById('playAgainBtn').addEventListener('click', function() {
+/* Delegado en el popup, que nunca se sustituye. endGame() reescribe el
+ * innerHTML del contenido —incluido #playAgainBtn—, así que un listener
+ * puesto sobre el botón al cargar queda apuntando a un nodo que ya no existe
+ * en cuanto termina la primera partida. */
+document.getElementById('gameOverPopup').addEventListener('click', function (e) {
+    var btn = e.target.closest ? e.target.closest('#playAgainBtn') : null;
+    if (!btn) return;
     GameAudio.click();
     document.getElementById('gameOverPopup').style.display = 'none';
     startGame();

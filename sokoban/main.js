@@ -165,7 +165,6 @@
     var grid = [];
     var player = { r: 0, c: 0 };
     var history = []; // stack of {grid, player, moves}
-    var animating = false;
 
     // ── UI refs ──────────────────────────────────────────────────────
     var startBtn    = document.getElementById('startBtn');
@@ -227,7 +226,7 @@
 
     // ── Move logic ───────────────────────────────────────────────────
     function tryMove(dr, dc) {
-        if (gameState !== 'playing' || animating) return;
+        if (gameState !== 'playing') return;
         var nr = player.r + dr, nc = player.c + dc;
         if (nr < 0 || nr >= grid.length || nc < 0 || nc >= grid[0].length) return;
         var dest = grid[nr][nc];

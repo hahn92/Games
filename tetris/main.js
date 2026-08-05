@@ -379,8 +379,25 @@ function updateScoreDOM() {
     }
 }
 
+/* Bolsa de 7: se reparte una permutacion de las siete piezas antes de repetir
+ * ninguna. Con aleatorio uniforme, que era lo que habia, son posibles sequias
+ * largas de una pieza — la I puede no salir en veinte turnos — y el jugador no
+ * puede planificar. Con bolsa, la espera maxima entre dos I esta acotada. */
+let bag = [];
+
+function nextType() {
+    if (!bag.length) {
+        bag = SHAPES.map((_, i) => i);
+        for (let i = bag.length - 1; i > 0; i--) {
+            const j = Math.floor(Math.random() * (i + 1));
+            const t = bag[i]; bag[i] = bag[j]; bag[j] = t;
+        }
+    }
+    return bag.pop();
+}
+
 function randomPiece() {
-    const type = Math.floor(Math.random() * SHAPES.length);
+    const type = nextType();
     return {
         shape: SHAPES[type],
         x: Math.floor(COLS / 2) - Math.ceil(SHAPES[type][0].length / 2),
@@ -545,9 +562,28 @@ function tick() {
     drawBoard();
 }
 
+/* Desplazamientos que se prueban cuando el giro choca ("wall kicks"). Antes el
+ * giro se descartaba sin mas, asi que una pieza pegada a la pared o apoyada en
+ * el monton simplemente no giraba: la I vertical contra el borde era imposible
+ * de tumbar. Se prueba primero sin mover, luego a los lados, y por ultimo
+ * subiendo una fila, que es lo que permite girar apoyado en el suelo. */
+const KICKS = [
+    [0, 0], [-1, 0], [1, 0], [-2, 0], [2, 0],
+    [0, -1], [-1, -1], [1, -1]
+];
+
 function rotate() {
-    let newShape = current.shape[0].map((_, i) => current.shape.map(row => row[i])).reverse();
-    if (!collide(newShape, current.x, current.y)) current.shape = newShape;
+    const newShape = current.shape[0].map((_, i) => current.shape.map(row => row[i])).reverse();
+    for (let i = 0; i < KICKS.length; i++) {
+        const dx = KICKS[i][0], dy = KICKS[i][1];
+        if (!collide(newShape, current.x + dx, current.y + dy)) {
+            current.shape = newShape;
+            current.x += dx;
+            current.y += dy;
+            drawBoard();
+            return;
+        }
+    }
     drawBoard();
 }
 
@@ -580,6 +616,7 @@ function startGame() {
     pendingClearLines = [];
     holdPiece = null;
     canHold = true;
+    bag = [];                    // partida nueva, bolsa nueva
     current = randomPiece();
     next = randomPiece();
     updateScoreDOM();
