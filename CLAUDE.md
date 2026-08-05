@@ -31,6 +31,7 @@ Or open `index.html` (root or per-game) directly in a browser.
 | `fullscreen-btn.js` | Inter-game navigation bar (all devices) + fullscreen/landscape button (mobile only). **Required in every game** — see "Navigation bar" below |
 | `favicon.svg` | Shared favicon, referenced relatively (`./favicon.svg` from root, `../favicon.svg` from a game) |
 | `main.js` | Catalog filter, search and pagination with shareable URLs |
+| `thumbnails.js` | One canvas-drawing function per game, keyed by folder name. Each thumbnail is drawn the first time its card is actually on screen — see "Catalog thumbnails" below |
 
 ### Per-game structure
 Each game lives in its own folder with:
@@ -102,6 +103,26 @@ Each game lives in its own folder with:
 | `blackjack/` | Blackjack | Cartas | Canvas |
 | `sopaletras/` | Sopa de Letras | Palabras | Canvas |
 | `hanoi/` | Torres de Hanói | Lógica | Canvas |
+
+## Catalog thumbnails
+
+All 49 thumbnail canvases live in the DOM at once, but the catalog paginates by
+toggling `display` on the cards, so only 8 are shown at a time. `thumbnails.js`
+therefore draws each one lazily, through an `IntersectionObserver`: a hidden card
+has no layout box and never intersects, and paginating or filtering to it gives it
+one. Drawing all 49 up front spent ~85% of the work on canvases nobody could see —
+and since they render at device pixel density, each is a 440x440 backing store.
+
+Two consequences when touching this:
+
+- A thumbnail is drawn **once**. The canvas keeps its pixels when the card is
+  hidden again, so there is nothing to redraw on the way back.
+- These canvases are sized from script, not from markup, so the automatic HiDPI
+  pass skips them. `thumbnails.js` opts in with
+  `GU.upgradeCanvas(canvas, { pinCss: false })` after setting width/height and
+  before `getContext`. `pinCss: false` matters: the cards size the canvas with
+  `width:100%` + `aspect-ratio:1/1`, and pinning an explicit height would win over
+  that aspect ratio and squash the image.
 
 ## Navigation bar (`fullscreen-btn.js`)
 
