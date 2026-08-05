@@ -376,14 +376,13 @@ function updateExplosion() {
 function drawExplosion() {
     for (var i = 0; i < explosionParticles.length; i++) {
         var p = explosionParticles[i];
-        ctx.save();
         ctx.globalAlpha = p.life;
         ctx.fillStyle = p.color;
         ctx.beginPath();
         ctx.arc(p.x, p.y, p.r * p.life, 0, Math.PI * 2);
         ctx.fill();
-        ctx.restore();
     }
+    ctx.globalAlpha = 1;
 }
 
 // ─── GAME LOGIC ────────────────────────────────────────────

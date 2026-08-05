@@ -1159,14 +1159,16 @@ function drawDeathAnim() {
         p.vy += 0.15; // gravity
         p.life--;
         if (p.life <= 0) { deathAnim.particles.splice(i, 1); continue; }
-        ctx.save();
+        /* save/restore por partícula empujaba y sacaba TODO el estado del
+           contexto; aquí solo cambian globalAlpha y fillStyle, y ambos se
+           reasignan en cada vuelta. Basta con reponer el alpha al salir. */
         ctx.globalAlpha = p.life / p.maxLife;
         ctx.fillStyle = p.color;
         ctx.beginPath();
         ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
         ctx.fill();
-        ctx.restore();
     }
+    ctx.globalAlpha = 1;
 
     if (deathAnim.timer > 30 && deathAnim.particles.length === 0) {
         deathAnim.done = true;
@@ -1182,12 +1184,11 @@ function updateAndDrawExhaust() {
         p.life--;
         if (p.life <= 0) { exhaustParticles.splice(i, 1); continue; }
         var a = (p.life / p.maxLife) * 0.25;
-        ctx.save();
         ctx.globalAlpha = a;
         ctx.fillStyle = '#ccc';
         ctx.beginPath(); ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2); ctx.fill();
-        ctx.restore();
     }
+    ctx.globalAlpha = 1;
 }
 
 function updateAndDrawJumpParticles() {
@@ -1198,12 +1199,11 @@ function updateAndDrawJumpParticles() {
         p.life--;
         if (p.life <= 0) { jumpParticles.splice(i, 1); continue; }
         var a = p.life / p.maxLife;
-        ctx.save();
         ctx.globalAlpha = a * 0.75;
         ctx.fillStyle = p.color;
         ctx.beginPath(); ctx.arc(p.x, p.y, p.r * a, 0, Math.PI * 2); ctx.fill();
-        ctx.restore();
     }
+    ctx.globalAlpha = 1;
 }
 
 function getFrogOnLog() {

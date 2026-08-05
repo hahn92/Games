@@ -320,11 +320,11 @@ function draw() {
         ctx.fillRect(bx, by + bh - 4, bw, 4);
         ctx.fillStyle = darkColor;
         ctx.fillRect(bx + bw - 3, by, 3, bh);
-        ctx.save();
+        /* corría por cada ladrillo y cada frame solo para acotar el alpha */
         ctx.globalAlpha = 0.5;
         ctx.fillStyle = '#ffffff';
         ctx.fillRect(bx + 2, by + 2, 6, 3);
-        ctx.restore();
+        ctx.globalAlpha = 1;
 
         // Indicador visual de HP en bloques invencibles
         if (brick.maxStatus === 2) {
