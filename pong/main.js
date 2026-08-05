@@ -51,6 +51,10 @@ const TRAIL_LENGTH = 8;
 // Particles
 const particles = new Particles(180);   // pooled, see game-utils.js
 
+/* Cache de gradientes: fondo y viñeta son constantes; las paletas comparten
+   el mismo degradado vertical, que ahora se construye en el origen. */
+const gMemo = GU.gradientMemo();
+
 // Flash effect (al anotar)
 let flashSide = null;
 let flashFrames = 0;
@@ -143,17 +147,21 @@ function draw() {
     ctx.clearRect(0, 0, WIDTH, HEIGHT);
 
     // Fondo con degradado
-    const bgGrad = ctx.createLinearGradient(0, 0, 0, HEIGHT);
-    bgGrad.addColorStop(0, '#0a0a1a');
-    bgGrad.addColorStop(1, '#000510');
-    ctx.fillStyle = bgGrad;
+    ctx.fillStyle = gMemo('bg', function () {
+        const g = ctx.createLinearGradient(0, 0, 0, HEIGHT);
+        g.addColorStop(0, '#0a0a1a');
+        g.addColorStop(1, '#000510');
+        return g;
+    });
     ctx.fillRect(0, 0, WIDTH, HEIGHT);
 
     // Viñeta radial
-    const vignette = ctx.createRadialGradient(WIDTH/2, HEIGHT/2, HEIGHT*0.3, WIDTH/2, HEIGHT/2, HEIGHT*0.85);
-    vignette.addColorStop(0, 'rgba(0,0,0,0)');
-    vignette.addColorStop(1, 'rgba(0,0,0,0.55)');
-    ctx.fillStyle = vignette;
+    ctx.fillStyle = gMemo('vignette', function () {
+        const g = ctx.createRadialGradient(WIDTH/2, HEIGHT/2, HEIGHT*0.3, WIDTH/2, HEIGHT/2, HEIGHT*0.85);
+        g.addColorStop(0, 'rgba(0,0,0,0)');
+        g.addColorStop(1, 'rgba(0,0,0,0.55)');
+        return g;
+    });
     ctx.fillRect(0, 0, WIDTH, HEIGHT);
 
     // Flash de punto
@@ -197,21 +205,25 @@ function draw() {
     // Impact flashes
     updateImpactFlashes();
 
+    /* El degradado es vertical y de la altura de la paleta, así que es el
+       mismo para ambas: se construye una vez en el origen y se traslada. */
+    ctx.fillStyle = gMemo('paddle', function () {
+        const g = ctx.createLinearGradient(0, 0, 0, PADDLE_HEIGHT);
+        g.addColorStop(0, '#aaaaaa');
+        g.addColorStop(0.5, '#ffffff');
+        g.addColorStop(1, '#aaaaaa');
+        return g;
+    });
+
     // Paleta jugador
-    const playerGrad = ctx.createLinearGradient(0, playerY, 0, playerY + PADDLE_HEIGHT);
-    playerGrad.addColorStop(0, '#aaaaaa');
-    playerGrad.addColorStop(0.5, '#ffffff');
-    playerGrad.addColorStop(1, '#aaaaaa');
-    ctx.fillStyle = playerGrad;
-    ctx.fillRect(0, playerY, PADDLE_WIDTH, PADDLE_HEIGHT);
+    ctx.translate(0, playerY);
+    ctx.fillRect(0, 0, PADDLE_WIDTH, PADDLE_HEIGHT);
+    ctx.translate(0, -playerY);
 
     // Paleta AI
-    const aiGrad = ctx.createLinearGradient(0, aiY, 0, aiY + PADDLE_HEIGHT);
-    aiGrad.addColorStop(0, '#aaaaaa');
-    aiGrad.addColorStop(0.5, '#ffffff');
-    aiGrad.addColorStop(1, '#aaaaaa');
-    ctx.fillStyle = aiGrad;
-    ctx.fillRect(WIDTH - PADDLE_WIDTH, aiY, PADDLE_WIDTH, PADDLE_HEIGHT);
+    ctx.translate(0, aiY);
+    ctx.fillRect(WIDTH - PADDLE_WIDTH, 0, PADDLE_WIDTH, PADDLE_HEIGHT);
+    ctx.translate(0, -aiY);
 
     // Marcador prominente
     ctx.save();

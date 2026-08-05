@@ -120,6 +120,19 @@ let bgGradCache = null, bgGradSize = -1;
 let fruitGradCache = null, fruitGradKey = '';
 let starGradCache = null, starGradKey = '';
 
+/* La cabeza se dibuja tras un translate, así que su degradado vive en
+   coordenadas locales: sólo cambia con el radio y el parpadeo de muerte. */
+const headGrads = GU.gradientMemo();
+function headGradFor(hr, flash) {
+    return headGrads('head:' + hr + ':' + flash, function () {
+        const g = ctx.createRadialGradient(-hr * 0.2, -hr * 0.2, hr * 0.05, 0, 0, hr);
+        g.addColorStop(0,    flash ? '#ff6060' : '#b2ff59');
+        g.addColorStop(0.45, flash ? '#ff1744' : '#76c442');
+        g.addColorStop(1,    flash ? '#7f0000' : '#1b5e20');
+        return g;
+    });
+}
+
 // --- Partículas al comer ---
 let eatParticles = [];
 
@@ -420,13 +433,12 @@ function draw() {
     ctx.save();
     ctx.shadowBlur = 12;
     ctx.shadowColor = deathFlash ? '#ff1744' : '#76ff03';
-    const headGrad = ctx.createRadialGradient(hx - hr * 0.2, hy - hr * 0.2, hr * 0.05, hx, hy, hr);
-    headGrad.addColorStop(0, deathFlash ? '#ff6060' : '#b2ff59');
-    headGrad.addColorStop(0.45, deathFlash ? '#ff1744' : '#76c442');
-    headGrad.addColorStop(1, deathFlash ? '#7f0000' : '#1b5e20');
+    /* La cabeza se mueve, así que el degradado se construye en el origen y
+       se traslada; sólo depende del radio y del parpadeo de muerte. */
+    ctx.translate(hx, hy);
+    ctx.fillStyle = headGradFor(hr, deathFlash);
     ctx.beginPath();
-    ctx.arc(hx, hy, hr, 0, Math.PI * 2);
-    ctx.fillStyle = headGrad;
+    ctx.arc(0, 0, hr, 0, Math.PI * 2);
     ctx.fill();
     ctx.restore();
 
@@ -743,3 +755,8 @@ restartBtn.addEventListener('click', () => { GameAudio.click(); restartGame(); }
 syncCanvasLogicSize();
 updateScore();
 draw();
+/* renderLoop sólo se referenciaba a sí mismo: nadie lo arrancaba, así que el
+   canvas se quedaba en el primer frame — y ni eso, porque el `reset` de
+   MobileLayout reasigna canvas.width justo después y eso lo borra. La lógica
+   seguía corriendo sobre rafInterval, de ahí que el marcador sí avanzara. */
+requestAnimationFrame(renderLoop);
