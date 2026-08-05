@@ -4264,21 +4264,47 @@
         },
     };
 
-    /* ── render all thumbnails on DOMContentLoaded ── */
+    function paint(canvas) {
+        if (canvas.__thumbDrawn) return;
+        var key = canvas.getAttribute('data-game');
+        var fn  = thumbs[key];
+        if (!fn) return;
+        canvas.__thumbDrawn = true;
+        canvas.width  = W;
+        canvas.height = H;
+        /* Sized here rather than in the markup, so the automatic pass in
+           game-utils.js skipped it — opt in now that W/H are known, before
+           the context is created. No CSS pin: styles.css already sizes
+           these with width:100% + aspect-ratio:1/1. */
+        if (window.GU) GU.upgradeCanvas(canvas, { pinCss: false });
+        var ctx = canvas.getContext('2d');
+        try { fn(ctx); } catch (e) { console.warn('Thumbnail error for', key, e); }
+    }
+
+    /* ── draw each thumbnail the first time it is actually on screen ──
+     *
+     * All 49 canvases live in the DOM, but the catalog paginates by toggling
+     * `display` on the cards, so only 8 are shown at a time. Drawing every one
+     * on load spent ~85% of the work on canvases nobody could see — and since
+     * they render at device pixel density, each is a 440x440 backing store.
+     *
+     * A hidden card has no layout box, so it never intersects; paginating to it
+     * gives it one and the observer fires then. Drawing is one-shot: a canvas
+     * keeps its pixels when its card is hidden again. */
     document.addEventListener('DOMContentLoaded', function () {
-        document.querySelectorAll('canvas[data-game]').forEach(function (canvas) {
-            var key = canvas.getAttribute('data-game');
-            var fn  = thumbs[key];
-            if (!fn) return;
-            canvas.width  = W;
-            canvas.height = H;
-            /* Sized here rather than in the markup, so the automatic pass in
-               game-utils.js skipped it — opt in now that W/H are known, before
-               the context is created. No CSS pin: styles.css already sizes
-               these with width:100% + aspect-ratio:1/1. */
-            if (window.GU) GU.upgradeCanvas(canvas, { pinCss: false });
-            var ctx = canvas.getContext('2d');
-            try { fn(ctx); } catch (e) { console.warn('Thumbnail error for', key, e); }
-        });
+        var list = document.querySelectorAll('canvas[data-game]');
+        var i;
+        if (!('IntersectionObserver' in window)) {
+            for (i = 0; i < list.length; i++) paint(list[i]);
+            return;
+        }
+        var io = new IntersectionObserver(function (entries) {
+            for (var k = 0; k < entries.length; k++) {
+                if (!entries[k].isIntersecting) continue;
+                paint(entries[k].target);
+                io.unobserve(entries[k].target);
+            }
+        }, { rootMargin: '300px' });   /* un poco antes de entrar en pantalla */
+        for (i = 0; i < list.length; i++) io.observe(list[i]);
     });
 }());
