@@ -137,6 +137,7 @@ because games already called them unqualified.
 | Storage | `GameStore.getNum/setNum/getJSON/setJSON/get/set/remove`\*, `GameStore.available` |
 | Particles | `new Particles(max, {semiImplicit})`\* with `.burst(x, y, n, opts)`, `.add(x, y, vx, vy, opts)`, `.update(dt)`, `.draw(ctx)`, `.each(fn)`, `.clear()` |
 | HiDPI | automatic; `GU.upgradeCanvas(canvas, {maxScale, pinCss})` for canvases sized at runtime |
+| Accessibility | `GU.keyActivate(el, label)` — makes a non-`<button>` cell focusable and Enter/Space-operable; `GU.gridKeyboard(container, cols, selector)` — roving tabindex + arrow navigation over a board; `GU.wirePopups()` — automatic, turns the `.popup` overlays into announced dialogs |
 
 \* also available as a flat global.
 
@@ -182,6 +183,21 @@ because games already called them unqualified.
   after setting width/height and before `getContext()`. Pass `{pinCss: false}` when a
   stylesheet already sizes it: the CSS pin sets an explicit height, which would override
   an `aspect-ratio` that nothing else constrains and squash the element.
+- **`keyActivate` / `gridKeyboard`** — several DOM games build their board out of
+  plain `<div>`s with only a click listener, which made them unplayable without a
+  mouse (WCAG 2.1.1, level A). `keyActivate` gives a cell what a real `<button>`
+  would have: focus, a button role and Enter/Space. `gridKeyboard` then keeps only
+  ONE cell in the tab order and moves with the arrows — without it a hard
+  minesweeper board is 480 separate tab stops. Call `gridKeyboard` again after each
+  render: these games rebuild their cells every move, and it re-seats the tabbable
+  cell and restores focus to the square the player was on.
+  Used by memorama, minesweeper, tictactoe and whackamole. A cell that overrides
+  `outline` needs its own `:focus-visible` rule, as `.ttt-cell` does.
+- **`wirePopups`** — runs on its own, no game calls it. The 45 end-of-game overlays
+  are divs toggled with `display`, so a screen reader never learned the game had
+  ended. It marks them as `alertdialog`, names them from their heading and moves
+  focus into them when they appear. Careful with visibility checks here:
+  `offsetParent` is null for `position: fixed`, which every one of these popups is.
 - **`gradientMemo`** — gradients are among the more expensive 2D calls. Key on
   everything the gradient depends on, geometry and colour stops both, and make sure the
   key is BOUNDED: keying on a scrolling or animated coordinate leaks a gradient per
@@ -499,15 +515,19 @@ Located in `.claude/agents/`:
    - Game-specific canvas class (border: `3px solid var(--accent-color)`, border-radius, box-shadow)
 6. Add `GameAudio.*()` calls for all key game events (never inside render loops)
 7. Never use emoji for game-critical visuals — always use canvas shapes
+7b. If the board is built from `<div>`s rather than `<button>`s, wire it with
+   `GU.keyActivate` per cell and `GU.gridKeyboard` after each render — otherwise the
+   game cannot be played without a mouse. The end-of-game popup needs nothing: as long
+   as it carries `class="popup"` and has a heading, `wirePopups` announces it
 8. Add a game card in the root `index.html` — use `<canvas data-game="FOLDER">` (not `<img>`):
    ```html
    <div class="game-card">
-       <canvas data-game="FOLDER"></canvas>
+       <canvas aria-hidden="true" data-game="FOLDER"></canvas>
        <div class="game-info">
            <div class="game-title">Título</div>
            <div class="game-category">Categoría</div>
            <div class="game-desc">Descripción breve.</div>
-           <a class="game-link" href="./FOLDER/index.html" target="_blank">Jugar</a>
+           <a class="game-link" aria-label="Jugar a Título" href="./FOLDER/index.html" target="_blank">Jugar</a>
        </div>
    </div>
    ```
