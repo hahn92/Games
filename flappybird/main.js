@@ -1,3 +1,8 @@
+/* Flappy Bird — el hueco entre tubos depende de la dificultad (135 / 115 / 95)
+ * y hay medallas por puntuacion en 10, 20, 35 y 50, que suenan como hito en
+ * vez de como punto normal. El cielo interpola color en un ciclo dia/noche,
+ * por eso su degradado no se cachea: las paradas cambian cada frame.
+ */
 const canvas = document.getElementById('flappyCanvas');
 const ctx = canvas.getContext('2d');
 const GRAVITY = 0.5;

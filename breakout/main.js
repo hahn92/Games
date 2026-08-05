@@ -1,3 +1,9 @@
+/* Breakout — ladrillos con vida (maxStatus 2 = invencible hasta dos golpes),
+ * power-ups que caen al romper, ondas de impacto y particulas por ladrillo.
+ * El brillo de cada ladrillo se dibuja sin save/restore: solo cambia
+ * globalAlpha y se repone al salir, porque el bucle recorre todos los
+ * ladrillos en cada frame.
+ */
 const canvas = document.getElementById('breakoutCanvas');
 const ctx = canvas.getContext('2d');
 const WIDTH = canvas.width;

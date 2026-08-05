@@ -1,3 +1,8 @@
+/* Tetris — pieza guardada (hold), previsualizacion de la siguiente y pieza
+ * fantasma que marca donde va a caer. Las lineas completas parpadean unos
+ * frames antes de retirarse, de ahi que limpiar este partido en dos pasos:
+ * clearLines marca y executeClearLines retira.
+ */
 const canvas = document.getElementById('tetrisCanvas');
 const ctx = canvas.getContext('2d');
 const COLS = 10;

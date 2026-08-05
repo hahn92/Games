@@ -511,6 +511,75 @@ Located in `.claude/agents/`:
 - On mobile: keyboard width set explicitly via JS (`Math.min(window.innerWidth - 16, 390) + 'px'`) to avoid iOS Safari overflow
 - `gameSide.overflowX = 'hidden'` and `overflowY = 'auto'` set separately (shorthand `overflow` not supported everywhere)
 
+### Snake (`snake/`)
+- `renderLoop` must be started explicitly; it only ever references itself. It went
+  unstarted for weeks and the board stayed black while the score kept climbing.
+- Its `onMobile` reassigns `canvas.width`, which clears the canvas — harmless only
+  because the render loop repaints. It also resizes the logical board, so
+  `syncCanvasLogicSize` re-reads it and `rescaleCoord` moves the snake and fruit onto
+  the new grid. Both listeners fire on the same `resize`, in that order.
+- Caches its background, fruit and star gradients by key; the head is built at the
+  origin and translated, since it moves.
+
+### Chess (`chess/`) and Damas (`damas/`)
+- Both draw a 64-square board. The squares share one diagonal, so two origin-space
+  gradients cover the whole board and each square is translated into place — building
+  one per square meant ~70 gradients every frame.
+- Piece gradients are memoised on `(cx, cy, size, colour)`. That is only safe because
+  neither game animates pieces between squares: the coordinates are discrete.
+- Their render loop is `requestAnimationFrame(function loop(ts) {...})`, a named
+  function expression. A search for "loop referenced only inside itself" flags it as
+  dead code; it is not.
+
+### Gemas (`gemas/`) and Plinko (`plinko/`)
+- Both use `ctx.setTransform` for screen shake. That is the one call HiDPI has to
+  intercept — the shared toolkit premultiplies it so the device-pixel scale survives.
+- gemas integrates gravity *before* moving its particles, the opposite of every other
+  per-frame loop here, which is why its particle system was left hand-rolled.
+
+### Grid games played with the keyboard
+`memorama`, `minesweeper`, `tictactoe` and `whackamole` build their boards from
+`<div>`s. Each cell is wired with `GU.keyActivate`, and the board with
+`GU.gridKeyboard` **after every render** — these games rebuild their cells on each
+move, which destroys the focused element. `tictactoe` needs its own
+`:focus-visible` rule because `.ttt-cell` overrides `outline`.
+
+### Games on the shared particle pool
+`airhockey`, `batallanaval`, `billar`, `breakout`, `catapulta`, `dardos`, `hanoi`,
+`helicoidal`, `minero`, `misiles`, `platformer`, `pong`, `saltador`, `sopaletras`
+and `stacktower`.
+
+- Unit conversion differs per game. Loops with `dt` in seconds need velocity ÷60 and
+  gravity ÷3600 — once for the velocity unit and once for the time unit. Loops with
+  `dt` normalised to frames pass both through unchanged.
+- `billar`, `catapulta`, `minero` and `stacktower` accelerate before moving, so their
+  pools are `{semiImplicit: true}`.
+- `saltador` and `helicoidal` damp only the horizontal velocity: `drag: [x, 1]`.
+- `platformer` and `stacktower` draw their particles through a camera translate
+  rather than offsetting each one.
+- `misiles` keeps its state inside an IIFE, so nothing there is reachable from the
+  console.
+
+### Games whose particles stay hand-rolled
+Not an oversight — the shared pool draws plain circles and squares with a linear
+fade, and these need more: `fruitcatcher` shrinks each particle's radius with its
+life, `spaceinvaders` nests particles per explosion and removes the explosion when
+its array empties, `cosecha` draws a coin icon and other per-type shapes, `gemas`
+integrates in the opposite order, `connectfour` and `flappybird` rotate their
+particles, and `asteroids` and `pinball` use fragment shapes and per-particle glow.
+
+### Carrace (`carrace/`)
+- Calls `ctx.roundRect()` 66 times, more than any other game. It is the clearest
+  reason the polyfill in `game-utils.js` exists: without it the whole render loop
+  throws on Safari below 16.4.
+
+### Games whose canvas is sized by their own `fit`
+`damas`, `hanoi` and `reversi` compute the available width as
+`window.innerWidth - 8`. The 8 is not decoration: their canvas carries a 3px border
+per side with `content-box`, so using the raw `innerWidth` made the element 6px wider
+than the viewport and the page scrolled sideways on a phone. `chess` uses the raw
+value on purpose — its canvas only has a bottom border.
+
 ## Adding a new game
 
 1. Create a new folder with `index.html`, `main.js`, `styles.css`

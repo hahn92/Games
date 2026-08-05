@@ -1,3 +1,8 @@
+/* Dardos Giratorios — la diana gira y cada dardo clavado se convierte en
+ * obstaculo para el siguiente: chocar con uno previo termina la partida.
+ * Hay que clavar la cuota de cada nivel para avanzar. Todo el fichero va
+ * dentro de un IIFE, asi que su estado no es alcanzable desde fuera.
+ */
 (function () {
     'use strict';
 

@@ -1,3 +1,9 @@
+/* Space Invaders — tres tipos de alien (A antena, B cangrejo, C pulpo) y
+ * cuatro bunkers destruibles con rejilla de pixeles, que ademas se aplastan
+ * si los invasores bajan hasta ellos.
+ * Cuidado con shadowBlur: dibujar 40 aliens con sombra era el mayor cuello de
+ * botella del juego, asi que las funciones de alien no la usan.
+ */
 const canvas = document.getElementById('invadersCanvas');
 const ctx = canvas.getContext('2d');
 const PLAYER_WIDTH = 48;

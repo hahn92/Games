@@ -1,3 +1,8 @@
+/* Pong — tres niveles de IA, la bola acelera con los golpes hasta un tope y
+ * los intercambios largos disparan un mensaje de racha. Se gana a 7.
+ * Las dos palas comparten un unico degradado vertical construido en el origen
+ * y trasladado, en vez de uno nuevo por pala y frame.
+ */
 const canvas = document.getElementById('pongCanvas');
 const ctx = canvas.getContext('2d');
 const WIDTH = canvas.width;
