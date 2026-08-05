@@ -379,6 +379,53 @@
         return el;
     }
 
+    /* Announce the end-of-game popups.
+     *
+     * All 44 of them are plain divs shown by flipping `display`, with no role
+     * and no focus change — so a screen reader never learns the game ended or
+     * what the score was. Rather than edit 44 files, watch them here: when one
+     * appears, it becomes a proper alert dialog and takes focus, which is what
+     * makes assistive tech read it out.
+     *
+     * Runs automatically; games do not call it. */
+    function wirePopups() {
+        if (!global.document) return;
+        var popups = global.document.querySelectorAll('.popup');
+        for (var i = 0; i < popups.length; i++) prepare(popups[i]);
+
+        function prepare(p) {
+            if (p.__guPopup) return;
+            p.__guPopup = true;
+
+            var heading = p.querySelector('h1,h2,h3');
+            if (heading) {
+                if (!heading.id) heading.id = 'gu-popup-title-' + i;
+                p.setAttribute('aria-labelledby', heading.id);
+            }
+            p.setAttribute('role', 'alertdialog');
+            p.setAttribute('aria-modal', 'true');
+
+            var shown = visible(p);
+            new global.MutationObserver(function () {
+                var now = visible(p);
+                if (now === shown) return;
+                shown = now;
+                if (!now) return;
+                /* focus the action button so the dialog is both announced and
+                 * immediately operable from the keyboard */
+                var btn = p.querySelector('button,a[href],[tabindex]');
+                if (btn) btn.focus();
+                else { p.tabIndex = -1; p.focus(); }
+            }).observe(p, { attributes: true, attributeFilter: ['style', 'class'] });
+        }
+
+        function visible(el) {
+            /* offsetParent is null for position:fixed elements, and every one
+             * of these popups is fixed — use the computed display instead. */
+            return global.getComputedStyle(el).display !== 'none';
+        }
+    }
+
     /* Roving tabindex over a grid of cells.
      *
      * keyActivate() alone puts every cell in the tab order, which is fine for
@@ -739,7 +786,7 @@
         rectsOverlap: rectsOverlap, circlesOverlap: circlesOverlap,
         hexToRgb: hexToRgb, shade: shade, scaleColor: scaleColor,
         rgba: rgba, mixColor: mixColor,
-        pointerPos: pointerPos, roundRectPath: roundRectPath, keyActivate: keyActivate, gridKeyboard: gridKeyboard,
+        pointerPos: pointerPos, roundRectPath: roundRectPath, keyActivate: keyActivate, gridKeyboard: gridKeyboard, wirePopups: wirePopups,
         gradientMemo: gradientMemo,
         upgradeCanvas: upgradeCanvas, upgradeAllCanvases: upgradeAllCanvases,
         Store: Store, Particles: Particles
@@ -770,5 +817,15 @@
      * (DOMContentLoaded) would be too late: the context would already be live
      * without the base transform. */
     upgradeAllCanvases();
+
+    /* Los popups existen ya en el markup, pero este script corre antes de que
+       el documento termine; esperar a DOMContentLoaded para cazarlos todos. */
+    if (global.document) {
+        if (global.document.readyState === 'loading') {
+            global.document.addEventListener('DOMContentLoaded', wirePopups);
+        } else {
+            wirePopups();
+        }
+    }
 
 }(typeof window !== 'undefined' ? window : this));
