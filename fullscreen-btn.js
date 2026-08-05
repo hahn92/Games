@@ -107,6 +107,9 @@
             var el = disabled ? document.createElement('span') : document.createElement('a');
             if (!disabled) el.href = href;
             el.title = title;
+            /* el contenido es un SVG sin texto: sin aria-label el enlace se
+               anuncia solo por su URL */
+            el.setAttribute('aria-label', title);
             el.innerHTML = html;
             el.style.cssText =
                 'color:' + (disabled ? 'rgba(143,211,244,0.25)' : '#8fd3f4') + ';' +

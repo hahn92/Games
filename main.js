@@ -52,7 +52,7 @@
     controlsDiv.className = 'catalog-controls';
     controlsDiv.innerHTML =
         '<div class="controls-top">' +
-            '<input type="search" class="search-input" id="catalogSearch" placeholder="Buscar juego..." autocomplete="off">' +
+            '<input type="search" class="search-input" id="catalogSearch" placeholder="Buscar juego..." aria-label="Buscar juego por nombre" autocomplete="off">' +
             '<span class="results-count" id="resultsCount"></span>' +
         '</div>' +
         '<div class="filter-btns" id="filterBtns"></div>';
