@@ -389,7 +389,10 @@
      *
      * Runs automatically; games do not call it. */
     function wirePopups() {
-        if (!global.document) return;
+        /* The rest of the toolkit degrades quietly on an exotic host; this
+         * should too, instead of throwing and taking main.js down with it. */
+        if (!global.document || !global.document.querySelectorAll ||
+            !global.MutationObserver || !global.getComputedStyle) return;
         var popups = global.document.querySelectorAll('.popup');
         for (var i = 0; i < popups.length; i++) prepare(popups[i]);
 
