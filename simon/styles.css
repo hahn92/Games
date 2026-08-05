@@ -46,6 +46,15 @@ body { background: var(--grad-bg); color: #fff; min-height: 100vh; margin: 0; }
     overflow: hidden;
 }
 
+/* `outline: none` de arriba tambien anula el anillo que Chrome pinta en
+   :focus-visible, y estos son <button> enfocables por teclado: sin esto se
+   puede tabular hasta ellos sin ninguna senal visible de donde esta el foco.
+   El anillo va por fuera para no taparse con el brillo del boton al sonar. */
+.simon-btn:focus-visible {
+    outline: 3px solid #fff;
+    outline-offset: 4px;
+}
+
 /* Radial gradient for depth */
 #btn-green {
     background: radial-gradient(circle at 38% 35%, #54e07a 0%, #00c853 45%, #007a30 100%);
