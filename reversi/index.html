@@ -59,7 +59,9 @@
         fit: function (vHeight) {
             var canvas = document.getElementById('reversiCanvas');
             var ratio  = 400 / 448;
-            var availW = window.innerWidth;
+            /* -8: el canvas lleva borde de 3px por lado y content-box,
+               asi que innerWidth pelado desborda el viewport en movil */
+            var availW = window.innerWidth - 8;
             var btnH   = isMobile() ? 48 : 0;
             var availH = vHeight - btnH;
             var newH   = Math.min(availH, availW / ratio);
