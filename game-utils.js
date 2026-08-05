@@ -116,10 +116,14 @@
                 configurable: true, enumerable: true, get: get, set: set
             });
         }
+        function resized() {
+            if (pinCss) pinCssSize(canvas, logicalW, logicalH);
+            rebase();
+        }
         shadow('width',  function () { return logicalW; },
-                         function (v) { logicalW = v; dw.set.call(canvas, Math.round(v * dpr)); rebase(); });
+                         function (v) { logicalW = v; dw.set.call(canvas, Math.round(v * dpr)); resized(); });
         shadow('height', function () { return logicalH; },
-                         function (v) { logicalH = v; dh.set.call(canvas, Math.round(v * dpr)); rebase(); });
+                         function (v) { logicalH = v; dh.set.call(canvas, Math.round(v * dpr)); resized(); });
 
         var ctx2d = null;
         function rebase() {
@@ -160,6 +164,7 @@
     }
 
     var cssPin = null;
+    var pinNodes = {};
     function pinCssSize(canvas, w, h) {
         if (!global.document || !global.document.head) return;
         if (!cssPin) {
@@ -170,8 +175,14 @@
         var sel = canvas.id ? '#' + canvas.id : 'canvas';
         /* :where() keeps an id selector at zero specificity, so this never
          * outranks the game's own stylesheet. */
-        cssPin.appendChild(global.document.createTextNode(
-            ':where(' + sel + '){width:' + w + 'px;height:' + h + 'px}\n'));
+        var text = ':where(' + sel + '){width:' + w + 'px;height:' + h + 'px}\n';
+        /* Rewrite in place. A game that resizes its canvas (snake does, from
+         * its mobile `fit`) would otherwise be left pinned at the size it had
+         * when it was upgraded, and the stale value wins over the intrinsic
+         * one it expects. */
+        if (pinNodes[sel]) { pinNodes[sel].nodeValue = text; return; }
+        pinNodes[sel] = global.document.createTextNode(text);
+        cssPin.appendChild(pinNodes[sel]);
     }
 
     /* Auto-upgrade only canvases whose size is declared in the markup. A canvas
