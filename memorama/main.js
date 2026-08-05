@@ -112,6 +112,7 @@ function render() {
             container.appendChild(card);
         }
     }
+    GU.gridKeyboard(container, DIFFICULTY_CONFIG[currentDifficulty].cols, '.card');
 }
 
 // ---- Flip card ----

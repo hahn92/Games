@@ -379,6 +379,67 @@
         return el;
     }
 
+    /* Roving tabindex over a grid of cells.
+     *
+     * keyActivate() alone puts every cell in the tab order, which is fine for
+     * nine of them and miserable for the 480 of a hard minesweeper board. The
+     * grid pattern instead keeps exactly ONE cell tabbable and moves between
+     * cells with the arrow keys, so the whole board costs a single tab stop.
+     *
+     * The listener lives on the container, so it survives the cell rebuilds
+     * these games do on every move; call this again after each render to
+     * re-seat the tabbable cell. */
+    function gridKeyboard(container, cols, cellSelector) {
+        if (!container || !cols) return;
+        var sel = cellSelector || '[role="button"],[role="gridcell"]';
+        function cells() { return Array.prototype.slice.call(container.querySelectorAll(sel)); }
+
+        function seat(list, idx) {
+            for (var i = 0; i < list.length; i++) list[i].tabIndex = (i === idx ? 0 : -1);
+        }
+
+        var list = cells();
+        if (!list.length) return;
+        /* keep whatever cell already had focus, otherwise the first one */
+        var active = list.indexOf(container.querySelector(sel + ':focus'));
+        var remembered = container.__guGridIdx;
+        if (active < 0 && remembered != null && remembered < list.length &&
+            (document.activeElement === document.body || document.activeElement === null)) {
+            /* These games rebuild their cells after every move, which destroys
+             * the focused element and drops the user out of the board. If they
+             * were on a cell and the rebuild is what took focus away, put them
+             * back on the same square. */
+            active = remembered;
+            list[active].focus();
+        }
+        seat(list, active < 0 ? 0 : active);
+
+        if (container.__guGrid) return;
+        container.__guGrid = true;
+
+        container.addEventListener('keydown', function (e) {
+            var d = { ArrowRight: 1, ArrowLeft: -1, ArrowDown: cols, ArrowUp: -cols }[e.key];
+            if (d === undefined) return;
+            var list = cells();
+            var i = list.indexOf(document.activeElement);
+            if (i < 0) return;
+            /* don't wrap around the row edges: sliding off the left of a row
+             * onto the previous one reads as a bug, not navigation */
+            if (Math.abs(d) === 1 && Math.floor((i + d) / cols) !== Math.floor(i / cols)) return;
+            var next = i + d;
+            if (next < 0 || next >= list.length) return;
+            e.preventDefault();
+            seat(list, next);
+            list[next].focus();
+        });
+
+        container.addEventListener('focusin', function (e) {
+            var list = cells();
+            var i = list.indexOf(e.target);
+            if (i >= 0) { container.__guGridIdx = i; seat(list, i); }
+        });
+    }
+
     /* Trace a rounded rect on `ctx` (does not fill or stroke). Prefer
      * ctx.roundRect() directly — the polyfill above makes it universally
      * available; this stays for games whose helper took the ctx explicitly. */
@@ -678,7 +739,7 @@
         rectsOverlap: rectsOverlap, circlesOverlap: circlesOverlap,
         hexToRgb: hexToRgb, shade: shade, scaleColor: scaleColor,
         rgba: rgba, mixColor: mixColor,
-        pointerPos: pointerPos, roundRectPath: roundRectPath, keyActivate: keyActivate,
+        pointerPos: pointerPos, roundRectPath: roundRectPath, keyActivate: keyActivate, gridKeyboard: gridKeyboard,
         gradientMemo: gradientMemo,
         upgradeCanvas: upgradeCanvas, upgradeAllCanvases: upgradeAllCanvases,
         Store: Store, Particles: Particles

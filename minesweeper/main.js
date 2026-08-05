@@ -157,6 +157,8 @@ function renderBoard() {
             container.appendChild(cell);
         }
     }
+    /* una sola parada de tabulacion para todo el tablero; las flechas mueven */
+    GU.gridKeyboard(container, COLS, '.mine-cell');
 }
 
 function updateCell(r, c, revealDelay) {

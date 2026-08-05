@@ -338,6 +338,7 @@ function startGame() {
 }
 
 // ---- Event listeners ----
+GU.gridKeyboard(document.getElementById('tttBoard'), 3, '.ttt-cell');
 document.querySelectorAll('.ttt-cell').forEach(function(cell) {
     /* son <div>: sin esto el tablero solo se puede jugar con raton */
     var i = parseInt(cell.dataset.index);

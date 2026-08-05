@@ -117,6 +117,7 @@ function initGrid() {
         holeTypes.push(MOLE_NORMAL);
         holeTimers.push(null);
     }
+    GU.gridKeyboard(grid, 3, '.hole');
 }
 
 /* ---- Limpia el temporizador de ocultado de un agujero ---- */
