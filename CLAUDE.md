@@ -327,6 +327,26 @@ When touching a game's loop, confirm the render entry point is actually reached:
   frame is **not** trustworthy: it returned all-black for games that were plainly
   rendering on screen.
 
+## Never call `adjustMobileLayout()` by hand
+
+Several games register their own `resize` listener beside the one
+`mobile-layout.js` installs, and they depend on running **after** it. `snake` is
+the clearest case: `MobileLayout`'s `onMobile` reassigns `canvas.width` to fit the
+viewport, and snake's own `syncCanvasLogicSize` then re-reads it into `canvasSize`
+and rescales the snake and the fruit onto the new grid. Because `index.html` runs
+before `main.js`, the listeners already fire in that order on a real resize.
+
+Calling `adjustMobileLayout()` directly resizes the canvas without the second half
+of that pair. Snake's logic then keeps using the old board size: the snake can walk
+outside the visible canvas and fruit can spawn where it is unreachable — exactly
+the failure `rescaleCoord` exists to prevent.
+
+So when testing orientation changes, resize and **dispatch a real `resize` event**;
+do not invoke the layout function yourself. Verified across all 40 canvas games,
+portrait → landscape → portrait: nothing overflows, aspect ratios hold, every game
+recovers its original size, and snake's grid stays consistent (box 9 → 8 with the
+snake and fruit rescaled onto matching cells).
+
 ## Canvas performance rules
 
 These rules exist because past optimization work identified them as the biggest bottlenecks:
