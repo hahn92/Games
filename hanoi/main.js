@@ -294,18 +294,10 @@ function drawStarsPreview() {
     }
 }
 
+// La forma vive en game-utils.js; aqui solo el color y el relleno.
 function drawStar(cx, cy, r, color) {
     ctx.fillStyle = color;
-    ctx.beginPath();
-    for (var i = 0; i < 5; i++) {
-        var a = -Math.PI / 2 + i * 2 * Math.PI / 5;
-        var ix = cx + Math.cos(a) * r;
-        var iy = cy + Math.sin(a) * r;
-        if (i === 0) ctx.moveTo(ix, iy); else ctx.lineTo(ix, iy);
-        var a2 = a + Math.PI / 5;
-        ctx.lineTo(cx + Math.cos(a2) * r * 0.45, cy + Math.sin(a2) * r * 0.45);
-    }
-    ctx.closePath();
+    GU.starPath(ctx, cx, cy, r, r * 0.45);
     ctx.fill();
 }
 

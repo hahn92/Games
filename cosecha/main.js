@@ -568,17 +568,10 @@ function drawPlant(cx, cy, seed, progress, mature, timeAcc) {
     }
 }
 
+// La forma vive en game-utils.js; aqui solo el color y el relleno.
 function drawStar(x, y, rInner, rOuter, color) {
     ctx.fillStyle = color;
-    ctx.beginPath();
-    for (var i = 0; i < 10; i++) {
-        var a = -Math.PI / 2 + i * Math.PI / 5;
-        var r = (i % 2 === 0) ? rOuter : rInner;
-        var px = x + Math.cos(a) * r;
-        var py = y + Math.sin(a) * r;
-        if (i === 0) ctx.moveTo(px, py); else ctx.lineTo(px, py);
-    }
-    ctx.closePath();
+    GU.starPath(ctx, x, y, rOuter, rInner);
     ctx.fill();
 }
 
