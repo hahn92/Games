@@ -18,6 +18,12 @@ const GAP_HARD   = 95;
 const GAP_MIN    = 85;
 
 let birdY, birdV, pipes, score, highScore, isPlaying, frame, gameLoop, gameOverPopup;
+
+const hud = GU.hud({
+    score: 'score',
+    best:  'highScore',
+    mobile: { el: 'mobileScore', format: function (v) { return 'Puntaje: ' + v.score; } }
+});
 let pipeGap = GAP_EASY;
 
 
@@ -643,16 +649,11 @@ function draw() {
 
     ctx.restore();
 
-    // DOM score update
-    if (document.getElementById('score')) {
-        document.getElementById('score').textContent = score;
-    }
-    if (document.getElementById('mobileScore')) {
-        document.getElementById('mobileScore').textContent = 'Puntaje: ' + score;
-    }
-    if (document.getElementById('highScore')) {
-        document.getElementById('highScore').textContent = highScore;
-    }
+    /* El marcador se escribia aqui a pelo: tres getElementById y tres
+     * textContent EN CADA FRAME, o sea 180 invalidaciones de layout por segundo
+     * para un numero que cambia una vez cada varios segundos. GU.hud compara
+     * antes de escribir y no toca el DOM si el valor no ha cambiado. */
+    hud.set({ score: score, best: highScore });
 }
 
 function flap() {

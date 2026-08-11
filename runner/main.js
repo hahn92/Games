@@ -41,6 +41,12 @@ var deathAngle  = 0;
 var deathVY     = 0;
 var screenShake = 0;
 
+var hud = GU.hud({
+    score: 'score',
+    best:  'highScore',
+    mobile: { el: 'mobileScore', format: function (v) { return 'Puntaje: ' + v.score; } }
+});
+
 // Milestone
 var lastMilestone = 0;
 
@@ -985,14 +991,15 @@ function drawScore() {
 
 }
 
+/* Se llama desde gameLoop, o sea en cada frame. Con escritura directa eran
+ * tres textContent por frame para un marcador que cambia a otro ritmo; GU.hud
+ * compara antes de escribir. */
 function updateScore() {
-    document.getElementById('score').textContent = score;
-    document.getElementById('mobileScore').textContent = 'Puntaje: ' + score;
     if (score > highScore) {
         highScore = score;
         GameStore.set('runnerHighScore', highScore);
     }
-    document.getElementById('highScore').textContent = highScore;
+    hud.set({ score: score, best: highScore });
 }
 
 // ─── DEATH ANIMATION ───────────────────────────────────────
