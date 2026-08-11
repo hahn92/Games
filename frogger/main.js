@@ -340,6 +340,72 @@ function drawBackground() {
     }
 }
 
+/* Un tronco gastaba cinco degradados por frame (reflejo, cuerpo, brillo y los
+ * dos topes) y sólo dependían de su altura, no de dónde estaba. Con una decena
+ * de troncos en pantalla eran ~50 degradados por frame para tres formas
+ * distintas. Se construyen en el origen, cacheados por altura, y cada tronco se
+ * dibuja con translate — el patrón de chess/drawBoard. */
+var logGrads = GU.gradientMemo();
+
+function logBodyGrad(oh) {
+    return logGrads('body:' + oh, function () {
+        var g = ctx.createLinearGradient(0, 0, 0, oh);
+        g.addColorStop(0, '#b8957a');      // top highlight (lit)
+        g.addColorStop(0.25, '#8b6343');
+        g.addColorStop(0.55, '#6d4c32');
+        g.addColorStop(0.85, '#4a3020');
+        g.addColorStop(1, '#3a2416');      // bottom shadow
+        return g;
+    });
+}
+
+function logReflGrad(oh) {
+    return logGrads('refl:' + oh, function () {
+        var g = ctx.createLinearGradient(0, oh, 0, oh + 7);
+        g.addColorStop(0, '#a1887f');
+        g.addColorStop(1, 'rgba(100,120,180,0)');
+        return g;
+    });
+}
+
+function logShineGrad(oh) {
+    return logGrads('shine:' + oh, function () {
+        var g = ctx.createLinearGradient(0, 0, 0, oh * 0.35);
+        g.addColorStop(0, 'rgba(255,255,255,0.7)');
+        g.addColorStop(1, 'rgba(255,255,255,0)');
+        return g;
+    });
+}
+
+/* Radial centrado en el origen: los dos topes comparten degradado y cada uno
+ * se traslada a su sitio, en vez de uno por tope. */
+function logCapGrad(capR) {
+    return logGrads('cap:' + capR, function () {
+        var g = ctx.createRadialGradient(-capR * 0.3, -capR * 0.3, 0, 0, 0, capR);
+        g.addColorStop(0, '#c8a078');
+        g.addColorStop(0.35, '#8b5e38');
+        g.addColorStop(0.65, '#6b4020');
+        g.addColorStop(1, '#3a2010');
+        return g;
+    });
+}
+
+// Tope del tronco: sección con anillos. cx,cy es su centro.
+function drawLogCap(cx, cy, capR) {
+    ctx.translate(cx, cy);
+    ctx.fillStyle = logCapGrad(capR);
+    ctx.beginPath(); ctx.arc(0, 0, capR, 0, Math.PI * 2); ctx.fill();
+    // anillos concéntricos
+    ctx.strokeStyle = 'rgba(40,15,5,0.4)'; ctx.lineWidth = 1;
+    for (var ring = 1; ring <= 3; ring++) {
+        ctx.beginPath(); ctx.arc(0, 0, capR * (ring / 4), 0, Math.PI * 2); ctx.stroke();
+    }
+    // punto de luz
+    ctx.fillStyle = 'rgba(255,255,255,0.22)';
+    ctx.beginPath(); ctx.arc(-capR * 0.3, -capR * 0.3, capR * 0.25, 0, Math.PI * 2); ctx.fill();
+    ctx.translate(-cx, -cy);
+}
+
 function drawLogs() {
     for (var r = 1; r <= 4; r++) {
         var lane = lanes[r];
@@ -352,94 +418,57 @@ function drawLogs() {
             var oy = r * CELL + 4 + bob;
             var oh = o.h;
             var ow = o.w;
+            var capR = oh / 2;
+
+            /* Todo el tronco se dibuja en coordenadas locales desde su esquina
+             * superior izquierda. Se restaura con la traslación inversa: esto
+             * corre por cada tronco y por frame, y el par save/restore cuesta
+             * más que deshacerlo a mano. */
+            ctx.translate(o.x, oy);
 
             // Water reflection (lighter strip below log)
-            ctx.save();
             ctx.globalAlpha = 0.18 + 0.06 * Math.sin(frame * 0.05 + i);
-            var reflGrad = ctx.createLinearGradient(o.x, oy + oh, o.x, oy + oh + 7);
-            reflGrad.addColorStop(0, '#a1887f');
-            reflGrad.addColorStop(1, 'rgba(100,120,180,0)');
-            ctx.fillStyle = reflGrad;
+            ctx.fillStyle = logReflGrad(oh);
             ctx.beginPath();
-            ctx.arc(o.x + oh/2, oy + oh + 4, oh/2, 0, Math.PI, false);
-            ctx.arc(o.x + ow - oh/2, oy + oh + 4, oh/2, Math.PI, 0, false);
+            ctx.arc(capR, oh + 4, capR, 0, Math.PI, false);
+            ctx.arc(ow - capR, oh + 4, capR, Math.PI, 0, false);
             ctx.closePath();
             ctx.fill();
-            ctx.restore();
 
             // Log body with cylindrical gradient
-            var logGrad = ctx.createLinearGradient(o.x, oy, o.x, oy + oh);
-            logGrad.addColorStop(0, '#b8957a');  // top highlight (lit)
-            logGrad.addColorStop(0.25, '#8b6343');
-            logGrad.addColorStop(0.55, '#6d4c32');
-            logGrad.addColorStop(0.85, '#4a3020');
-            logGrad.addColorStop(1, '#3a2416');    // bottom shadow
-            ctx.fillStyle = logGrad;
+            ctx.globalAlpha = 1;
+            ctx.fillStyle = logBodyGrad(oh);
             ctx.beginPath();
-            ctx.arc(o.x + oh/2, oy + oh/2, oh/2, Math.PI/2, -Math.PI/2, true);
-            ctx.arc(o.x + ow - oh/2, oy + oh/2, oh/2, -Math.PI/2, Math.PI/2, false);
+            ctx.arc(capR, capR, capR, Math.PI / 2, -Math.PI / 2, true);
+            ctx.arc(ow - capR, capR, capR, -Math.PI / 2, Math.PI / 2, false);
             ctx.closePath();
             ctx.fill();
 
             // Wet top highlight (specular)
-            ctx.save();
             ctx.globalAlpha = 0.28 + 0.10 * Math.sin(frame * 0.06 + i * 1.3);
-            var shineGrad = ctx.createLinearGradient(o.x, oy, o.x, oy + oh * 0.35);
-            shineGrad.addColorStop(0, 'rgba(255,255,255,0.7)');
-            shineGrad.addColorStop(1, 'rgba(255,255,255,0)');
-            ctx.fillStyle = shineGrad;
+            ctx.fillStyle = logShineGrad(oh);
             ctx.beginPath();
-            ctx.arc(o.x + oh/2, oy + oh/2, oh/2, Math.PI/2, -Math.PI/2, true);
-            ctx.arc(o.x + ow - oh/2, oy + oh/2, oh/2, -Math.PI/2, Math.PI/2, false);
+            ctx.arc(capR, capR, capR, Math.PI / 2, -Math.PI / 2, true);
+            ctx.arc(ow - capR, capR, capR, -Math.PI / 2, Math.PI / 2, false);
             ctx.closePath();
             ctx.fill();
-            ctx.restore();
+            ctx.globalAlpha = 1;
 
             // Wood grain lines on body
-            ctx.save();
             ctx.strokeStyle = 'rgba(40,20,8,0.35)';
             ctx.lineWidth = 1;
-            for (var g = oh/2 + 8; g < ow - oh/2; g += 8) {
+            for (var g = capR + 8; g < ow - capR; g += 8) {
                 ctx.beginPath();
-                ctx.moveTo(o.x + g, oy + 4);
-                ctx.lineTo(o.x + g, oy + oh - 4);
+                ctx.moveTo(g, 4);
+                ctx.lineTo(g, oh - 4);
                 ctx.stroke();
             }
-            ctx.restore();
 
-            // End cap LEFT — tree rings cross-section
-            var capCx = o.x + oh/2, capCy = oy + oh/2, capR = oh/2;
-            var capG = ctx.createRadialGradient(capCx - capR*0.3, capCy - capR*0.3, 0, capCx, capCy, capR);
-            capG.addColorStop(0, '#c8a078');
-            capG.addColorStop(0.35, '#8b5e38');
-            capG.addColorStop(0.65, '#6b4020');
-            capG.addColorStop(1, '#3a2010');
-            ctx.fillStyle = capG;
-            ctx.beginPath(); ctx.arc(capCx, capCy, capR, 0, Math.PI*2); ctx.fill();
-            // tree rings (concentric)
-            ctx.strokeStyle = 'rgba(40,15,5,0.4)'; ctx.lineWidth = 1;
-            for (var ring = 1; ring <= 3; ring++) {
-                ctx.beginPath(); ctx.arc(capCx, capCy, capR * (ring/4), 0, Math.PI*2); ctx.stroke();
-            }
-            // highlight dot
-            ctx.fillStyle = 'rgba(255,255,255,0.22)';
-            ctx.beginPath(); ctx.arc(capCx - capR*0.3, capCy - capR*0.3, capR*0.25, 0, Math.PI*2); ctx.fill();
+            ctx.translate(-o.x, -oy);
 
-            // End cap RIGHT — same
-            var capRx = o.x + ow - oh/2;
-            var capG2 = ctx.createRadialGradient(capRx - capR*0.3, capCy - capR*0.3, 0, capRx, capCy, capR);
-            capG2.addColorStop(0, '#c8a078');
-            capG2.addColorStop(0.35, '#8b5e38');
-            capG2.addColorStop(0.65, '#6b4020');
-            capG2.addColorStop(1, '#3a2010');
-            ctx.fillStyle = capG2;
-            ctx.beginPath(); ctx.arc(capRx, capCy, capR, 0, Math.PI*2); ctx.fill();
-            ctx.strokeStyle = 'rgba(40,15,5,0.4)'; ctx.lineWidth = 1;
-            for (var ring2 = 1; ring2 <= 3; ring2++) {
-                ctx.beginPath(); ctx.arc(capRx, capCy, capR * (ring2/4), 0, Math.PI*2); ctx.stroke();
-            }
-            ctx.fillStyle = 'rgba(255,255,255,0.22)';
-            ctx.beginPath(); ctx.arc(capRx - capR*0.3, capCy - capR*0.3, capR*0.25, 0, Math.PI*2); ctx.fill();
+            // End caps — tree rings cross-section
+            drawLogCap(o.x + capR, oy + capR, capR);
+            drawLogCap(o.x + ow - capR, oy + capR, capR);
         }
     }
 }

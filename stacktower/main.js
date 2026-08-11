@@ -266,6 +266,22 @@ function lerpCol(a, b, t) {
 }
 function rgb(c) { return 'rgb(' + c[0] + ',' + c[1] + ',' + c[2] + ')'; }
 
+/* La torre entera se repinta cada frame y cada bloque construía su propio
+ * degradado vertical, aunque sólo dependiera de su tono y de la altura fija del
+ * bloque. El tono avanza de 9 en 9 sobre 360, así que hay 40 valores posibles:
+ * la caché está acotada y se llena en la primera partida larga. */
+var blockGrads = GU.gradientMemo();
+
+// Construido en el origen (0..h) y llevado a su sitio con translate.
+function blockGrad(hue, h) {
+    return blockGrads(hue + ':' + h, function () {
+        var g = ctx.createLinearGradient(0, 0, 0, h);
+        g.addColorStop(0, 'hsl(' + hue + ', 75%, 68%)');
+        g.addColorStop(1, 'hsl(' + hue + ', 70%, 38%)');
+        return g;
+    });
+}
+
 function drawBlock(x, y, w, h, hue, bounce) {
     // bounce: altura añadida al rebotar
     var by = y - (bounce || 0);
@@ -273,33 +289,33 @@ function drawBlock(x, y, w, h, hue, bounce) {
     ctx.fillStyle = 'rgba(0,0,0,0.25)';
     ctx.fillRect(x + 3, by + h - 4, w, 6);
 
-    var g = ctx.createLinearGradient(x, by, x, by + h);
-    g.addColorStop(0, 'hsl(' + hue + ', 75%, 68%)');
-    g.addColorStop(1, 'hsl(' + hue + ', 70%, 38%)');
-    ctx.fillStyle = g;
-    ctx.fillRect(x, by, w, h);
+    ctx.translate(x, by);
+    ctx.fillStyle = blockGrad(hue, h);
+    ctx.fillRect(0, 0, w, h);
 
     // highlight superior
     ctx.fillStyle = 'rgba(255,255,255,0.28)';
-    ctx.fillRect(x + 2, by + 2, Math.max(0, w - 4), 3);
+    ctx.fillRect(2, 2, Math.max(0, w - 4), 3);
     // borde
     ctx.strokeStyle = 'hsl(' + hue + ', 80%, 25%)';
     ctx.lineWidth = 1;
-    ctx.strokeRect(x + 0.5, by + 0.5, w - 1, h - 1);
+    ctx.strokeRect(0.5, 0.5, w - 1, h - 1);
+    ctx.translate(-x, -by);
 }
 
 function drawFalling(p) {
     ctx.save();
     ctx.translate(p.x + p.w / 2, p.y + p.h / 2 + cameraY);
     ctx.rotate(p.rot);
-    var g = ctx.createLinearGradient(-p.w / 2, -p.h / 2, -p.w / 2, p.h / 2);
-    g.addColorStop(0, 'hsl(' + p.hue + ', 75%, 68%)');
-    g.addColorStop(1, 'hsl(' + p.hue + ', 70%, 38%)');
-    ctx.fillStyle = g;
-    ctx.fillRect(-p.w / 2, -p.h / 2, p.w, p.h);
+    /* El degradado ya estaba en coordenadas locales; sólo faltaba cachearlo.
+     * Se dibuja desde -h/2, así que se traslada media altura para reutilizar
+     * el mismo degradado 0..h que usan los bloques de la torre. */
+    ctx.translate(0, -p.h / 2);
+    ctx.fillStyle = blockGrad(p.hue, p.h);
+    ctx.fillRect(-p.w / 2, 0, p.w, p.h);
     ctx.strokeStyle = 'hsl(' + p.hue + ', 80%, 25%)';
     ctx.lineWidth = 1;
-    ctx.strokeRect(-p.w / 2 + 0.5, -p.h / 2 + 0.5, p.w - 1, p.h - 1);
+    ctx.strokeRect(-p.w / 2 + 0.5, 0.5, p.w - 1, p.h - 1);
     ctx.restore();
 }
 

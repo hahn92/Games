@@ -317,12 +317,19 @@ function update(dt) {
 }
 
 /* ─────────────────────── Render ─────────────────────── */
+
+/* El fondo es completamente estático: mismos topes y misma geometría en cada
+ * frame. Se construía uno por frame igualmente. */
+var bgGrad = GU.gradientMemo();
+
 function drawBackground() {
-    var g = ctx.createLinearGradient(0, 0, 0, H);
-    g.addColorStop(0,    COL.bgTop);
-    g.addColorStop(0.55, COL.bgMid);
-    g.addColorStop(1,    COL.bgBot);
-    ctx.fillStyle = g;
+    ctx.fillStyle = bgGrad('bg:' + H, function () {
+        var g = ctx.createLinearGradient(0, 0, 0, H);
+        g.addColorStop(0,    COL.bgTop);
+        g.addColorStop(0.55, COL.bgMid);
+        g.addColorStop(1,    COL.bgBot);
+        return g;
+    });
     ctx.fillRect(0, 0, W, H);
 
     for (var i = 0; i < stars.length; i++) {

@@ -413,45 +413,56 @@ function drawGround() {
     }
 }
 
-function drawPipe(pipe) {
-    const capH = 14;
-    const capW = PIPE_WIDTH + 8;
-    const capX = pipe.x - 4;
+const CAP_H = 14;
+const CAP_W = PIPE_WIDTH + 8;
+const CAP_DX = -4;              // el sombrero sobresale 4px a cada lado
 
-    const makeGrad = (x, w) => {
-        const g = ctx.createLinearGradient(x, 0, x + w, 0);
+/* Los cuatro degradados de una tubería son horizontales y de anchura fija: el
+ * único dato que cambiaba entre tuberías era su x. Se construyen una vez en el
+ * origen y se dibuja con translate, en vez de crear cuatro degradados por
+ * tubería y por frame (con 4 tuberías en pantalla eran 16 por frame). */
+const pipeGrad = GU.gradientMemo();
+
+function pipeBodyGrad() {
+    return pipeGrad('body', () => {
+        const g = ctx.createLinearGradient(0, 0, PIPE_WIDTH, 0);
         g.addColorStop(0, '#1b5e20');
         g.addColorStop(0.3, '#388e3c');
         g.addColorStop(0.6, '#66bb6a');
         g.addColorStop(1, '#2e7d32');
         return g;
-    };
+    });
+}
 
-    ctx.fillStyle = makeGrad(pipe.x, PIPE_WIDTH);
-    ctx.fillRect(pipe.x, 0, PIPE_WIDTH, pipe.top);
+function pipeCapGrad() {
+    return pipeGrad('cap', () => {
+        const g = ctx.createLinearGradient(CAP_DX, 0, CAP_DX + CAP_W, 0);
+        g.addColorStop(0, '#145214');
+        g.addColorStop(0.4, '#2e7d32');
+        g.addColorStop(1, '#1b5e20');
+        return g;
+    });
+}
 
-    const capGradTop = ctx.createLinearGradient(capX, 0, capX + capW, 0);
-    capGradTop.addColorStop(0, '#145214');
-    capGradTop.addColorStop(0.4, '#2e7d32');
-    capGradTop.addColorStop(1, '#1b5e20');
-    ctx.fillStyle = capGradTop;
-    ctx.fillRect(capX, pipe.top - capH, capW, capH);
-
+function drawPipe(pipe) {
     const bottomY = pipe.top + pipeGap;
     const bottomH = canvas.height - bottomY;
-    ctx.fillStyle = makeGrad(pipe.x, PIPE_WIDTH);
-    ctx.fillRect(pipe.x, bottomY + capH, PIPE_WIDTH, bottomH - capH);
 
-    const capGradBot = ctx.createLinearGradient(capX, 0, capX + capW, 0);
-    capGradBot.addColorStop(0, '#145214');
-    capGradBot.addColorStop(0.4, '#2e7d32');
-    capGradBot.addColorStop(1, '#1b5e20');
-    ctx.fillStyle = capGradBot;
-    ctx.fillRect(capX, bottomY, capW, capH);
+    ctx.translate(pipe.x, 0);
+
+    ctx.fillStyle = pipeBodyGrad();
+    ctx.fillRect(0, 0, PIPE_WIDTH, pipe.top);
+    ctx.fillRect(0, bottomY + CAP_H, PIPE_WIDTH, bottomH - CAP_H);
+
+    ctx.fillStyle = pipeCapGrad();
+    ctx.fillRect(CAP_DX, pipe.top - CAP_H, CAP_W, CAP_H);
+    ctx.fillRect(CAP_DX, bottomY, CAP_W, CAP_H);
 
     ctx.fillStyle = 'rgba(255,255,255,0.12)';
-    ctx.fillRect(pipe.x + 6, 0, 8, pipe.top);
-    ctx.fillRect(pipe.x + 6, bottomY + capH, 8, bottomH);
+    ctx.fillRect(6, 0, 8, pipe.top);
+    ctx.fillRect(6, bottomY + CAP_H, 8, bottomH);
+
+    ctx.translate(-pipe.x, 0);
 }
 
 function drawBird() {

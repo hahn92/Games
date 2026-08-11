@@ -284,27 +284,41 @@ function doAiMove() {
 }
 
 /* ── Dibujo ── */
+
+/* El degradado de una ficha sólo depende de su radio y su color, nunca de la
+ * casilla: se construye en el origen y se traslada. Antes se creaba uno por
+ * ficha y por frame — hasta 64 radiales por frame en un tablero lleno. Con dos
+ * radios en uso (14 en los contadores, SQ*0.4 en el tablero) la caché tiene
+ * cuatro entradas y no crece más. */
+var discGrad = GU.gradientMemo();
+
 function drawDisc(cx, cy, radius, color, alpha) {
     alpha = (alpha === undefined) ? 1 : alpha;
     ctx.globalAlpha = alpha;
-    var light, base, dark;
-    if (color === BLACK) { light = '#5a6273'; base = '#1c2230'; dark = '#06080d'; }
-    else { light = '#ffffff'; base = '#e6ebf2'; dark = '#9aa6b8'; }
-    var grad = ctx.createRadialGradient(
-        cx - radius * 0.35, cy - radius * 0.38, radius * 0.05,
-        cx, cy, radius
-    );
-    grad.addColorStop(0, light);
-    grad.addColorStop(0.45, base);
-    grad.addColorStop(1, dark);
+    var grad = discGrad(color + ':' + radius, function () {
+        var light, base, dark;
+        if (color === BLACK) { light = '#5a6273'; base = '#1c2230'; dark = '#06080d'; }
+        else { light = '#ffffff'; base = '#e6ebf2'; dark = '#9aa6b8'; }
+        var g = ctx.createRadialGradient(
+            -radius * 0.35, -radius * 0.38, radius * 0.05,
+            0, 0, radius
+        );
+        g.addColorStop(0, light);
+        g.addColorStop(0.45, base);
+        g.addColorStop(1, dark);
+        return g;
+    });
+    /* translate en lugar de save/restore: esto se llama hasta 64 veces por
+     * frame y el par cuesta más que deshacer la traslación a mano. */
+    ctx.translate(cx, cy);
     ctx.beginPath();
-    ctx.arc(cx, cy, radius, 0, Math.PI * 2);
+    ctx.arc(0, 0, radius, 0, Math.PI * 2);
     ctx.fillStyle = grad;
     ctx.fill();
-    ctx.globalAlpha = alpha;
     ctx.lineWidth = 1;
     ctx.strokeStyle = 'rgba(0,0,0,0.35)';
     ctx.stroke();
+    ctx.translate(-cx, -cy);
     ctx.globalAlpha = 1;
 }
 

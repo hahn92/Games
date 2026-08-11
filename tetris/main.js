@@ -66,29 +66,50 @@ function adjustColor(hex, amount) {
     return `rgb(${r},${g},${b})`;
 }
 
+/* Las cuatro caras biseladas de un bloque salían de adjustColor() en cada
+ * dibujo: cuatro parseos de hex y cuatro plantillas de string por bloque y por
+ * frame. Un tablero lleno son 200 bloques, o sea 800 por frame para un juego
+ * que sólo usa siete colores. Se calculan una vez por color. */
+const shadeCache = {};
+function blockShades(color) {
+    let s = shadeCache[color];
+    if (!s) {
+        s = shadeCache[color] = {
+            top:    adjustColor(color, 70),
+            left:   adjustColor(color, 40),
+            right:  adjustColor(color, -40),
+            bottom: adjustColor(color, -60)
+        };
+    }
+    return s;
+}
+
 function drawBlock3D(px, py, color, alpha) {
     alpha = alpha !== undefined ? alpha : 1;
     const b = 3;
     const x = px * BLOCK_SIZE;
     const y = py * BLOCK_SIZE;
     const s = BLOCK_SIZE;
+    const sh = blockShades(color);
 
-    ctx.save();
-    ctx.globalAlpha = alpha;
+    /* Sin save/restore: esto corre una vez por bloque y por frame, y la regla
+     * de rendimiento del proyecto lo prohíbe justamente en bucles así. El único
+     * estado que hay que devolver es globalAlpha, y sólo si se tocó. */
+    if (alpha !== 1) ctx.globalAlpha = alpha;
     ctx.fillStyle = color;
     ctx.fillRect(x, y, s, s);
-    ctx.fillStyle = adjustColor(color, 70);
+    ctx.fillStyle = sh.top;
     ctx.fillRect(x, y, s, b);
-    ctx.fillStyle = adjustColor(color, 40);
+    ctx.fillStyle = sh.left;
     ctx.fillRect(x, y, b, s);
-    ctx.fillStyle = adjustColor(color, -40);
+    ctx.fillStyle = sh.right;
     ctx.fillRect(x + s - b, y, b, s);
-    ctx.fillStyle = adjustColor(color, -60);
+    ctx.fillStyle = sh.bottom;
     ctx.fillRect(x, y + s - b, s, b);
     ctx.strokeStyle = 'rgba(0,0,0,0.5)';
     ctx.lineWidth = 0.5;
     ctx.strokeRect(x + 0.5, y + 0.5, s - 1, s - 1);
-    ctx.restore();
+    if (alpha !== 1) ctx.globalAlpha = 1;
 }
 
 // Dibuja mini-bloque para paneles de hold/next en el canvas principal
@@ -239,25 +260,30 @@ function updateLineParticles() {
     }
 }
 
+const boardGrad = GU.gradientMemo();
+
 function drawBoard() {
     // Fondo con degradado oscuro
-    const bgGrad = ctx.createLinearGradient(0, 0, 0, canvas.height);
-    bgGrad.addColorStop(0, '#0d0d0d');
-    bgGrad.addColorStop(1, '#141414');
-    ctx.fillStyle = bgGrad;
+    ctx.fillStyle = boardGrad('bg:' + canvas.height, function () {
+        const g = ctx.createLinearGradient(0, 0, 0, canvas.height);
+        g.addColorStop(0, '#0d0d0d');
+        g.addColorStop(1, '#141414');
+        return g;
+    });
     ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-    // Grid sutil
-    ctx.save();
+    /* Grid sutil: un solo path con las 32 líneas en vez de un
+     * beginPath/stroke por línea. */
     ctx.strokeStyle = 'rgba(255,255,255,0.04)';
     ctx.lineWidth = 0.5;
+    ctx.beginPath();
     for (let gx = 0; gx <= COLS; gx++) {
-        ctx.beginPath(); ctx.moveTo(gx * BLOCK_SIZE, 0); ctx.lineTo(gx * BLOCK_SIZE, canvas.height); ctx.stroke();
+        ctx.moveTo(gx * BLOCK_SIZE, 0); ctx.lineTo(gx * BLOCK_SIZE, canvas.height);
     }
     for (let gy = 0; gy <= ROWS; gy++) {
-        ctx.beginPath(); ctx.moveTo(0, gy * BLOCK_SIZE); ctx.lineTo(canvas.width, gy * BLOCK_SIZE); ctx.stroke();
+        ctx.moveTo(0, gy * BLOCK_SIZE); ctx.lineTo(canvas.width, gy * BLOCK_SIZE);
     }
-    ctx.restore();
+    ctx.stroke();
 
     // Tablero fijo
     for (let y = 0; y < ROWS; y++) {
