@@ -9,10 +9,10 @@ Entrada por teclado o por toque a tiempo.
 ## Typingspeed (`typingspeed/`)
 - Two ways to advance: an exact match on the `input` event auto-advances after 80ms,
   or space/Enter submits. Space is never required.
-- `endGame()` **replaces the popup's `innerHTML`, including `#playAgainBtn`**, then
-  re-attaches a listener to the new node. The `playAgainBtn` handler registered at load
-  is bound to an element that no longer exists after the first round — editing it has
-  no effect.
+- `endGame()` **replaces the popup's `innerHTML`, including `#playAgainBtn`**, so any
+  listener bound directly to that button dies with the first round. The handler is
+  therefore **delegated on the popup**, which is never replaced — keep it that way and
+  do not re-bind the button itself.
 - `totalAttempts` is clamped with `Math.max(totalAttempts, wordCount + 1)` so accuracy
   counts one attempt per word however many wrong keystrokes it took.
 - WPM counts whole words, not the standard five characters. The final figure divides by

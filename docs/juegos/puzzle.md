@@ -3,10 +3,15 @@
 Tableros por turnos, sin bucle de física.
 
 ## Tetris (`tetris/`)
-- `randomPiece` is **uniform random, not a 7-bag** — long droughts of one piece are
-  expected behaviour here, not a bug.
-- `rotate()` has **no wall kicks**: the rotated matrix is tested once and discarded if
-  it collides. A piece flush against a wall or resting on stack simply will not turn.
+- `randomPiece` draws from a **7-bag**: every piece appears exactly once per block of
+  seven, so the longest possible wait is 13. It was uniform random until the bag landed.
+- `rotate()` **has wall kicks** (`KICKS`): the rotated matrix is retried at a few lateral
+  offsets and one row up before being discarded, so a piece flush against a wall or
+  resting on the stack still turns. It does not phase through blocks — on a full board
+  every candidate collides and the rotation is dropped.
+- `drawBlock3D` reads its four bevel colours from `blockShades()`, a per-colour cache.
+  Do not call `adjustColor()` from the draw path: a full board is 200 blocks and it was
+  re-deriving 800 colour strings per frame.
 - Line clearing is two-phase on purpose — `clearLines` marks and starts the animation,
   `executeClearLines` removes the rows and awards the score.
 - Speed is `max(80, 500 - (level-1) * 48)`; both the line score and the combo bonus
@@ -43,7 +48,6 @@ Tableros por turnos, sin bucle de física.
   precisely because of that; a win check written the other way would make them
   impossible.
 - Undo pushes a deep grid copy per move, capped at 200.
-- `animating` is declared and never set — the guard on it is dead.
 
 ## Laberinto (`laberinto/`)
 - `dfsMaze` is **recursive**, one frame per cell in the worst case: 675 deep at level
@@ -54,6 +58,7 @@ Tableros por turnos, sin bucle de física.
   `t/r/b/l` walls, not a grid-of-walls algorithm. Even sizes would work.
 - Start is always `(0,0)`, exit always `(cols-1, rows-1)`.
 - The clock starts on the **first move**, not on Iniciar.
-- `checkWin` detects a record by comparing the fresh time against the stored best with
-  `< 50ms` tolerance — it works only because `saveBest` already ran, making them equal
-  on a real record. Tying an old time to within 50ms reports a false record.
+- `checkWin` reads the previous best **before** calling `saveBest` and compares
+  strictly. Comparing afterwards means comparing against the value you just wrote,
+  which is what forced the old `< 50ms` tolerance and reported false records on a
+  near-tie. Keep the read before the write.
