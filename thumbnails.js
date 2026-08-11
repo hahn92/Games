@@ -4262,6 +4262,342 @@
             ctx.fillText('MOV 12 / 31', W/2, 28);
             ctx.textAlign = 'left';
         },
+
+        sudoku: function (ctx) {
+            var bg = ctx.createLinearGradient(0, 0, 0, H);
+            bg.addColorStop(0, '#0d1526');
+            bg.addColorStop(1, '#101a2e');
+            ctx.fillStyle = bg; ctx.fillRect(0, 0, W, H);
+
+            var pad = 18, grid = W - pad * 2, cell = grid / 9, top = 34;
+
+            // bloques 3x3 alternos
+            for (var br = 0; br < 3; br++) {
+                for (var bc = 0; bc < 3; bc++) {
+                    if ((br + bc) % 2) continue;
+                    ctx.fillStyle = '#1b2a49';
+                    ctx.fillRect(pad + bc * cell * 3, top + br * cell * 3, cell * 3, cell * 3);
+                }
+            }
+            // fila/columna resaltada de la casilla activa (fila 4, col 4)
+            ctx.fillStyle = 'rgba(45,74,122,0.55)';
+            ctx.fillRect(pad, top + 4 * cell, grid, cell);
+            ctx.fillRect(pad + 4 * cell, top, cell, grid);
+            ctx.fillStyle = '#2d4a7a';
+            ctx.fillRect(pad + 4 * cell, top + 4 * cell, cell, cell);
+
+            // lineas finas y gruesas, un path cada una
+            ctx.strokeStyle = 'rgba(143,211,244,0.18)';
+            ctx.lineWidth = 1;
+            ctx.beginPath();
+            for (var k = 0; k <= 9; k++) {
+                if (k % 3 === 0) continue;
+                ctx.moveTo(pad + k * cell, top); ctx.lineTo(pad + k * cell, top + grid);
+                ctx.moveTo(pad, top + k * cell); ctx.lineTo(pad + grid, top + k * cell);
+            }
+            ctx.stroke();
+            ctx.strokeStyle = 'rgba(143,211,244,0.6)';
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            for (var b = 0; b <= 9; b += 3) {
+                ctx.moveTo(pad + b * cell, top); ctx.lineTo(pad + b * cell, top + grid);
+                ctx.moveTo(pad, top + b * cell); ctx.lineTo(pad + grid, top + b * cell);
+            }
+            ctx.stroke();
+
+            // cifras: pistas en gris claro, las del jugador en azul
+            var given = [[0,0,5],[0,3,7],[1,1,9],[1,4,1],[2,2,8],[2,7,6],
+                         [3,0,4],[3,5,3],[4,4,2],[5,3,9],[5,8,1],
+                         [6,1,6],[6,6,2],[7,4,8],[7,7,5],[8,5,4],[8,8,7]];
+            var mine  = [[0,6,3],[2,4,4],[4,1,7],[6,3,1],[8,2,9]];
+            ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+            ctx.font = 'bold 13px sans-serif';
+            ctx.fillStyle = '#cfe0f5';
+            given.forEach(function (g) {
+                ctx.fillText(String(g[2]), pad + g[1] * cell + cell / 2, top + g[0] * cell + cell / 2);
+            });
+            ctx.fillStyle = '#8fd3f4';
+            ctx.font = '13px sans-serif';
+            mine.forEach(function (g) {
+                ctx.fillText(String(g[2]), pad + g[1] * cell + cell / 2, top + g[0] * cell + cell / 2);
+            });
+
+            ctx.fillStyle = '#8fd3f4';
+            ctx.font = 'bold 12px monospace';
+            ctx.fillText('SUDOKU  2:14', W / 2, 18);
+            ctx.textAlign = 'left'; ctx.textBaseline = 'alphabetic';
+        },
+
+        nonograma: function (ctx) {
+            var bg = ctx.createLinearGradient(0, 0, 0, H);
+            bg.addColorStop(0, '#0b1424');
+            bg.addColorStop(1, '#0f1a2b');
+            ctx.fillStyle = bg; ctx.fillRect(0, 0, W, H);
+
+            var n = 8, cell = 17, gx = 74, gy = 74;
+            // patron a revelar: una carita
+            var on = [
+                [1,1,1,1,1,1,1,1],
+                [1,0,0,0,0,0,0,1],
+                [1,0,1,0,0,1,0,1],
+                [1,0,1,0,0,1,0,1],
+                [1,0,0,0,0,0,0,1],
+                [1,0,1,0,0,1,0,1],
+                [1,0,0,1,1,0,0,1],
+                [1,1,1,1,1,1,1,1]
+            ];
+            // pistas
+            ctx.fillStyle = '#cfe0f5';
+            ctx.font = 'bold 9px sans-serif';
+            ctx.textBaseline = 'middle';
+            for (var r = 0; r < n; r++) {
+                var run = 0, groups = [];
+                for (var c = 0; c < n; c++) {
+                    if (on[r][c]) run++; else if (run) { groups.push(run); run = 0; }
+                }
+                if (run) groups.push(run);
+                ctx.textAlign = 'right';
+                for (var k = 0; k < groups.length; k++) {
+                    ctx.fillText(String(groups[k]),
+                        gx - 5 - (groups.length - 1 - k) * 12, gy + r * cell + cell / 2);
+                }
+            }
+            for (var c2 = 0; c2 < n; c2++) {
+                var run2 = 0, g2 = [];
+                for (var r2 = 0; r2 < n; r2++) {
+                    if (on[r2][c2]) run2++; else if (run2) { g2.push(run2); run2 = 0; }
+                }
+                if (run2) g2.push(run2);
+                ctx.textAlign = 'center';
+                for (var k2 = 0; k2 < g2.length; k2++) {
+                    ctx.fillText(String(g2[k2]),
+                        gx + c2 * cell + cell / 2, gy - 8 - (g2.length - 1 - k2) * 11);
+                }
+            }
+            // celdas: parte resuelta pintada, resto con aspas o vacio
+            for (var rr = 0; rr < n; rr++) {
+                for (var cc = 0; cc < n; cc++) {
+                    var x = gx + cc * cell, y = gy + rr * cell;
+                    ctx.fillStyle = ((Math.floor(rr / 4) + Math.floor(cc / 4)) % 2) ? '#22334f' : '#1d2c46';
+                    ctx.fillRect(x, y, cell, cell);
+                    if (rr < 5 && on[rr][cc]) {
+                        ctx.fillStyle = '#8fd3f4';
+                        ctx.fillRect(x + 1, y + 1, cell - 2, cell - 2);
+                    } else if (rr < 5) {
+                        ctx.strokeStyle = '#5a6c88'; ctx.lineWidth = 1.4;
+                        ctx.beginPath();
+                        ctx.moveTo(x + 5, y + 5); ctx.lineTo(x + cell - 5, y + cell - 5);
+                        ctx.moveTo(x + cell - 5, y + 5); ctx.lineTo(x + 5, y + cell - 5);
+                        ctx.stroke();
+                    }
+                }
+            }
+            ctx.strokeStyle = 'rgba(143,211,244,0.55)'; ctx.lineWidth = 1.6;
+            ctx.beginPath();
+            for (var b = 0; b <= n; b += 4) {
+                ctx.moveTo(gx + b * cell, gy); ctx.lineTo(gx + b * cell, gy + n * cell);
+                ctx.moveTo(gx, gy + b * cell); ctx.lineTo(gx + n * cell, gy + b * cell);
+            }
+            ctx.stroke();
+            ctx.fillStyle = '#8fd3f4';
+            ctx.font = 'bold 12px monospace';
+            ctx.textAlign = 'center';
+            ctx.fillText('NONOGRAMA', W / 2, 24);
+            ctx.textAlign = 'left'; ctx.textBaseline = 'alphabetic';
+        },
+
+        bolos: function (ctx) {
+            var bg = ctx.createLinearGradient(0, 0, 0, H);
+            bg.addColorStop(0, '#0a1020');
+            bg.addColorStop(1, '#14203a');
+            ctx.fillStyle = bg; ctx.fillRect(0, 0, W, H);
+
+            // pista en perspectiva
+            var nearY = 200, farY = 52, nearH = 76, farH = 26;
+            ctx.fillStyle = '#0b1526';
+            ctx.beginPath();
+            ctx.moveTo(W / 2 - nearH - 12, nearY); ctx.lineTo(W / 2 - farH - 5, farY);
+            ctx.lineTo(W / 2 + farH + 5, farY);   ctx.lineTo(W / 2 + nearH + 12, nearY);
+            ctx.closePath(); ctx.fill();
+
+            var lane = ctx.createLinearGradient(0, farY, 0, nearY);
+            lane.addColorStop(0, '#6b4a25');
+            lane.addColorStop(0.5, '#9c6f38');
+            lane.addColorStop(1, '#c08c48');
+            ctx.fillStyle = lane;
+            ctx.beginPath();
+            ctx.moveTo(W / 2 - nearH, nearY); ctx.lineTo(W / 2 - farH, farY);
+            ctx.lineTo(W / 2 + farH, farY);   ctx.lineTo(W / 2 + nearH, nearY);
+            ctx.closePath(); ctx.fill();
+
+            ctx.strokeStyle = 'rgba(60,35,12,0.35)'; ctx.lineWidth = 1;
+            ctx.beginPath();
+            for (var i = 1; i < 6; i++) {
+                var t = i / 6;
+                ctx.moveTo(W / 2 - nearH + t * nearH * 2, nearY);
+                ctx.lineTo(W / 2 - farH + t * farH * 2, farY);
+            }
+            ctx.stroke();
+
+            // bolos en triangulo, cerca del fondo
+            function pin(px, py, s) {
+                ctx.fillStyle = '#f2f2f4';
+                ctx.beginPath();
+                ctx.moveTo(px - 3.4 * s, py);
+                ctx.bezierCurveTo(px - 4.6 * s, py - 6 * s, px - 1.9 * s, py - 9 * s, px - 2.1 * s, py - 12 * s);
+                ctx.bezierCurveTo(px - 2.2 * s, py - 16 * s, px + 2.2 * s, py - 16 * s, px + 2.1 * s, py - 12 * s);
+                ctx.bezierCurveTo(px + 1.9 * s, py - 9 * s, px + 4.6 * s, py - 6 * s, px + 3.4 * s, py);
+                ctx.closePath(); ctx.fill();
+                ctx.fillStyle = '#e0453a';
+                ctx.fillRect(px - 2.6 * s, py - 10 * s, 5.2 * s, 1.3 * s);
+            }
+            var rows = [[0], [-1, 1], [-2, 0, 2], [-3, -1, 1, 3]];
+            for (var r = 3; r >= 0; r--) {
+                for (var k = 0; k < rows[r].length; k++) {
+                    pin(W / 2 + rows[r][k] * 8, farY + 34 + r * 9, 1 + r * 0.14);
+                }
+            }
+            // bola con trayectoria curva
+            ctx.strokeStyle = 'rgba(143,211,244,0.4)';
+            ctx.setLineDash([5, 5]); ctx.lineWidth = 2;
+            ctx.beginPath();
+            ctx.moveTo(W / 2 + 44, nearY - 12);
+            ctx.quadraticCurveTo(W / 2 + 30, farY + 80, W / 2 + 6, farY + 46);
+            ctx.stroke();
+            ctx.setLineDash([]);
+            var bg2 = ctx.createRadialGradient(W / 2 + 38, nearY - 24, 1, W / 2 + 44, nearY - 18, 15);
+            bg2.addColorStop(0, '#7fd4ff');
+            bg2.addColorStop(0.5, '#2b6fb8');
+            bg2.addColorStop(1, '#0d2540');
+            ctx.fillStyle = bg2;
+            ctx.beginPath(); ctx.arc(W / 2 + 44, nearY - 18, 14, 0, Math.PI * 2); ctx.fill();
+
+            ctx.fillStyle = '#8fd3f4';
+            ctx.font = 'bold 12px monospace';
+            ctx.textAlign = 'center';
+            ctx.fillText('BOLOS   X  X  9/', W / 2, 28);
+            ctx.textAlign = 'left';
+        },
+
+        minigolf: function (ctx) {
+            ctx.fillStyle = '#4e3018'; ctx.fillRect(0, 0, W, H);
+            var g = ctx.createLinearGradient(0, 12, 0, H - 12);
+            g.addColorStop(0, '#3f9e4d');
+            g.addColorStop(1, '#2c7a39');
+            ctx.fillStyle = g; ctx.fillRect(12, 12, W - 24, H - 24);
+
+            ctx.fillStyle = 'rgba(255,255,255,0.05)';
+            for (var y = 12; y < H - 12; y += 30) ctx.fillRect(12, y, W - 24, 15);
+
+            // arena
+            ctx.fillStyle = '#e8d18a';
+            roundRect(ctx, 34, 120, 54, 40, 12, '#e8d18a');
+            // obstaculo
+            roundRect(ctx, 108, 92, 84, 14, 5, '#a9713d');
+
+            // hoyo con bandera
+            ctx.fillStyle = '#12210f';
+            ctx.beginPath(); ctx.arc(152, 58, 12, 0, Math.PI * 2); ctx.fill();
+            ctx.strokeStyle = 'rgba(255,255,255,0.35)'; ctx.lineWidth = 2; ctx.stroke();
+            ctx.strokeStyle = '#e8e8ea'; ctx.lineWidth = 2;
+            ctx.beginPath(); ctx.moveTo(152, 56); ctx.lineTo(152, 16); ctx.stroke();
+            ctx.fillStyle = '#ff512f';
+            ctx.beginPath();
+            ctx.moveTo(152, 16); ctx.lineTo(178, 24); ctx.lineTo(152, 32);
+            ctx.closePath(); ctx.fill();
+
+            // bola y guia del tiro
+            ctx.strokeStyle = 'rgba(255,255,255,0.55)';
+            ctx.setLineDash([6, 6]); ctx.lineWidth = 2;
+            ctx.beginPath(); ctx.moveTo(72, 178); ctx.lineTo(132, 96); ctx.stroke();
+            ctx.setLineDash([]);
+            ctx.strokeStyle = '#fddb92'; ctx.lineWidth = 5;
+            ctx.beginPath(); ctx.moveTo(72, 178); ctx.lineTo(40, 222); ctx.stroke();
+
+            var bg3 = ctx.createRadialGradient(69, 175, 0.5, 72, 178, 9);
+            bg3.addColorStop(0, '#ffffff');
+            bg3.addColorStop(0.6, '#e6e9ee');
+            bg3.addColorStop(1, '#9aa3b0');
+            ctx.fillStyle = bg3;
+            ctx.beginPath(); ctx.arc(72, 178, 9, 0, Math.PI * 2); ctx.fill();
+
+            ctx.fillStyle = 'rgba(8,20,12,0.8)';
+            ctx.fillRect(0, 0, W, 22);
+            ctx.fillStyle = '#8fd3f4';
+            ctx.font = 'bold 11px monospace';
+            ctx.textAlign = 'center';
+            ctx.fillText('HOYO 3/9   PAR 3   −2', W / 2, 15);
+            ctx.textAlign = 'left';
+        },
+
+        solitario: function (ctx) {
+            var g = ctx.createLinearGradient(0, 0, 0, H);
+            g.addColorStop(0, '#1c6b3a');
+            g.addColorStop(1, '#124a28');
+            ctx.fillStyle = g; ctx.fillRect(0, 0, W, H);
+
+            var cw = 30, ch = 42;
+            function card(x, y, label, red, faceUp) {
+                if (!faceUp) {
+                    roundRect(ctx, x, y, cw, ch, 4, '#123a6b');
+                    ctx.strokeStyle = '#e8eef7'; ctx.lineWidth = 1;
+                    ctx.strokeRect(x + 2.5, y + 2.5, cw - 5, ch - 5);
+                    return;
+                }
+                roundRect(ctx, x, y, cw, ch, 4, '#fdfdfb');
+                ctx.strokeStyle = '#c3ccd8'; ctx.lineWidth = 1;
+                ctx.strokeRect(x + 0.5, y + 0.5, cw - 1, ch - 1);
+                ctx.fillStyle = red ? '#d63c34' : '#1d2430';
+                ctx.font = 'bold 11px sans-serif';
+                ctx.textAlign = 'left'; ctx.textBaseline = 'top';
+                ctx.fillText(label, x + 3, y + 3);
+                // pequeño rombo/pica segun color
+                ctx.beginPath();
+                if (red) {
+                    ctx.moveTo(x + cw - 8, y + 8); ctx.lineTo(x + cw - 4, y + 13);
+                    ctx.lineTo(x + cw - 8, y + 18); ctx.lineTo(x + cw - 12, y + 13);
+                } else {
+                    ctx.moveTo(x + cw - 8, y + 7);
+                    ctx.bezierCurveTo(x + cw - 2, y + 12, x + cw - 5, y + 16, x + cw - 8, y + 14);
+                    ctx.lineTo(x + cw - 6, y + 18); ctx.lineTo(x + cw - 10, y + 18);
+                    ctx.lineTo(x + cw - 8, y + 14);
+                    ctx.bezierCurveTo(x + cw - 11, y + 16, x + cw - 14, y + 12, x + cw - 8, y + 7);
+                }
+                ctx.closePath(); ctx.fill();
+            }
+
+            // fila superior: mazo, descarte y fundaciones
+            card(12, 12, '', false, false);
+            card(48, 12, 'K', false, true);
+            for (var f = 0; f < 4; f++) {
+                var fx2 = 100 + f * 30;
+                ctx.strokeStyle = 'rgba(255,255,255,0.3)'; ctx.lineWidth = 1.5;
+                ctx.strokeRect(fx2, 12, cw - 2, ch);
+            }
+            card(100, 12, 'A', true, true);
+            card(130, 12, 'A', false, true);
+
+            // tablero en abanico
+            var cols = [
+                [['', false, false], ['Q', true, true]],
+                [['', false, false], ['J', false, true], ['10', true, true]],
+                [['9', true, true], ['8', false, true]],
+                [['K', false, true]]
+            ];
+            for (var c = 0; c < cols.length; c++) {
+                var x = 12 + c * 52;
+                for (var i = 0; i < cols[c].length; i++) {
+                    var d = cols[c][i];
+                    card(x, 80 + i * 22, d[0], d[1], d[2]);
+                }
+            }
+
+            ctx.fillStyle = '#e8f2e8';
+            ctx.font = 'bold 12px monospace';
+            ctx.textAlign = 'center'; ctx.textBaseline = 'alphabetic';
+            ctx.fillText('SOLITARIO', W / 2, H - 14);
+            ctx.textAlign = 'left';
+        },
     };
 
     function paint(canvas) {

@@ -1,6 +1,6 @@
 # Documentación
 
-Guía técnica de la colección de 49 juegos. Empieza por aquí.
+Guía técnica de la colección de 54 juegos. Empieza por aquí.
 
 ## Mapa
 
@@ -14,7 +14,7 @@ Guía técnica de la colección de 49 juegos. Empieza por aquí.
 | [Trampas conocidas](./trampas.md) | Tres formas de romper un juego sin que salga ningún error |
 | [Herramientas](./herramientas.md) | Comandos, subagentes, hooks y los patrones de IA |
 | [Añadir un juego](./nuevo-juego.md) | Los pasos, en orden |
-| [Notas por juego](./juegos/indice.md) | Los 49, con lo que no es evidente en cada uno |
+| [Notas por juego](./juegos/indice.md) | Los 54, con lo que no es evidente en cada uno |
 
 ## Rutas frecuentes
 

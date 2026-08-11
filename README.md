@@ -1,6 +1,6 @@
 # Games
 
-49 juegos clásicos jugables en el navegador, hechos con JavaScript, HTML5 Canvas y
+54 juegos clásicos jugables en el navegador, hechos con JavaScript, HTML5 Canvas y
 CSS puro. Sin build, sin dependencias, sin plugins.
 
 **[games.hahndev.com](https://games.hahndev.com)**
@@ -40,7 +40,7 @@ este orden: `mobile-layout` → `audio` → `game-utils` → `main` → `fullscr
 
 ## `game-utils.js`
 
-Biblioteca común a los 49 juegos. Lo relevante:
+Biblioteca común a los 54 juegos. Lo relevante:
 
 | Área | Qué aporta |
 |------|-----------|
@@ -83,7 +83,7 @@ La guía técnica está en **[`docs/`](./docs/indice.md)**, dividida por tema:
 | [Sonido](./docs/audio.md) · [Móvil](./docs/movil.md) | Los dos sistemas compartidos |
 | [Rendimiento](./docs/rendimiento.md) | Reglas de canvas, medidas no intuidas |
 | [Trampas](./docs/trampas.md) | Tres formas de romper un juego sin error en consola |
-| [Notas por juego](./docs/juegos/indice.md) | Los 49, con lo que no es evidente |
+| [Notas por juego](./docs/juegos/indice.md) | Los 54, con lo que no es evidente |
 | [Añadir un juego](./docs/nuevo-juego.md) | Los pasos, en orden |
 
 Antes de tocar un juego, busca su fila en las notas: registran invariantes que se

@@ -5,7 +5,7 @@ catálogo completo.
 
 ## Overview
 
-A collection of 49 classic browser-based games built with vanilla JavaScript, HTML5 Canvas, and CSS. No build system or dependencies — open any `index.html` directly in a browser to run. Deployed at https://games.hahndev.com (see `CNAME`).
+A collection of 54 classic browser-based games built with vanilla JavaScript, HTML5 Canvas, and CSS. No build system or dependencies — open any `index.html` directly in a browser to run. Deployed at https://games.hahndev.com (see `CNAME`).
 
 ## Running the project
 
@@ -104,3 +104,8 @@ Each game lives in its own folder with:
 | `blackjack/` | Blackjack | Cartas | Canvas |
 | `sopaletras/` | Sopa de Letras | Palabras | Canvas |
 | `hanoi/` | Torres de Hanói | Lógica | Canvas |
+| `sudoku/` | Sudoku | Puzzle | Canvas |
+| `nonograma/` | Nonograma | Lógica | Canvas |
+| `solitario/` | Solitario | Cartas | Canvas |
+| `minigolf/` | Minigolf | Física | Canvas |
+| `bolos/` | Bolos | Física | Canvas |
