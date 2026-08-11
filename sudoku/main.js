@@ -618,9 +618,11 @@ rafLoop(function () {
 /* ═══════════════ Botones ═══════════════ */
 
 document.getElementById('startBtn').addEventListener('click', function () {
+    GameAudio.click();
     newGame(document.getElementById('diffSel').value);
 });
 document.getElementById('restartBtn').addEventListener('click', function () {
+    GameAudio.click();
     if (gs.status === 'idle') return newGame(gs.diff);
     /* Reiniciar vuelve al MISMO puzzle, no a uno nuevo: querer repetir el que
      * se te ha atragantado es lo normal, y para otro está Nueva partida. */
@@ -639,6 +641,7 @@ document.getElementById('restartBtn').addEventListener('click', function () {
 document.getElementById('noteBtn').addEventListener('click', toggleNotes);
 document.getElementById('eraseBtn').addEventListener('click', function () { place(0); });
 document.getElementById('playAgainBtn').addEventListener('click', function () {
+    GameAudio.click();
     newGame(gs.diff);
 });
 document.getElementById('diffSel').addEventListener('change', function () {

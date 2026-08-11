@@ -26,7 +26,8 @@
       "Read(//usr/local/bin/**)",
       "Bash(npx --version)",
       "Bash(npx --yes acorn --ecma2015 --module /Users/hahn/Documents/Repository/Web/Games/pinball/main.js)",
-      "Bash(npx acorn *)"
+      "Bash(npx acorn *)",
+      "Bash(awk '{print $2}')"
     ]
   }
 }

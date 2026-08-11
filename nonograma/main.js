@@ -632,9 +632,11 @@ rafLoop(function () {
 /* ═══════════════ Botones ═══════════════ */
 
 document.getElementById('startBtn').addEventListener('click', function () {
+    GameAudio.click();
     newGame(document.getElementById('diffSel').value);
 });
 document.getElementById('restartBtn').addEventListener('click', function () {
+    GameAudio.click();
     if (gs.status === 'idle') return newGame(gs.diff);
     gs.grid = new Uint8Array(gs.n * gs.n);
     gs.errors = 0;
@@ -650,6 +652,7 @@ document.getElementById('markBtn').addEventListener('click', function () {
     GameAudio.click();
 });
 document.getElementById('playAgainBtn').addEventListener('click', function () {
+    GameAudio.click();
     newGame(gs.diff);
 });
 

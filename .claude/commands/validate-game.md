@@ -1,5 +1,5 @@
 ---
-description: Validate a game against all quality criteria — sound, graphics, mobile layout, touch controls, and code quality. Pass a game folder name or leave blank to check all 49 games.
+description: Validate a game against all quality criteria — sound, graphics, mobile layout, touch controls, and code quality. Pass a game folder name or leave blank to check all 54 games.
 ---
 
 # Validate Game — "$ARGUMENTS"

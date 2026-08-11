@@ -1,10 +1,10 @@
 ---
-description: Audit GameAudio coverage across all 49 games and list exactly which sounds are missing in each one.
+description: Audit GameAudio coverage across all 54 games and list exactly which sounds are missing in each one.
 ---
 
 # Sound Audit — All Games
 
-Scan every game folder in `/Users/hahn/Documents/Repository/Web/Games/` (the 49 games listed in CLAUDE.md). For each game, read `index.html` and `main.js`.
+Scan every game folder in `/Users/hahn/Documents/Repository/Web/Games/` (the 54 games listed in CLAUDE.md). For each game, read `index.html` and `main.js`.
 
 ## Check per game
 

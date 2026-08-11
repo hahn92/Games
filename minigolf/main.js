@@ -596,8 +596,8 @@ canvas.addEventListener('touchend', function (e) {
     releaseAim();
 }, { passive: false });
 
-document.getElementById('startBtn').addEventListener('click', newGame);
-document.getElementById('restartBtn').addEventListener('click', newGame);
+document.getElementById('startBtn').addEventListener('click', function () { GameAudio.click(); newGame(); });
+document.getElementById('restartBtn').addEventListener('click', function () { GameAudio.click(); newGame(); });
 document.getElementById('skipBtn').addEventListener('click', function () {
     if (gs.status === 'idle' || gs.status === 'over') return;
     /* Saltar cuenta como si hubieras hecho el máximo: no es un atajo gratis. */
@@ -606,7 +606,7 @@ document.getElementById('skipBtn').addEventListener('click', function () {
     concludeHole();
     nextHole();
 });
-document.getElementById('playAgainBtn').addEventListener('click', newGame);
+document.getElementById('playAgainBtn').addEventListener('click', function () { GameAudio.click(); newGame(); });
 
 syncHud();
 
