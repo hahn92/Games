@@ -13,6 +13,11 @@ because games already called them unqualified.
 | Collision | `GU.rectsOverlap(ax,ay,aw,ah, bx,by,bw,bh)`, `GU.circlesOverlap(x1,y1,r1, x2,y2,r2)` |
 | Color | `hexToRgb`\*, `shade(hex, ±d)`\* (additive), `GU.scaleColor(hex, f)` (multiplicative), `GU.rgba(hex, a)`, `GU.mixColor(a, b, t)` |
 | Canvas | `pointerPos(canvas, e)`\* → `{x, y}` in canvas space; `GU.roundRectPath(ctx, x,y,w,h,r)`; `GU.gradientMemo()` |
+| Shapes | `GU.starPath(ctx, cx,cy, outer, inner?, points?, rot?)`, `GU.heartPath(ctx, cx,cy, size)`, `GU.polygonPath(ctx, cx,cy, r, sides, rot?)` — paths only, you fill/stroke |
+| Sprites | `GU.sprite(w, h, draw, {pad, maxScale})` → `.draw/.drawCentered/.drawRotated`; `GU.spriteSheet(build)` → `.get(key)` |
+| Input | `GU.swipe(el, {onSwipe, onTap, minDist, maxTime, live, mouse, preventDefault})`; `GU.keys(bindings, {preventDefault, onPress, onRelease})` → `.down/.pressed/.flush/.clear` |
+| HUD | `GU.hud({field: id, mobile: {el, html}})` → `.set/.add/.get/.refresh`; `GU.popup(id)` → `.show(fields)/.hide()/.visible()`; `GU.highScore(key, {lower})` → `.value/.submit/.display/.has/.reset`; `GU.formatTime(ms, {ms, hours})` |
+| Shake | `new Shake({decay, ratio, max})`\* with `.hit(mag)`, `.update(dt)`, `.translate(ctx)`, `.active()`, `.stop()` |
 | Storage | `GameStore.getNum/setNum/getJSON/setJSON/get/set/remove`\*, `GameStore.available` |
 | Particles | `new Particles(max, {semiImplicit})`\* with `.burst(x, y, n, opts)`, `.add(x, y, vx, vy, opts)`, `.update(dt)`, `.draw(ctx)`, `.each(fn)`, `.clear()` |
 | HiDPI | automatic; `GU.upgradeCanvas(canvas, {maxScale, pinCss})` for canvases sized at runtime |
@@ -120,4 +125,62 @@ because games already called them unqualified.
   everything the gradient depends on, geometry and colour stops both, and make sure the
   key is BOUNDED: keying on a scrolling or animated coordinate leaks a gradient per
   frame. For per-object gradients that differ only by position, build at the origin and
-  `ctx.translate()` instead (see `chess/drawBoard`).
+  `ctx.translate()` instead (see `chess/drawBoard`, `frogger/drawLogs`,
+  `reversi/drawDisc`, `stacktower/blockGrad`, `flappybird/drawPipe`).
+
+- **`Shake`** — eleven games grew their own screen shake and three of them
+  (batallanaval, misiles, sopaletras) picked the offsets with `Math.random()` inside
+  `draw()`, which the performance rules forbid: a frame repainted twice — as happens on
+  a resize — jittered. Here the offsets are state, chosen in `update()`.
+  `hit()` takes the MAX rather than adding, so a small knock during a big one cannot cut
+  it short and a burst of small ones cannot compound into a convulsion. Decay is
+  exponential and **framerate independent**; when porting a per-frame decrement, solve
+  for the decay that reproduces the old duration rather than guessing
+  (batallanaval's `-= 0.6` from 10 over ~17 frames became `decay: 0.76`).
+
+- **`swipe`** — nine games hand-rolled directional gestures and disagreed on every
+  parameter that matters: threshold, whether a slow drag counts, and whether the gesture
+  resolves on `touchend` or as soon as it crosses the threshold. The differences were
+  accidents, not decisions. `live: true` is the "resolve on crossing" variant that
+  continuously-steered games want; the default resolves on release, which is right when
+  a gesture means exactly one move. `onTap` hands back **canvas coordinates** when the
+  target is a canvas, so a tap can be routed straight into the game's existing click
+  handler without duplicating the hit test.
+
+- **`keys`** — binds by ACTION, not key code, so alternate keys cost one array entry.
+  Two bugs it fixes that most hand-rolled key maps have: a keydown with no matching
+  keyup (alt-tab, a focus-stealing overlay) leaves the action held forever and the
+  player returns to a ship flying into a wall — everything is released on `blur` and on
+  `visibilitychange`; and `preventDefault: true` stops arrows scrolling the page and
+  Space activating the focused button, **for the bound keys only**, so a game that also
+  has real `<button>`s keeps them operable. `e.repeat` is filtered out of the press edge,
+  or the OS key-repeat rate turns one keypress into a burst of shots.
+
+- **`hud`** — 47 games write their score twice, to the side panel and to `#mobileScore`,
+  and 18 do it from a function that runs every frame. Writing `textContent` invalidates
+  layout even when the string is identical, so a score that changes once a second was
+  costing 60 layout invalidations a second to say the same thing. Every write here is
+  dirty-checked. Call `.refresh()` after a layout switch has replaced the nodes.
+
+- **`highScore`** — the load-compare-store dance, done once. The three games that record
+  a TIME rather than a score (laberinto, memorama, slidingpuzzle) each had to invert the
+  comparison themselves, and laberinto's got it wrong; `{lower: true}` inverts it here.
+  An empty slot is ±Infinity, not 0, so the first run always registers as a record —
+  which a `0` default gets wrong for times, where any real time is worse than zero.
+  `submit()` persists as a side effect on purpose: splitting the compare from the write
+  is how you end up comparing against the value you just stored.
+
+- **`sprite` / `spriteSheet`** — draw once into an offscreen canvas, then blit. This is
+  the single biggest lever available in these games and only bubbleshooter uses it today,
+  where it replaced a live radial gradient per bubble per frame with one `drawImage`.
+  Anything drawn many times from the same shapes is a candidate. The offscreen canvas is
+  allocated at device pixel density and the draw callback runs pre-scaled, so sprites stay
+  sharp on a phone while both the callback and the blits work in logical pixels — a
+  sprite is a drop-in for the shape code it replaces. `spriteSheet` keys must be BOUNDED,
+  the same warning as `gradientMemo` and worse here: a key on a moving coordinate leaks a
+  whole canvas per frame.
+
+- **`starPath` / `heartPath` / `polygonPath`** — the emoji ban means every star, heart and
+  polygon is hand-built from paths, and seven games carry a copy of the star, three the
+  heart. These call `beginPath()` and leave the path current without filling, so the
+  caller sets `fillStyle` once for a whole batch instead of once per shape.

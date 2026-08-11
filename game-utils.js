@@ -918,6 +918,666 @@
     };
 
     /* ═══════════════════════════════════════════════════════════
+       Shake
+    ═══════════════════════════════════════════════════════════ */
+
+    /* Screen shake, with the random offsets picked in update() rather than in
+     * the render pass.
+     *
+     * Eleven games grew their own version of this and three of them
+     * (batallanaval, misiles, sopaletras) call Math.random() from inside draw(),
+     * which the performance rules forbid for a reason: it makes a frame
+     * non-reproducible, so the same frame drawn twice — as happens on a resize
+     * repaint — jitters. Here the offsets are state, computed once per tick.
+     *
+     *   var shake = new Shake();
+     *   shake.hit(14);                  // on impact
+     *   shake.update(dt);               // in the tick
+     *   ctx.save(); shake.translate(ctx); ...draw...; ctx.restore();
+     *
+     * `hit` takes the MAX rather than adding: a small knock landing during a big
+     * one must not be able to cut the big one short, and repeated small hits
+     * should not sum into a screen-destroying convulsion.
+     *
+     * opts: {decay} retained fraction per 1/60s (default 0.88, ~0.2s tail),
+     *       {ratio} vertical amplitude relative to horizontal (default 1),
+     *       {max} clamp on the magnitude. */
+    function Shake(opts) {
+        opts = opts || {};
+        this.decay = opts.decay == null ? 0.88 : opts.decay;
+        this.ratio = opts.ratio == null ? 1 : opts.ratio;
+        this.max   = opts.max   == null ? Infinity : opts.max;
+        this.mag = 0;
+        this.ox = 0;
+        this.oy = 0;
+    }
+
+    Shake.prototype.hit = function (mag) {
+        if (mag > this.mag) this.mag = mag > this.max ? this.max : mag;
+        return this;
+    };
+
+    /* dt in seconds, matching rafLoop(). Games on a fixed tick can call it with
+     * no argument and get one frame's worth of decay. */
+    Shake.prototype.update = function (dt) {
+        if (dt == null) dt = 1 / 60;
+        if (this.mag <= 0) { this.ox = this.oy = 0; return; }
+        this.mag *= Math.pow(this.decay, dt * 60);
+        /* Cut the tail rather than letting it ring on at sub-pixel amplitude
+         * forever — an offset below a tenth of a pixel is invisible but still
+         * costs a transform every frame. */
+        if (this.mag < 0.1) { this.mag = 0; this.ox = this.oy = 0; return; }
+        this.ox = (Math.random() - 0.5) * this.mag;
+        this.oy = (Math.random() - 0.5) * this.mag * this.ratio;
+    };
+
+    /* Compose onto whatever transform is current. Pairs with save/restore. */
+    Shake.prototype.translate = function (ctx) {
+        if (this.mag > 0) ctx.translate(this.ox, this.oy);
+        return ctx;
+    };
+
+    Shake.prototype.active = function () { return this.mag > 0; };
+
+    Shake.prototype.stop = function () { this.mag = this.ox = this.oy = 0; };
+
+    /* ═══════════════════════════════════════════════════════════
+       Input
+    ═══════════════════════════════════════════════════════════ */
+
+    /* Directional swipe + tap recognition.
+     *
+     * Nine games rolled this by hand and they disagree on every parameter that
+     * matters: the distance threshold, whether a slow drag still counts, which
+     * element listens, and whether the gesture resolves on touchend or as soon
+     * as it crosses the threshold. The differences are not deliberate — they
+     * are just what each one happened to be written with.
+     *
+     *   GU.swipe(canvas, {
+     *       onSwipe: function (dir) { move(dir); },   // 'left'|'right'|'up'|'down'
+     *       onTap:   function (pos) { jump(); }       // pos in canvas space
+     *   });
+     *
+     * opts: {minDist: 30}     px before a drag counts as a swipe
+     *       {maxTime: 600}    ms; 0 disables the limit
+     *       {tapSlop: 10}     px of movement a tap may still have
+     *       {live: false}     fire as soon as the threshold is crossed rather
+     *                         than on touchend — once per gesture. Games that
+     *                         steer continuously (snake, tetris) want this;
+     *                         games that take one move per gesture do not.
+     *       {mouse: false}    also recognise mouse drags, for desktop testing
+     *       {preventDefault}  true to swallow the browser's own scroll/zoom.
+     *                         Registers non-passive, which is the only way that
+     *                         works on iOS.
+     *
+     * `pos` handed to onTap is in canvas space when the target is a canvas, and
+     * client space otherwise — the same thing pointerPos() would have returned,
+     * so a game can route a tap straight into its existing click handler.
+     *
+     * Returns {destroy} — needed by anything that rebuilds its board. */
+    function swipe(el, opts) {
+        if (!el || !opts) return { destroy: function () {} };
+        var minDist = opts.minDist == null ? 30 : opts.minDist;
+        var maxTime = opts.maxTime == null ? 600 : opts.maxTime;
+        var tapSlop = opts.tapSlop == null ? 10 : opts.tapSlop;
+        var live    = !!opts.live;
+        var prevent = !!opts.preventDefault;
+        var isCanvas = el.tagName === 'CANVAS';
+
+        var sx = 0, sy = 0, st = 0, tracking = false, fired = false;
+        var listenOpts = prevent ? { passive: false } : { passive: true };
+
+        function at(e) {
+            var s = e;
+            if (e.touches && e.touches.length) s = e.touches[0];
+            else if (e.changedTouches && e.changedTouches.length) s = e.changedTouches[0];
+            return { x: s.clientX, y: s.clientY };
+        }
+
+        function dirOf(dx, dy) {
+            if (Math.abs(dx) > Math.abs(dy)) return dx > 0 ? 'right' : 'left';
+            return dy > 0 ? 'down' : 'up';
+        }
+
+        function start(e) {
+            var p = at(e);
+            sx = p.x; sy = p.y; st = performance.now();
+            tracking = true; fired = false;
+            if (prevent) e.preventDefault();
+        }
+
+        function move(e) {
+            if (!tracking || !live || fired) { if (prevent) e.preventDefault(); return; }
+            var p = at(e);
+            var dx = p.x - sx, dy = p.y - sy;
+            if (Math.abs(dx) < minDist && Math.abs(dy) < minDist) {
+                if (prevent) e.preventDefault();
+                return;
+            }
+            fired = true;
+            if (opts.onSwipe) opts.onSwipe(dirOf(dx, dy), { dx: dx, dy: dy, dt: performance.now() - st });
+            if (prevent) e.preventDefault();
+        }
+
+        function end(e) {
+            if (!tracking) return;
+            tracking = false;
+            var p = at(e);
+            var dx = p.x - sx, dy = p.y - sy, dt = performance.now() - st;
+            if (prevent) e.preventDefault();
+            if (fired) return;                       /* live mode already handled it */
+
+            if (Math.abs(dx) < tapSlop && Math.abs(dy) < tapSlop) {
+                if (opts.onTap) {
+                    opts.onTap(isCanvas ? pointerPos(el, e) : { x: p.x, y: p.y }, e);
+                }
+                return;
+            }
+            if (maxTime && dt > maxTime) return;     /* a slow drag is not a flick */
+            if (Math.abs(dx) < minDist && Math.abs(dy) < minDist) return;
+            if (opts.onSwipe) opts.onSwipe(dirOf(dx, dy), { dx: dx, dy: dy, dt: dt });
+        }
+
+        function cancel() { tracking = false; }
+
+        el.addEventListener('touchstart', start, listenOpts);
+        el.addEventListener('touchmove',  move,  listenOpts);
+        el.addEventListener('touchend',   end,   listenOpts);
+        el.addEventListener('touchcancel', cancel, { passive: true });
+        if (opts.mouse) {
+            el.addEventListener('mousedown', start);
+            el.addEventListener('mousemove', move);
+            el.addEventListener('mouseup',   end);
+            el.addEventListener('mouseleave', cancel);
+        }
+
+        return {
+            destroy: function () {
+                el.removeEventListener('touchstart', start, listenOpts);
+                el.removeEventListener('touchmove',  move,  listenOpts);
+                el.removeEventListener('touchend',   end,   listenOpts);
+                el.removeEventListener('touchcancel', cancel);
+                if (opts.mouse) {
+                    el.removeEventListener('mousedown', start);
+                    el.removeEventListener('mousemove', move);
+                    el.removeEventListener('mouseup',   end);
+                    el.removeEventListener('mouseleave', cancel);
+                }
+            }
+        };
+    }
+
+    /* Held-key state, by action name rather than by key code.
+     *
+     *   var keys = GU.keys({
+     *       left:  ['ArrowLeft',  'a', 'A'],
+     *       right: ['ArrowRight', 'd', 'D'],
+     *       fire:  [' ']
+     *   }, { preventDefault: true, onPress: function (a) { if (a === 'fire') shoot(); } });
+     *
+     *   if (keys.down('left')) x -= speed;
+     *
+     * Two things this fixes that most of the hand-rolled maps get wrong:
+     *
+     * - **The stuck key.** A keydown with no matching keyup — alt-tab, a
+     *   focus-stealing overlay, the iOS keyboard closing — leaves the action
+     *   held forever, and the player comes back to a ship drifting into a wall.
+     *   Everything is released on window blur and on visibilitychange.
+     * - **Scroll and space.** Arrows scroll the page and Space activates the
+     *   focused button; `preventDefault: true` stops that for the bound keys
+     *   ONLY, so a game that also has real <button>s keeps them operable.
+     *
+     * Matching is case-insensitive on single characters, so binding 'a' catches
+     * a shift-held 'A' without listing both.
+     *
+     * `pressed(action)` is the edge: true once per physical press, and cleared
+     * by flush(). A fixed-tick game calls flush() at the end of its tick. If you
+     * would rather not track that, use the onPress callback instead — it fires
+     * on the same edge and needs no bookkeeping. */
+    function keys(bindings, opts) {
+        opts = opts || {};
+        var target = opts.target || global;
+        var prevent = opts.preventDefault;
+
+        var byKey = {};                 /* normalised key -> [action, ...] */
+        var held = {}, edge = {};
+
+        function norm(k) { return k.length === 1 ? k.toLowerCase() : k; }
+
+        for (var action in bindings) {
+            if (!Object.prototype.hasOwnProperty.call(bindings, action)) continue;
+            var list = bindings[action];
+            if (typeof list === 'string') list = [list];
+            for (var i = 0; i < list.length; i++) {
+                var k = norm(list[i]);
+                (byKey[k] || (byKey[k] = [])).push(action);
+            }
+            held[action] = false;
+            edge[action] = false;
+        }
+
+        function actionsFor(e) {
+            /* e.key is the primary match; e.code covers 'Space'/'KeyA' style
+             * bindings and keeps working on a layout where e.key differs. */
+            return byKey[norm(e.key)] || byKey[e.code] || null;
+        }
+
+        function onDown(e) {
+            var acts = actionsFor(e);
+            if (!acts) return;
+            if (prevent) e.preventDefault();
+            for (var i = 0; i < acts.length; i++) {
+                var a = acts[i];
+                /* e.repeat would otherwise re-fire the edge at the OS key-repeat
+                 * rate, which turns one keypress into a burst of shots. */
+                if (held[a] || e.repeat) continue;
+                held[a] = true;
+                edge[a] = true;
+                if (opts.onPress) opts.onPress(a, e);
+            }
+        }
+
+        function onUp(e) {
+            var acts = actionsFor(e);
+            if (!acts) return;
+            if (prevent) e.preventDefault();
+            for (var i = 0; i < acts.length; i++) {
+                if (!held[acts[i]]) continue;
+                held[acts[i]] = false;
+                if (opts.onRelease) opts.onRelease(acts[i], e);
+            }
+        }
+
+        function releaseAll() {
+            for (var a in held) {
+                if (!held[a]) continue;
+                held[a] = false;
+                if (opts.onRelease) opts.onRelease(a, null);
+            }
+        }
+
+        target.addEventListener('keydown', onDown, prevent ? { passive: false } : undefined);
+        target.addEventListener('keyup', onUp, prevent ? { passive: false } : undefined);
+        global.addEventListener('blur', releaseAll);
+        if (global.document) {
+            global.document.addEventListener('visibilitychange', function () {
+                if (global.document.hidden) releaseAll();
+            });
+        }
+
+        return {
+            down:    function (a) { return !!held[a]; },
+            pressed: function (a) { return !!edge[a]; },
+            flush:   function () { for (var a in edge) edge[a] = false; },
+            clear:   function () { releaseAll(); for (var b in edge) edge[b] = false; },
+            destroy: function () {
+                target.removeEventListener('keydown', onDown);
+                target.removeEventListener('keyup', onUp);
+                global.removeEventListener('blur', releaseAll);
+            }
+        };
+    }
+
+    /* ═══════════════════════════════════════════════════════════
+       HUD, popups and records
+    ═══════════════════════════════════════════════════════════ */
+
+    function el(ref) {
+        if (!ref) return null;
+        if (typeof ref !== 'string') return ref;
+        return global.document ? global.document.getElementById(ref) : null;
+    }
+
+    /* Keep the side panel and the mobile overlay showing the same numbers.
+     *
+     * Forty-seven games write their score twice — once into the desktop panel
+     * and once into #mobileScore — and eighteen of them do it from a function
+     * called every frame. Writing textContent invalidates layout even when the
+     * string is identical, so a game whose score changes once a second was
+     * paying for 60 layout invalidations a second to say the same thing.
+     * Everything here is dirty-checked: unchanged values do not touch the DOM.
+     *
+     *   var hud = GU.hud({
+     *       score: 'score',                 // -> #score
+     *       best:  'highScore',
+     *       mobile: {
+     *           el: 'mobileScore',
+     *           html: function (v) { return 'Puntaje: <b>' + v.score + '</b>'; }
+     *       }
+     *   });
+     *   hud.set({ score: 0, best: 12 });
+     *   hud.add('score', 10);
+     *
+     * A field can be an id, an element, or {el, format} when the panel wants
+     * more than the bare number. */
+    function hud(spec) {
+        var fields = {}, values = {}, mobile = null, lastMobile = null;
+
+        for (var name in spec) {
+            if (!Object.prototype.hasOwnProperty.call(spec, name)) continue;
+            if (name === 'mobile') { mobile = spec.mobile; continue; }
+            var f = spec[name];
+            fields[name] = (typeof f === 'string' || f.tagName) ? { el: f } : f;
+            values[name] = undefined;
+        }
+        if (mobile && (typeof mobile === 'string' || mobile.tagName)) mobile = { el: mobile };
+
+        function paint(name) {
+            var f = fields[name];
+            if (!f) return;
+            var node = el(f.el);
+            if (!node) return;
+            var text = f.format ? f.format(values[name], values) : String(values[name]);
+            if (node.textContent !== text) node.textContent = text;
+        }
+
+        function paintMobile() {
+            if (!mobile) return;
+            var node = el(mobile.el);
+            if (!node) return;
+            if (mobile.html) {
+                var html = mobile.html(values);
+                if (html === lastMobile) return;
+                lastMobile = html;
+                node.innerHTML = html;
+            } else {
+                var text = mobile.format ? mobile.format(values) : String(values[Object.keys(values)[0]]);
+                if (text === lastMobile) return;
+                lastMobile = text;
+                node.textContent = text;
+            }
+        }
+
+        var api = {
+            set: function (patch) {
+                var touched = false;
+                for (var name in patch) {
+                    if (!Object.prototype.hasOwnProperty.call(patch, name)) continue;
+                    if (values[name] === patch[name]) continue;
+                    values[name] = patch[name];
+                    touched = true;
+                    paint(name);
+                }
+                if (touched) paintMobile();
+                return api;
+            },
+            add: function (name, delta) {
+                var patch = {};
+                patch[name] = (values[name] || 0) + delta;
+                return api.set(patch);
+            },
+            get: function (name) { return values[name]; },
+            /* Repaint everything unconditionally — after a layout switch has
+             * replaced the nodes the cached values were written into. */
+            refresh: function () {
+                lastMobile = null;
+                for (var name in fields) paint(name);
+                paintMobile();
+                return api;
+            }
+        };
+        return api;
+    }
+
+    /* The end-of-game overlay, which every game toggles by hand.
+     *
+     *   var over = GU.popup('gameOverPopup');
+     *   over.show({ finalScore: 'Puntaje: ' + score });   // ids -> textContent
+     *   over.hide();
+     *
+     * wirePopups() above already handles announcing these; this is only the
+     * show/hide half. `display` defaults to 'flex', which is what every .popup
+     * in the set uses. */
+    function popup(ref, opts) {
+        opts = opts || {};
+        var display = opts.display || 'flex';
+        var api = {
+            el: function () { return el(ref); },
+            show: function (fields) {
+                var node = el(ref);
+                if (!node) return api;
+                if (fields) {
+                    for (var id in fields) {
+                        if (!Object.prototype.hasOwnProperty.call(fields, id)) continue;
+                        var f = el(id);
+                        if (f) f.textContent = fields[id];
+                    }
+                }
+                node.style.display = display;
+                return api;
+            },
+            hide: function () {
+                var node = el(ref);
+                if (node) node.style.display = 'none';
+                return api;
+            },
+            visible: function () {
+                var node = el(ref);
+                if (!node) return false;
+                /* Prefer the computed value, as wirePopups() does. The inline
+                 * style is empty until show() runs, and these popups are hidden
+                 * from the stylesheet — reading the inline style alone would
+                 * report a never-shown popup as visible. */
+                if (global.getComputedStyle) {
+                    return global.getComputedStyle(node).display !== 'none';
+                }
+                return !!node.style.display && node.style.display !== 'none';
+            }
+        };
+        return api;
+    }
+
+    /* A persisted personal best.
+     *
+     * Every game does load-compare-store by hand, and the three that record a
+     * TIME rather than a score (laberinto, memorama, slidingpuzzle) each had to
+     * invert the comparison themselves — laberinto's record detection is still
+     * subtly wrong because of it. `lower: true` inverts it once, here.
+     *
+     *   var best = GU.highScore('snakeHighScore');
+     *   if (best.submit(score)) GameAudio.win();   // true only on a new record
+     *   hud.set({ best: best.value });
+     *
+     * An empty slot starts at -Infinity (or +Infinity when lower is better), so
+     * the very first result always registers as a record — which is what a
+     * first run should report, and what a `0` default gets wrong for times. */
+    function highScore(key, opts) {
+        opts = opts || {};
+        var lower = !!opts.lower;
+        var empty = lower ? Infinity : -Infinity;
+
+        var api = {
+            key: key,
+            value: Store.getNum(key, empty),
+            /* True when `v` beats the stored best. Persists as a side effect —
+             * the caller almost always wants both, and splitting them is how
+             * you end up comparing against a value you already overwrote. */
+            submit: function (v) {
+                if (lower ? v >= api.value : v <= api.value) return false;
+                api.value = v;
+                Store.setNum(key, v);
+                return true;
+            },
+            /* The stored best, or `fallback` when nothing is stored yet — for
+             * display, where Infinity is not what you want to print. */
+            display: function (fallback) {
+                return isFinite(api.value) ? api.value : (fallback == null ? '—' : fallback);
+            },
+            has: function () { return isFinite(api.value); },
+            reset: function () { api.value = empty; Store.remove(key); }
+        };
+        return api;
+    }
+
+    /* mm:ss, the format the timed games print.
+     * opts: {ms: true} -> mm:ss.cs   {hours: true} -> h:mm:ss */
+    function formatTime(millis, opts) {
+        opts = opts || {};
+        var t = Math.max(0, Math.floor(millis));
+        var cs = Math.floor((t % 1000) / 10);
+        var total = Math.floor(t / 1000);
+        var s = total % 60;
+        var m = Math.floor(total / 60);
+        var out;
+        if (opts.hours) {
+            var h = Math.floor(m / 60);
+            out = h + ':' + pad2(m % 60) + ':' + pad2(s);
+        } else {
+            out = m + ':' + pad2(s);
+        }
+        return opts.ms ? out + '.' + pad2(cs) : out;
+    }
+
+    function pad2(n) { return n < 10 ? '0' + n : String(n); }
+
+    /* ═══════════════════════════════════════════════════════════
+       Shapes
+    ═══════════════════════════════════════════════════════════ */
+
+    /* Paths only — they call beginPath() and leave the path current, so the
+     * caller decides fill, stroke or clip, and can set fillStyle once for a
+     * whole batch instead of per shape.
+     *
+     * These are the three shapes the emoji rule keeps forcing games to hand-roll
+     * (canvas shapes only, never ctx.fillText with an emoji). Seven games carry
+     * a copy of the star and three carry the heart. */
+
+    /* Five-pointed star by default, point upward. `inner` defaults to the 0.5
+     * ratio the existing copies all use. */
+    function starPath(ctx, cx, cy, outer, inner, points, rot) {
+        if (inner == null) inner = outer * 0.5;
+        if (points == null) points = 5;
+        if (rot == null) rot = -Math.PI / 2;
+        var step = Math.PI / points;
+        ctx.beginPath();
+        for (var i = 0; i < points * 2; i++) {
+            var r = (i % 2 === 0) ? outer : inner;
+            var a = rot + i * step;
+            var x = cx + Math.cos(a) * r;
+            var y = cy + Math.sin(a) * r;
+            if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+        }
+        ctx.closePath();
+        return ctx;
+    }
+
+    /* `size` is the full width, so a heart of size 20 spans 20px across — the
+     * per-game copies used the same convention. */
+    function heartPath(ctx, cx, cy, size) {
+        var s = size / 2;
+        var top = cy - s * 0.35;
+        ctx.beginPath();
+        ctx.moveTo(cx, cy + s * 0.75);
+        ctx.bezierCurveTo(cx - s * 1.4, cy - s * 0.2, cx - s * 0.9, top - s * 0.8, cx, top + s * 0.15);
+        ctx.bezierCurveTo(cx + s * 0.9, top - s * 0.8, cx + s * 1.4, cy - s * 0.2, cx, cy + s * 0.75);
+        ctx.closePath();
+        return ctx;
+    }
+
+    /* Regular polygon, first vertex pointing up unless `rot` says otherwise. */
+    function polygonPath(ctx, cx, cy, r, sides, rot) {
+        if (rot == null) rot = -Math.PI / 2;
+        ctx.beginPath();
+        for (var i = 0; i < sides; i++) {
+            var a = rot + i * Math.PI * 2 / sides;
+            var x = cx + Math.cos(a) * r;
+            var y = cy + Math.sin(a) * r;
+            if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+        }
+        ctx.closePath();
+        return ctx;
+    }
+
+    /* ═══════════════════════════════════════════════════════════
+       Sprite cache
+    ═══════════════════════════════════════════════════════════ */
+
+    /* Draw something once into an offscreen canvas, then blit it.
+     *
+     * This is the single biggest lever available in these games and only
+     * bubbleshooter uses it today, where it replaced a live radial gradient per
+     * bubble per frame with one drawImage. Anything drawn many times from the
+     * same shapes — a grid tile, a pellet, a brick, a card back, an enemy that
+     * only has two animation poses — is a candidate.
+     *
+     *   var chip = GU.sprite(24, 24, function (c) {
+     *       var g = c.createRadialGradient(12, 12, 2, 12, 12, 12);
+     *       ...
+     *   });
+     *   chip.drawCentered(ctx, x, y);
+     *
+     * The offscreen canvas is allocated at device pixel density and the draw
+     * callback runs pre-scaled, so the sprite stays sharp on a phone and the
+     * callback still works in logical pixels. Blits are in logical pixels too,
+     * so a sprite is a drop-in for the shape code it replaces.
+     *
+     * Two shapes of use: one-off (`GU.sprite`) and keyed (`GU.spriteSheet`),
+     * which builds on first request and is the right one for "one per colour"
+     * or "one per piece type". */
+    function sprite(w, h, draw, opts) {
+        opts = opts || {};
+        if (!global.document) return null;
+        var dpr = Math.min(global.devicePixelRatio || 1, opts.maxScale || HIDPI_MAX);
+        var pad = opts.pad || 0;                /* room for a glow or a stroke */
+        var lw = w + pad * 2, lh = h + pad * 2;
+
+        var c = global.document.createElement('canvas');
+        c.width  = Math.max(1, Math.round(lw * dpr));
+        c.height = Math.max(1, Math.round(lh * dpr));
+        var cx = c.getContext('2d');
+        cx.scale(dpr, dpr);
+        cx.translate(pad, pad);
+        draw(cx, w, h);
+
+        return {
+            canvas: c,
+            w: w, h: h, pad: pad,
+            /* x,y is the sprite's top-left in the DESTINATION's coordinates —
+             * the padding is drawn outside it, exactly where the original shape
+             * code would have put the overspill. */
+            draw: function (ctx, x, y) {
+                ctx.drawImage(c, x - pad, y - pad, lw, lh);
+            },
+            drawCentered: function (ctx, x, y) {
+                ctx.drawImage(c, x - w / 2 - pad, y - h / 2 - pad, lw, lh);
+            },
+            /* Rotated blit. Costs a save/restore, so it is still worth it
+             * against rebuilding gradients but not against a bare fillRect. */
+            drawRotated: function (ctx, x, y, angle) {
+                ctx.save();
+                ctx.translate(x, y);
+                ctx.rotate(angle);
+                ctx.drawImage(c, -w / 2 - pad, -h / 2 - pad, lw, lh);
+                ctx.restore();
+            }
+        };
+    }
+
+    /* Lazily-built, keyed family of sprites.
+     *
+     *   var bubbles = GU.spriteSheet(function (color) {
+     *       return GU.sprite(R * 2, R * 2, function (c) { ...draw in `color`... });
+     *   });
+     *   bubbles.get('#ff512f').drawCentered(ctx, x, y);
+     *
+     * The key must cover everything the sprite's appearance depends on, and it
+     * must be BOUNDED — the same warning as gradientMemo(). Keying on a moving
+     * coordinate leaks a whole canvas per frame, which is far worse than the
+     * gradient it was meant to save. */
+    function spriteSheet(build) {
+        var cache = {};
+        return {
+            get: function (key) {
+                var s = cache[key];
+                if (s === undefined) s = cache[key] = build(key);
+                return s;
+            },
+            clear: function () { cache = {}; },
+            size: function () { return Object.keys(cache).length; }
+        };
+    }
+
+    /* ═══════════════════════════════════════════════════════════
        Exports
     ═══════════════════════════════════════════════════════════ */
 
@@ -934,7 +1594,11 @@
         canvasCursor: canvasCursor, wirePopups: wirePopups,
         gradientMemo: gradientMemo,
         upgradeCanvas: upgradeCanvas, upgradeAllCanvases: upgradeAllCanvases,
-        Store: Store, Particles: Particles
+        Store: Store, Particles: Particles, Shake: Shake,
+        swipe: swipe, keys: keys,
+        hud: hud, popup: popup, highScore: highScore, formatTime: formatTime,
+        starPath: starPath, heartPath: heartPath, polygonPath: polygonPath,
+        sprite: sprite, spriteSheet: spriteSheet
     };
 
     global.GameUtils = GameUtils;
@@ -950,6 +1614,7 @@
     global.rafLoop     = rafLoop;
     global.GameStore   = Store;
     global.Particles   = Particles;
+    global.Shake       = Shake;
     global.pointerPos  = pointerPos;
     global.clamp       = clamp;
     global.lerp        = lerp;
