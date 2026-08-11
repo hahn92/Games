@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <title>Bolos</title>
+    <meta name="description" content="Partida completa de bolos a 10 frames con puntuación real: el pleno arrastra dos tiradas y el semipleno una. Apunta, mide la fuerza y dale efecto a la bola.">
+    <meta name="theme-color" content="#181818">
+    <link rel="canonical" href="https://games.hahndev.com/bolos/">
+    <link rel="icon" type="image/svg+xml" href="../favicon.svg">
+    <meta property="og:type" content="website">
+    <meta property="og:site_name" content="Juegos Web JS/CSS">
+    <meta property="og:title" content="Bolos — Física">
+    <meta property="og:description" content="Partida completa de bolos a 10 frames con puntuación real. Apunta, mide la fuerza y dale efecto a la bola.">
+    <meta property="og:url" content="https://games.hahndev.com/bolos/">
+    <meta property="og:image" content="https://games.hahndev.com/favicon.svg">
+    <meta name="twitter:card" content="summary">
+    <meta name="twitter:title" content="Bolos — Física">
+    <meta name="twitter:description" content="Partida completa de bolos a 10 frames con puntuación real.">
+    <link rel="stylesheet" href="./styles.css">
+</head>
+<body>
+    <main>
+        <div class="responsive-layout">
+            <div class="game-side" id="gameSide">
+                <canvas id="bolosCanvas" class="bolos-canvas" width="400" height="620"></canvas>
+                <div class="bolos-mobile-btns" id="bolosMobileBtns">
+                    <button id="throwBtnM" type="button">Lanzar</button>
+                </div>
+                <div id="mobileScore" class="mobile-score"></div>
+            </div>
+            <div class="info-side" id="infoSide">
+                <h1>Bolos</h1>
+                <p>Una partida completa de diez frames con la puntuación de verdad: un <strong>pleno</strong> vale 10 más tus dos tiradas siguientes, un <strong>semipleno</strong> 10 más la siguiente. El décimo frame da tiradas extra.</p>
+                <p>Cada lanzamiento son tres pulsaciones del mismo botón: primero paras el medidor de <em>puntería</em>, luego el de <em>fuerza</em> y luego el de <em>efecto</em>. El efecto curva la bola, que es como se entra bien al triángulo.</p>
+                <div class="score-panel">
+                    <span id="frameLabel">Frame: 1 / 10</span>
+                    <span id="scoreLabel">Puntos: 0</span>
+                    <span id="bestLabel">Récord: 0</span>
+                </div>
+                <div class="buttons-panel">
+                    <button id="startBtn" type="button">Iniciar</button>
+                    <button id="restartBtn" type="button">Reiniciar</button>
+                    <button id="throwBtn" type="button">Lanzar</button>
+                </div>
+                <div class="hint">
+                    <strong style="color:#aaa;">Consejos:</strong><br>
+                    Entrar recto por el centro deja casi siempre bolos de pie.<br>
+                    El mejor ángulo es entre el bolo 1 y el 3 (o el 1 y el 2), y a eso se llega con efecto.<br>
+                    Si te vas al canal, la tirada vale cero.<br>
+                    Espacio o Enter también lanzan.
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <div class="popup" id="overPopup" style="display:none;">
+        <div class="popup-content">
+            <h2 id="overTitle">Fin de la partida</h2>
+            <p id="overScore">Puntuación: 0</p>
+            <p id="overBest">Récord: 0</p>
+            <button id="playAgainBtn" type="button">Jugar de nuevo</button>
+        </div>
+    </div>
+
+    <script src="../mobile-layout.js"></script>
+    <script>
+    MobileLayout({
+        show: { bolosMobileBtns: 'flex', mobileScore: 'block' },
+        fit: function (vHeight) {
+            var canvas = document.getElementById('bolosCanvas');
+            var ratio  = 400 / 620;
+            /* -8: el canvas lleva borde de 3px por lado con content-box, asi
+               que innerWidth pelado desborda el viewport en movil */
+            var availW = window.innerWidth - 8;
+            var btnH   = isMobile() ? 48 : 0;
+            var availH = vHeight - btnH;
+            var newH   = Math.min(availH, availW / ratio);
+            var newW   = newH * ratio;
+            if (newW > availW) { newW = availW; newH = newW / ratio; }
+            canvas.style.width  = newW + 'px';
+            canvas.style.height = newH + 'px';
+        },
+        reset: function () {
+            var canvas = document.getElementById('bolosCanvas');
+            canvas.style.width  = '';
+            canvas.style.height = '';
+        },
+    });
+    </script>
+    <script src="../audio.js"></script>
+    <script src="../game-utils.js"></script>
+    <script src="./main.js"></script>
+    <script src="../fullscreen-btn.js"></script>
+    <script>
+    /* El boton de movil delega en el del panel: una sola logica. */
+    document.getElementById('throwBtnM').addEventListener('click', function () {
+        document.getElementById('throwBtn').click();
+    });
+    </script>
+</body>
+</html>

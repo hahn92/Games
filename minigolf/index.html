@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <title>Minigolf</title>
+    <meta name="description" content="Nueve hoyos de minigolf con par, rebotes en las bandas, obstaculos, arena y agua. Arrastra desde la bola como un tirachinas.">
+    <meta name="theme-color" content="#181818">
+    <link rel="canonical" href="https://games.hahndev.com/minigolf/">
+    <link rel="icon" type="image/svg+xml" href="../favicon.svg">
+    <meta property="og:type" content="website">
+    <meta property="og:site_name" content="Juegos Web JS/CSS">
+    <meta property="og:title" content="Minigolf — Física">
+    <meta property="og:description" content="Nueve hoyos de minigolf con par, rebotes en las bandas, obstaculos, arena y agua. Arrastra desde la bola como un tirachinas.">
+    <meta property="og:url" content="https://games.hahndev.com/minigolf/">
+    <meta property="og:image" content="https://games.hahndev.com/favicon.svg">
+    <meta name="twitter:card" content="summary">
+    <meta name="twitter:title" content="Minigolf — Física">
+    <meta name="twitter:description" content="Nueve hoyos de minigolf con par, rebotes en las bandas, obstaculos, arena y agua. Arrastra desde la bola como un tirachinas.">
+    <link rel="stylesheet" href="./styles.css">
+</head>
+<body>
+    <main>
+        <div class="responsive-layout">
+            <div class="game-side" id="gameSide">
+                <canvas id="golfCanvas" class="golf-canvas" width="440" height="620"></canvas>
+                <div class="golf-mobile-btns" id="golfMobileBtns">
+                    <button id="skipBtnM" type="button">Saltar hoyo</button>
+                </div>
+                <div id="mobileScore" class="mobile-score"></div>
+            </div>
+            <div class="info-side" id="infoSide">
+                <h1>Minigolf</h1>
+                <p>Nueve hoyos con su par. Arrastra desde la bola hacia atrás y suelta, como un tirachinas: cuanto más tires, más fuerte sale. La línea punteada marca la dirección.</p>
+                <p>Las bandas rebotan, los obstáculos de madera también, la arena frena muchísimo y el agua cuesta un golpe y te devuelve al sitio anterior. Para colar hay que llegar al hoyo sin pasarse de velocidad.</p>
+                <div class="score-panel">
+                    <span id="holeLabel">Hoyo: 1 / 9</span>
+                    <span id="parLabel">Par: 2</span>
+                    <span id="strokeLabel">Golpes: 0</span>
+                    <span id="totalLabel">Total: 0</span>
+                    <span id="bestLabel">Mejor: —</span>
+                </div>
+                <div class="buttons-panel">
+                    <button id="startBtn" type="button">Iniciar</button>
+                    <button id="restartBtn" type="button">Reiniciar</button>
+                    <button id="skipBtn" type="button">Saltar hoyo</button>
+                </div>
+                <div class="hint">
+                    <strong style="color:#aaa;">Resultado:</strong><br>
+                    Se cuenta respecto al par: birdie es −1, bogey +1.<br>
+                    El récord guarda la mejor vuelta completa, y cuanto más bajo mejor.<br>
+                    Saltar un hoyo cuenta como el máximo de golpes, no es gratis.<br>
+                    Con demasiada velocidad la bola pasa por encima del hoyo.
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <div class="popup" id="overPopup" style="display:none;">
+        <div class="popup-content">
+            <h2 id="overTitle">Fin de la partida</h2>
+            <p id="overScore">Puntuación: 0</p>
+            <p id="overBest">Récord: 0</p>
+            <button id="playAgainBtn" type="button">Jugar de nuevo</button>
+        </div>
+    </div>
+
+    <script src="../mobile-layout.js"></script>
+    <script>
+    MobileLayout({
+        show: { golfMobileBtns: 'flex', mobileScore: 'block' },
+        fit: function (vHeight) {
+            var canvas = document.getElementById('golfCanvas');
+            var ratio  = 440 / 620;
+            /* -8: el canvas lleva borde de 3px por lado con content-box, asi
+               que innerWidth pelado desborda el viewport en movil */
+            var availW = window.innerWidth - 8;
+            var btnH   = isMobile() ? 48 : 0;
+            var availH = vHeight - btnH;
+            var newH   = Math.min(availH, availW / ratio);
+            var newW   = newH * ratio;
+            if (newW > availW) { newW = availW; newH = newW / ratio; }
+            canvas.style.width  = newW + 'px';
+            canvas.style.height = newH + 'px';
+        },
+        reset: function () {
+            var canvas = document.getElementById('golfCanvas');
+            canvas.style.width  = '';
+            canvas.style.height = '';
+        },
+    });
+    </script>
+    <script src="../audio.js"></script>
+    <script src="../game-utils.js"></script>
+    <script src="./main.js"></script>
+    <script src="../fullscreen-btn.js"></script>
+    <script>
+    /* El boton de movil delega en el del panel: una sola logica. */
+    document.getElementById('skipBtnM').addEventListener('click', function () {
+        document.getElementById('skipBtn').click();
+    });
+    </script>
+</body>
+</html>

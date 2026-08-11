@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <title>Solitario</title>
+    <meta name="description" content="Solitario Klondike completo: robo de 1 o 3, deshacer ilimitado, auto-completado y cronometro. Arrastra las cartas o haz doble clic para mandarlas a su palo.">
+    <meta name="theme-color" content="#181818">
+    <link rel="canonical" href="https://games.hahndev.com/solitario/">
+    <link rel="icon" type="image/svg+xml" href="../favicon.svg">
+    <meta property="og:type" content="website">
+    <meta property="og:site_name" content="Juegos Web JS/CSS">
+    <meta property="og:title" content="Solitario — Cartas">
+    <meta property="og:description" content="Solitario Klondike completo: robo de 1 o 3, deshacer ilimitado, auto-completado y cronometro. Arrastra las cartas o haz doble clic para mandarlas a su palo.">
+    <meta property="og:url" content="https://games.hahndev.com/solitario/">
+    <meta property="og:image" content="https://games.hahndev.com/favicon.svg">
+    <meta name="twitter:card" content="summary">
+    <meta name="twitter:title" content="Solitario — Cartas">
+    <meta name="twitter:description" content="Solitario Klondike completo: robo de 1 o 3, deshacer ilimitado, auto-completado y cronometro. Arrastra las cartas o haz doble clic para mandarlas a su palo.">
+    <link rel="stylesheet" href="./styles.css">
+</head>
+<body>
+    <main>
+        <div class="responsive-layout">
+            <div class="game-side" id="gameSide">
+                <canvas id="solCanvas" class="sol-canvas" width="700" height="680"></canvas>
+                <div class="sol-mobile-btns" id="solMobileBtns">
+                    <button id="undoBtnM" type="button">Deshacer</button>
+                </div>
+                <div id="mobileScore" class="mobile-score"></div>
+            </div>
+            <div class="info-side" id="infoSide">
+                <h1>Solitario</h1>
+                <p>Klondike de toda la vida. Sube las cuatro pilas de fundación desde el as hasta el rey, cada una de un palo. En el tablero se apila <strong>alternando color</strong> y bajando de rango, y una columna vacía sólo acepta un rey.</p>
+                <p>Arrastra una carta, o una escalera entera si está toda boca arriba. Un clic simple —o doble clic— manda la carta a su fundación si cabe. Cuando no quede ninguna tapada, la partida se completa sola.</p>
+                <div class="score-panel">
+                    <span id="movesLabel">Movimientos: 0</span>
+                    <span id="stockLabel">Mazo: 0</span>
+                    <span id="timeLabel">Tiempo: 0:00</span>
+                    <span id="bestLabel">Mejor: —</span>
+                </div>
+                <div class="buttons-panel">
+                    <label class="diff-wrap">Robo
+                        <select id="drawSel">
+                            <option value="1" selected>De 1 (fácil)</option>
+                            <option value="3">De 3 (clásico)</option>
+                        </select>
+                    </label>
+                </div>
+                <div class="buttons-panel">
+                    <button id="startBtn" type="button">Nueva partida</button>
+                    <button id="restartBtn" type="button">Repartir de nuevo</button>
+                    <button id="undoBtn" type="button">Deshacer</button>
+                </div>
+                <div class="hint">
+                    <strong style="color:#aaa;">Detalles:</strong><br>
+                    Deshacer llega hasta 200 movimientos atrás.<br>
+                    Con robo de 3 se ven las tres, pero sólo se coge la de encima.<br>
+                    Cuando el mazo se agota, vuelve a llenarse con el descarte.<br>
+                    El récord guarda el mejor tiempo, no la puntuación.
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <div class="popup" id="winPopup" style="display:none;">
+        <div class="popup-content">
+            <h2 id="winTitle">Fin de la partida</h2>
+            <p id="winTime">Puntuación: 0</p>
+            <p id="winBest">Récord: 0</p>
+            <button id="playAgainBtn" type="button">Jugar de nuevo</button>
+        </div>
+    </div>
+
+    <script src="../mobile-layout.js"></script>
+    <script>
+    MobileLayout({
+        show: { solMobileBtns: 'flex', mobileScore: 'block' },
+        fit: function (vHeight) {
+            var canvas = document.getElementById('solCanvas');
+            var ratio  = 700 / 680;
+            /* -8: el canvas lleva borde de 3px por lado con content-box, asi
+               que innerWidth pelado desborda el viewport en movil */
+            var availW = window.innerWidth - 8;
+            var btnH   = isMobile() ? 48 : 0;
+            var availH = vHeight - btnH;
+            var newH   = Math.min(availH, availW / ratio);
+            var newW   = newH * ratio;
+            if (newW > availW) { newW = availW; newH = newW / ratio; }
+            canvas.style.width  = newW + 'px';
+            canvas.style.height = newH + 'px';
+        },
+        reset: function () {
+            var canvas = document.getElementById('solCanvas');
+            canvas.style.width  = '';
+            canvas.style.height = '';
+        },
+    });
+    </script>
+    <script src="../audio.js"></script>
+    <script src="../game-utils.js"></script>
+    <script src="./main.js"></script>
+    <script src="../fullscreen-btn.js"></script>
+    <script>
+    /* El boton de movil delega en el del panel: una sola logica. */
+    document.getElementById('undoBtnM').addEventListener('click', function () {
+        document.getElementById('undoBtn').click();
+    });
+    </script>
+</body>
+</html>

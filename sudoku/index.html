@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <title>Sudoku</title>
+    <meta name="description" content="Sudoku clásico con generador de solución única, tres dificultades, notas a lápiz y cronómetro. Completa la rejilla 9×9 sin repetir cifra en fila, columna ni bloque.">
+    <meta name="theme-color" content="#181818">
+    <link rel="canonical" href="https://games.hahndev.com/sudoku/">
+    <link rel="icon" type="image/svg+xml" href="../favicon.svg">
+    <meta property="og:type" content="website">
+    <meta property="og:site_name" content="Juegos Web JS/CSS">
+    <meta property="og:title" content="Sudoku — Puzzle">
+    <meta property="og:description" content="Sudoku clásico con generador de solución única, tres dificultades, notas a lápiz y cronómetro.">
+    <meta property="og:url" content="https://games.hahndev.com/sudoku/">
+    <meta property="og:image" content="https://games.hahndev.com/favicon.svg">
+    <meta name="twitter:card" content="summary">
+    <meta name="twitter:title" content="Sudoku — Puzzle">
+    <meta name="twitter:description" content="Sudoku clásico con generador de solución única, tres dificultades, notas a lápiz y cronómetro.">
+    <link rel="stylesheet" href="./styles.css">
+</head>
+<body>
+    <main>
+        <div class="responsive-layout">
+            <div class="game-side" id="gameSide">
+                <canvas id="sudokuCanvas" class="sudoku-canvas" width="450" height="560"></canvas>
+                <div class="sudoku-mobile-btns" id="sudokuMobileBtns">
+                    <button id="noteBtnM" type="button">Notas</button>
+                    <button id="eraseBtnM" type="button">Borrar</button>
+                </div>
+                <div id="mobileScore" class="mobile-score"></div>
+            </div>
+            <div class="info-side" id="infoSide">
+                <h1>Sudoku</h1>
+                <p>Rellena la rejilla de 9×9 con las cifras del 1 al 9 sin repetir ninguna en la misma fila, columna ni bloque de 3×3. Cada puzzle se genera al momento y tiene <strong>solución única</strong>.</p>
+                <p>Toca una casilla y elige un número de la fila inferior, o usa el teclado: flechas para moverte, 1–9 para escribir, 0 para borrar y N para el modo notas. Tres errores y se acabó.</p>
+                <div class="score-panel">
+                    <span id="diffLabel">Dificultad: Medio</span>
+                    <span id="errLabel">Errores: 0 / 3</span>
+                    <span id="timeLabel">Tiempo: 0:00</span>
+                    <span id="bestLabel">Mejor: —</span>
+                </div>
+                <div class="buttons-panel">
+                    <label class="diff-wrap">Dificultad
+                        <select id="diffSel">
+                            <option value="facil">Fácil</option>
+                            <option value="medio" selected>Medio</option>
+                            <option value="dificil">Difícil</option>
+                        </select>
+                    </label>
+                </div>
+                <div class="buttons-panel">
+                    <button id="startBtn" type="button">Nueva partida</button>
+                    <button id="restartBtn" type="button">Reiniciar</button>
+                    <button id="noteBtn" type="button">Notas: OFF</button>
+                    <button id="eraseBtn" type="button">Borrar</button>
+                </div>
+                <div class="hint">
+                    <strong style="color:#aaa;">Ayudas:</strong><br>
+                    Se resaltan la fila, la columna y el bloque de la casilla activa.<br>
+                    También las casillas con el mismo número.<br>
+                    Bajo cada cifra del teclado ves cuántas quedan por colocar.<br>
+                    Un número correcto borra esa nota de sus vecinas.
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <div class="popup" id="winPopup" style="display:none;">
+        <div class="popup-content">
+            <h2 id="winTitle">¡Sudoku resuelto!</h2>
+            <p id="winTime">Tiempo: 0:00</p>
+            <p id="winBest">Mejor: —</p>
+            <button id="playAgainBtn" type="button">Jugar de nuevo</button>
+        </div>
+    </div>
+
+    <script src="../mobile-layout.js"></script>
+    <script>
+    MobileLayout({
+        show: { sudokuMobileBtns: 'flex', mobileScore: 'block' },
+        fit: function (vHeight) {
+            var canvas = document.getElementById('sudokuCanvas');
+            var ratio  = 450 / 560;
+            /* -8: el canvas lleva borde de 3px por lado con content-box, asi
+               que innerWidth pelado desborda el viewport en movil */
+            var availW = window.innerWidth - 8;
+            var btnH   = isMobile() ? 48 : 0;
+            var availH = vHeight - btnH;
+            var newW   = Math.min(availW, availH * ratio);
+            var newH   = newW / ratio;
+            if (newH > availH) { newH = availH; newW = newH * ratio; }
+            canvas.style.width  = newW + 'px';
+            canvas.style.height = newH + 'px';
+        },
+        reset: function () {
+            var canvas = document.getElementById('sudokuCanvas');
+            canvas.style.width  = '';
+            canvas.style.height = '';
+        },
+    });
+    </script>
+    <script src="../audio.js"></script>
+    <script src="../game-utils.js"></script>
+    <script src="./main.js"></script>
+    <script src="../fullscreen-btn.js"></script>
+    <script>
+    /* Los botones de movil son gemelos de los del panel: se delega en ellos
+       para no duplicar la logica ni los listeners. */
+    document.getElementById('noteBtnM').addEventListener('click', function () {
+        document.getElementById('noteBtn').click();
+    });
+    document.getElementById('eraseBtnM').addEventListener('click', function () {
+        document.getElementById('eraseBtn').click();
+    });
+    </script>
+</body>
+</html>

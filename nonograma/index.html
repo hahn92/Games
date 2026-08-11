@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <title>Nonograma</title>
+    <meta name="description" content="Nonograma o picross: los números de cada fila y columna dicen cuántas casillas seguidas hay que pintar. Puzzles generados al momento y resolubles sólo con lógica.">
+    <meta name="theme-color" content="#181818">
+    <link rel="canonical" href="https://games.hahndev.com/nonograma/">
+    <link rel="icon" type="image/svg+xml" href="../favicon.svg">
+    <meta property="og:type" content="website">
+    <meta property="og:site_name" content="Juegos Web JS/CSS">
+    <meta property="og:title" content="Nonograma — Lógica">
+    <meta property="og:description" content="Nonograma o picross: los números dicen cuántas casillas seguidas pintar en cada fila y columna. Puzzles resolubles sólo con lógica.">
+    <meta property="og:url" content="https://games.hahndev.com/nonograma/">
+    <meta property="og:image" content="https://games.hahndev.com/favicon.svg">
+    <meta name="twitter:card" content="summary">
+    <meta name="twitter:title" content="Nonograma — Lógica">
+    <meta name="twitter:description" content="Nonograma o picross: los números dicen cuántas casillas seguidas pintar en cada fila y columna.">
+    <link rel="stylesheet" href="./styles.css">
+</head>
+<body>
+    <main>
+        <div class="responsive-layout">
+            <div class="game-side" id="gameSide">
+                <canvas id="nonoCanvas" class="nono-canvas" width="460" height="500"></canvas>
+                <div class="nono-mobile-btns" id="nonoMobileBtns">
+                    <button id="markBtnM" type="button">Marcar</button>
+                </div>
+                <div id="mobileScore" class="mobile-score"></div>
+            </div>
+            <div class="info-side" id="infoSide">
+                <h1>Nonograma</h1>
+                <p>Los números de cada fila y columna dicen cuántas casillas seguidas hay que pintar, en ese orden y separadas por al menos un hueco. Reconstruye la imagen escondida.</p>
+                <p>Haz clic para pintar. Clic derecho (o el botón <em>Marcar</em>) para descartar una casilla con un aspa: descartar no cuenta como error, pintar donde no toca sí. Tres fallos y se acabó.</p>
+                <div class="score-panel">
+                    <span id="diffLabel">Tamaño: Medio (10×10)</span>
+                    <span id="leftLabel">Faltan: 0</span>
+                    <span id="errLabel">Errores: 0 / 3</span>
+                    <span id="timeLabel">Tiempo: 0:00</span>
+                </div>
+                <div class="buttons-panel">
+                    <label class="diff-wrap">Tamaño
+                        <select id="diffSel">
+                            <option value="facil">Fácil (5×5)</option>
+                            <option value="medio" selected>Medio (10×10)</option>
+                            <option value="dificil">Difícil (15×15)</option>
+                        </select>
+                    </label>
+                </div>
+                <div class="buttons-panel">
+                    <button id="startBtn" type="button">Nuevo puzzle</button>
+                    <button id="restartBtn" type="button">Reiniciar</button>
+                    <button id="markBtn" type="button">Marcar: OFF</button>
+                </div>
+                <div class="hint">
+                    <strong style="color:#aaa;">Cómo se lee:</strong><br>
+                    Una fila con <code>3 1</code> tiene tres casillas seguidas, luego al menos un hueco, luego una.<br>
+                    Las pistas se atenúan cuando su línea ya está resuelta.<br>
+                    Con el teclado: flechas para moverte, Enter para pintar, M para marcar.<br>
+                    Todos los puzzles se pueden resolver sin adivinar.
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <div class="popup" id="winPopup" style="display:none;">
+        <div class="popup-content">
+            <h2 id="winTitle">¡Imagen revelada!</h2>
+            <p id="winTime">Tiempo: 0:00</p>
+            <p id="winBest">Mejor: —</p>
+            <button id="playAgainBtn" type="button">Jugar de nuevo</button>
+        </div>
+    </div>
+
+    <script src="../mobile-layout.js"></script>
+    <script>
+    MobileLayout({
+        show: { nonoMobileBtns: 'flex', mobileScore: 'block' },
+        fit: function (vHeight) {
+            var canvas = document.getElementById('nonoCanvas');
+            var ratio  = 460 / 500;
+            /* -8: el canvas lleva borde de 3px por lado con content-box, asi
+               que innerWidth pelado desborda el viewport en movil */
+            var availW = window.innerWidth - 8;
+            var btnH   = isMobile() ? 48 : 0;
+            var availH = vHeight - btnH;
+            var newW   = Math.min(availW, availH * ratio);
+            var newH   = newW / ratio;
+            if (newH > availH) { newH = availH; newW = newH * ratio; }
+            canvas.style.width  = newW + 'px';
+            canvas.style.height = newH + 'px';
+        },
+        reset: function () {
+            var canvas = document.getElementById('nonoCanvas');
+            canvas.style.width  = '';
+            canvas.style.height = '';
+        },
+    });
+    </script>
+    <script src="../audio.js"></script>
+    <script src="../game-utils.js"></script>
+    <script src="./main.js"></script>
+    <script src="../fullscreen-btn.js"></script>
+    <script>
+    /* El boton de movil delega en el del panel: una sola logica. */
+    document.getElementById('markBtnM').addEventListener('click', function () {
+        document.getElementById('markBtn').click();
+    });
+    </script>
+</body>
+</html>
