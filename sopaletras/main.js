@@ -61,7 +61,6 @@ let dragEnd = null;     // {r,c}
 
 // Animaciones — pooled shared particle system (see game-utils.js)
 const particles = new Particles(200);
-let shake = 0;
 let lastFrameTs = 0;
 
 const HS_KEY = 'sopaletrasHighScore';
@@ -285,7 +284,6 @@ function startGame() {
     state.startTime = performance.now();
     state.elapsed = 0;
     particles.clear();
-    shake = 0;
     dragging = false; dragStart = null; dragEnd = null;
     document.getElementById('restartBtn').disabled = false;
     document.getElementById('gameOverPopup').style.display = 'none';
@@ -321,19 +319,12 @@ function update(ts) {
         state.elapsed = (ts - state.startTime) / 1000;
     }
     particles.update();
-    if (shake > 0) shake--;
 }
 
 function draw() {
     ctx.clearRect(0, 0, CANVAS_W, CANVAS_H);
 
-    let sx = 0, sy = 0;
-    if (shake > 0) {
-        sx = (Math.random() - 0.5) * shake;
-        sy = (Math.random() - 0.5) * shake;
-    }
     ctx.save();
-    ctx.translate(sx, sy);
 
     // fondo grilla
     const gw = cellSize * GRID;

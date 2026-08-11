@@ -21,6 +21,12 @@
     var canvas = document.getElementById('misilesCanvas');
     var ctx = canvas.getContext('2d');
 
+    /* Sacudida al perder una ciudad. Vive fuera de `state` porque lleva su
+     * propio decaimiento; decay 0.9 es exactamente la curva que tenía antes
+     * (state.shake *= 0.9 por frame), pero las compensaciones se sortean en
+     * update() y no en draw(). */
+    var shake = new GU.Shake({ decay: 0.9 });
+
     // Estado del juego
     var state = {
         running: false,
@@ -39,7 +45,6 @@
         spawnInterval: 60,
         betweenTimer: 0,
         bonusText: '',
-        shake: 0,
         flash: 0
     };
 
@@ -106,7 +111,7 @@
         state.antis = [];
         state.blasts = [];
         state.particles.clear();
-        state.shake = 0;
+        shake.stop();
         state.flash = 0;
         makeCities();
         startWave();
@@ -222,7 +227,7 @@
 
     /* ---------- Update ---------- */
     function update() {
-        if (state.shake > 0) state.shake *= 0.9;
+        shake.update();
         if (state.flash > 0) state.flash -= 0.05;
 
         // Pausa entre oleadas: cuenta bonus
@@ -333,7 +338,7 @@
                 break;
             }
         }
-        state.shake = 12;
+        shake.hit(12);
         state.flash = 0.4;
         updateHud();
     }
@@ -369,13 +374,8 @@
 
     /* ---------- Render ---------- */
     function draw() {
-        var sx = 0, sy = 0;
-        if (state.shake > 0.5) {
-            sx = (Math.random() - 0.5) * state.shake;
-            sy = (Math.random() - 0.5) * state.shake;
-        }
         ctx.save();
-        ctx.translate(sx, sy);
+        shake.translate(ctx);
 
         // cielo
         ctx.fillStyle = skyGrad;

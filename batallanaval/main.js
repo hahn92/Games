@@ -31,7 +31,12 @@ let aiHitStack = [];        // celdas tocadas del barco actual
 // Efectos
 const particles = new Particles(160);   // pooled, see game-utils.js
 let splashes = [];
-let screenShake = 0;
+/* Sacudida compartida: las compensaciones se eligen en update(), no en draw().
+ * Antes draw() llamaba a Math.random() en cada frame, lo que la regla de
+ * rendimiento prohíbe — un mismo frame repintado dos veces temblaba. */
+/* decay 0.76 reproduce la duración del decremento lineal anterior
+ * (10 → 0 restando 0.6 por frame, unos 17 frames). */
+const shake = new GU.Shake({ decay: 0.76 });
 let stats = { wins: 0, losses: 0 };
 
 // ---- Utilidades de stats ----
@@ -123,7 +128,7 @@ function startGame() {
     busy = false;
     particles.clear();
     splashes = [];
-    screenShake = 0;
+    shake.stop();
     state = 'placing';
     document.getElementById('restartBtn').disabled = false;
     document.getElementById('gameOverPopup').style.display = 'none';
@@ -153,7 +158,7 @@ function fullReset() {
 // ---- Efectos: partículas precomputadas ----
 function spawnExplosion(x, y) {
     GameAudio.explode();
-    screenShake = 10;
+    shake.hit(10);
     const n = 16;
     for (let i = 0; i < n; i++) {
         const ang = (Math.PI * 2 * i) / n + Math.random() * 0.4;
@@ -363,13 +368,8 @@ function draw(ts) {
 
     ctx.clearRect(0, 0, CW, CH);
 
-    let shakeX = 0, shakeY = 0;
-    if (screenShake > 0) {
-        shakeX = (Math.random() - 0.5) * screenShake;
-        shakeY = (Math.random() - 0.5) * screenShake;
-    }
     ctx.save();
-    ctx.translate(shakeX, shakeY);
+    shake.translate(ctx);
 
     drawBackground();
 
@@ -388,8 +388,7 @@ function draw(ts) {
 }
 
 function updateEffects() {
-    if (screenShake > 0) screenShake -= 0.6;
-    if (screenShake < 0) screenShake = 0;
+    shake.update();
     particles.update();
     for (let i = splashes.length - 1; i >= 0; i--) {
         const s = splashes[i];
