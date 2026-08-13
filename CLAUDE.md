@@ -2,7 +2,7 @@
 
 Guía para Claude Code (claude.ai/code) al trabajar en este repositorio.
 
-Colección de 54 juegos clásicos de navegador en JavaScript, HTML5 Canvas y CSS.
+Colección de 64 juegos clásicos de navegador en JavaScript, HTML5 Canvas y CSS.
 Sin build y sin dependencias: se abre cualquier `index.html` y funciona.
 Desplegado en https://games.hahndev.com (ver `CNAME`).
 
@@ -27,7 +27,7 @@ los enlaces son para navegar, no porque falte nada.
 | [Trampas conocidas](./docs/trampas.md) | Tres formas de romper un juego sin error en consola |
 | [Herramientas](./docs/herramientas.md) | Comandos, subagentes, hooks, patrones de IA |
 | [Añadir un juego](./docs/nuevo-juego.md) | Los pasos, en orden |
-| [Notas por juego](./docs/juegos/indice.md) | Los 54, con lo que no es evidente en cada uno |
+| [Notas por juego](./docs/juegos/indice.md) | Los 64, con lo que no es evidente en cada uno |
 
 ## Reglas que no se negocian
 
@@ -77,5 +77,6 @@ versión ingenua falla en Safari o con las cookies bloqueadas.
 @./docs/juegos/mesa.md
 @./docs/juegos/reflejos.md
 @./docs/juegos/nuevos.md
+@./docs/juegos/nuevos-2.md
 @./docs/juegos/transversales.md
 @./docs/nuevo-juego.md

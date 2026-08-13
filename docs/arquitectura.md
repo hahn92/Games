@@ -5,7 +5,7 @@ catálogo completo.
 
 ## Overview
 
-A collection of 54 classic browser-based games built with vanilla JavaScript, HTML5 Canvas, and CSS. No build system or dependencies — open any `index.html` directly in a browser to run. Deployed at https://games.hahndev.com (see `CNAME`).
+A collection of 64 classic browser-based games built with vanilla JavaScript, HTML5 Canvas, and CSS. No build system or dependencies — open any `index.html` directly in a browser to run. Deployed at https://games.hahndev.com (see `CNAME`).
 
 ## Running the project
 
@@ -109,3 +109,13 @@ Each game lives in its own folder with:
 | `solitario/` | Solitario | Cartas | Canvas |
 | `minigolf/` | Minigolf | Física | Canvas |
 | `bolos/` | Bolos | Física | Canvas |
+| `tron/` | Estelas de Luz | Arcade | Canvas |
+| `lunar/` | Alunizaje | Física | Canvas |
+| `mastermind/` | Descifra el Código | Lógica | Canvas |
+| `generala/` | Generala | Dados | Canvas |
+| `ciempies/` | Ciempiés | Shooter | Canvas |
+| `bombas/` | Bombas | Arcade | Canvas |
+| `domino/` | Dominó | Mesa | Canvas |
+| `mahjong/` | Mahjong Solitario | Puzzle | Canvas |
+| `tiroalblanco/` | Galería de Tiro | Reflejos | Canvas |
+| `canastas/` | Canastas | Física | Canvas |

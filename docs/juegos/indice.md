@@ -1,6 +1,6 @@
 # Índice de juegos
 
-Los 54 juegos y dónde está documentado cada uno. **54 tienen nota**; el resto no
+Los 64 juegos y dónde está documentado cada uno. **64 tienen nota**; el resto no
 tiene ninguna trampa registrada — se juegan y se editan como aparentan.
 
 - **propia** — sección dedicada a ese juego.
@@ -16,6 +16,16 @@ tiene ninguna trampa registrada — se juegan y se editan como aparentan.
 | [`billar/`](../../billar/) | Billar | Física | [compartida](./transversales.md#games-on-the-shared-particle-pool) |
 | [`blackjack/`](../../blackjack/) | Blackjack | Cartas | [propia](./mesa.md#blackjack-blackjack) |
 | [`bolos/`](../../bolos/) | Bolos | Física | [propia](./nuevos.md#bolos-bolos) |
+| [`tron/`](../../tron/) | Estelas de Luz | Arcade | [nuevos-2](./nuevos-2.md) |
+| [`lunar/`](../../lunar/) | Alunizaje | Física | [nuevos-2](./nuevos-2.md) |
+| [`mastermind/`](../../mastermind/) | Descifra el Código | Lógica | [nuevos-2](./nuevos-2.md) |
+| [`generala/`](../../generala/) | Generala | Dados | [nuevos-2](./nuevos-2.md) |
+| [`ciempies/`](../../ciempies/) | Ciempiés | Shooter | [nuevos-2](./nuevos-2.md) |
+| [`bombas/`](../../bombas/) | Bombas | Arcade | [nuevos-2](./nuevos-2.md) |
+| [`domino/`](../../domino/) | Dominó | Mesa | [nuevos-2](./nuevos-2.md) |
+| [`mahjong/`](../../mahjong/) | Mahjong Solitario | Puzzle | [nuevos-2](./nuevos-2.md) |
+| [`tiroalblanco/`](../../tiroalblanco/) | Galería de Tiro | Reflejos | [nuevos-2](./nuevos-2.md) |
+| [`canastas/`](../../canastas/) | Canastas | Física | [nuevos-2](./nuevos-2.md) |
 | [`breakout/`](../../breakout/) | Breakout | Arcade | [compartida](./transversales.md#games-on-the-shared-particle-pool) |
 | [`bubbleshooter/`](../../bubbleshooter/) | Bubble Shooter | Arcade | [propia](./arcade.md#bubbleshooter-bubbleshooter) |
 | [`cambiocolor/`](../../cambiocolor/) | Cambio de Color | Reflejos | [propia](./reflejos.md#cambio-de-color-cambiocolor) |

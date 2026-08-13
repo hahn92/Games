@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <title>Dominó</title>
+    <meta name="description" content="Doble seis contra la máquina, con robo del pozo y cierre a menos puntos. Las fichas se giran solas para casar por el extremo que toque.">
+    <meta name="theme-color" content="#181818">
+    <link rel="canonical" href="https://games.hahndev.com/domino/">
+    <link rel="icon" type="image/svg+xml" href="../favicon.svg">
+    <meta property="og:type" content="website">
+    <meta property="og:site_name" content="Juegos Web JS/CSS">
+    <meta property="og:title" content="Dominó — Mesa">
+    <meta property="og:description" content="Doble seis contra la máquina, con pozo y cierre a menos puntos.">
+    <meta property="og:url" content="https://games.hahndev.com/domino/">
+    <meta property="og:image" content="https://games.hahndev.com/favicon.svg">
+    <meta name="twitter:card" content="summary">
+    <meta name="twitter:title" content="Dominó — Mesa">
+    <meta name="twitter:description" content="Doble seis contra la máquina, con pozo y cierre a menos puntos.">
+    <link rel="stylesheet" href="./styles.css">
+</head>
+<body>
+    <main>
+        <div class="responsive-layout">
+            <div class="game-side" id="gameSide">
+                <canvas id="domCanvas" class="dom-canvas" width="420" height="600" tabindex="0"></canvas>
+                <div id="mobileScore" class="mobile-score"></div>
+            </div>
+            <div class="info-side" id="infoSide">
+                <h1>Dominó</h1>
+                <p>Las 28 fichas del doble seis, siete para cada uno y el resto al pozo. Sale quien tenga el doble más alto.</p>
+                <p>Toca una ficha para elegirla y luego el extremo por el que quieres encajarla. La ficha <strong>se gira sola</strong> si el número que casa es el de abajo — sólo se ofrecen los lados donde de verdad entra.</p>
+                <p>Si no puedes jugar, robas del pozo hasta poder. Con el pozo vacío se pasa, y si se pasan los dos la partida se <strong>cierra</strong>: gana quien menos puntos tenga en la mano.</p>
+                <div class="score-panel">
+                    <span>Ganadas: <b id="winsLabel">0</b></span>
+                    <span>Perdidas: <b id="lossesLabel">0</b></span>
+                    <span>Tu mano: <b id="handLabel">0</b></span>
+                    <span>Pozo: <b id="stockLabel">0</b></span>
+                    <span>Récord: <b id="highScore">0</b></span>
+                </div>
+                <div class="buttons-panel">
+                    <button id="startBtn" type="button">Iniciar</button>
+                    <button id="restartBtn" type="button" disabled>Reiniciar</button>
+                    <button id="passBtn" type="button">Robar / Pasar</button>
+                </div>
+                <div class="hint">
+                    <strong style="color:#aaa;">Consejos:</strong><br>
+                    Toca una ficha y luego el &lt; o el &gt; para colocarla.<br>
+                    Con teclado: tabula al tablero, flechas para moverte y Enter para elegir.<br>
+                    Las fichas que no casan salen apagadas: no hace falta que las pruebes.<br>
+                    La máquina suelta primero las de más puntos, así que suele quedarse fichas bajas y difíciles de bloquear.<br>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <div class="popup" id="overPopup" style="display:none;">
+        <div class="popup-content">
+            <h2 id="overTitle">Fin de la partida</h2>
+            <p id="overScore"></p>
+            <p id="overRecord"></p>
+            <button id="playAgainBtn" type="button">Jugar de nuevo</button>
+        </div>
+    </div>
+
+    <script src="../mobile-layout.js"></script>
+    <script>
+    MobileLayout({
+        show: { mobileScore: 'block' },
+        fit: function (vHeight) {
+            var canvas = document.getElementById('domCanvas');
+            var ratio  = 420 / 600;
+            /* -8: el canvas lleva borde de 3px por lado con content-box, así que
+               innerWidth pelado desborda el viewport en móvil. */
+            var availW = window.innerWidth - 8;
+            var availH = vHeight - (isMobile() ? 40 : 0);
+            var newH = Math.min(availH, availW / ratio);
+            var newW = newH * ratio;
+            if (newW > availW) { newW = availW; newH = newW / ratio; }
+            canvas.style.width  = newW + 'px';
+            canvas.style.height = newH + 'px';
+        },
+        reset: function () {
+            var canvas = document.getElementById('domCanvas');
+            canvas.style.width  = '';
+            canvas.style.height = '';
+        },
+    });
+    </script>
+    <script src="../audio.js"></script>
+    <script src="../game-utils.js"></script>
+    <script src="./main.js"></script>
+    <script src="../fullscreen-btn.js"></script>
+</body>
+</html>

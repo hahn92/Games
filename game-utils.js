@@ -1208,6 +1208,28 @@
         return {
             down:    function (a) { return !!held[a]; },
             pressed: function (a) { return !!edge[a]; },
+            /* Fija una acción a mano, sin que venga de una tecla.
+             *
+             * Es para el control táctil: en móvil no hay teclado, y un juego de
+             * mantener pulsado —empujar el motor, girar— necesita decir "esta
+             * acción está activa mientras el dedo siga en esta zona". Sin esto
+             * cada juego acaba con dos fuentes de verdad, el mapa de teclas y un
+             * objeto de toques aparte, y la lógica tiene que consultar las dos.
+             *
+             * Dispara onPress/onRelease igual que una tecla, incluido el filtro
+             * de no repetir el flanco si ya estaba pulsada. */
+            set: function (a, isDown) {
+                if (!(a in held)) return;
+                isDown = !!isDown;
+                if (held[a] === isDown) return;
+                held[a] = isDown;
+                if (isDown) {
+                    edge[a] = true;
+                    if (opts.onPress) opts.onPress(a, null);
+                } else if (opts.onRelease) {
+                    opts.onRelease(a, null);
+                }
+            },
             flush:   function () { for (var a in edge) edge[a] = false; },
             clear:   function () { releaseAll(); for (var b in edge) edge[b] = false; },
             destroy: function () {
@@ -1252,10 +1274,9 @@
      * more than the bare number.
      *
      * Un campo puede valer `null`: se sigue su valor pero no se pinta en ningún
-     * sitio. Hace falta cuando la línea de móvil enseña algo que el panel de
-     * escritorio no tiene (las vidas en ritmo, el tiempo en cosecha). Sin
-     * declararlo, un cambio sólo en esa variable no ensucia nada y la línea de
-     * móvil se queda con el valor viejo. */
+     * sitio. No hace falta para que la línea de móvil se entere de un cambio —de
+     * eso se encarga el recálculo en cada set(), ver más abajo—; sirve para dejar
+     * escrito de qué depende esa línea y para poder leerlo con .get(). */
     function hud(spec) {
         var fields = {}, values = {}, mobile = null, lastMobile = null;
 

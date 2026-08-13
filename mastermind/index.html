@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <title>Descifra el Código</title>
+    <meta name="description" content="Mastermind clásico: deduce una combinación de cuatro colores en diez intentos. Cada intento te dice cuántas aciertan de sitio y cuántas sólo de color.">
+    <meta name="theme-color" content="#181818">
+    <link rel="canonical" href="https://games.hahndev.com/mastermind/">
+    <link rel="icon" type="image/svg+xml" href="../favicon.svg">
+    <meta property="og:type" content="website">
+    <meta property="og:site_name" content="Juegos Web JS/CSS">
+    <meta property="og:title" content="Descifra el Código — Lógica">
+    <meta property="og:description" content="Mastermind clásico: deduce una combinación de cuatro colores en diez intentos.">
+    <meta property="og:url" content="https://games.hahndev.com/mastermind/">
+    <meta property="og:image" content="https://games.hahndev.com/favicon.svg">
+    <meta name="twitter:card" content="summary">
+    <meta name="twitter:title" content="Descifra el Código — Lógica">
+    <meta name="twitter:description" content="Deduce la combinación de cuatro colores en diez intentos.">
+    <link rel="stylesheet" href="./styles.css">
+</head>
+<body>
+    <main>
+        <div class="responsive-layout">
+            <div class="game-side" id="gameSide">
+                <canvas id="mmCanvas" class="mm-canvas" width="400" height="620" tabindex="0"></canvas>
+                <div id="mobileScore" class="mobile-score"></div>
+            </div>
+            <div class="info-side" id="infoSide">
+                <h1>Descifra el Código</h1>
+                <p>Hay una combinación escondida de cuatro colores, y se pueden repetir. Tienes diez intentos para dar con ella.</p>
+                <p>Cada intento devuelve cuatro marcas: una <b style="color:#ff512f">roja</b> por cada ficha que acierta color <em>y</em> posición, y una <b>blanca</b> por cada una cuyo color está en el código pero en otro sitio. Las marcas no te dicen a qué ficha corresponden — eso es lo que hay que deducir.</p>
+                <div class="score-panel">
+                    <span>Intentos: <b id="triesLabel">0</b></span>
+                    <span>Quedan: <b id="leftLabel">10</b></span>
+                    <span>Récord: <b id="highScore">—</b></span>
+                </div>
+                <div class="buttons-panel">
+                    <button id="startBtn" type="button">Iniciar</button>
+                    <button id="restartBtn" type="button" disabled>Reiniciar</button>
+                    <button id="submitBtn" type="button">Comprobar</button>
+                    <button id="undoBtn" type="button">Borrar</button>
+                </div>
+                <div class="hint">
+                    <strong style="color:#aaa;">Consejos:</strong><br>
+                    Toca un color de la paleta para colocarlo; toca la fila en curso para borrar.<br>
+                    Con teclado: tabula al tablero, flechas para elegir color, Enter para comprobar.<br>
+                    Empieza con dos colores repetidos: acota mucho más que cuatro distintos.<br>
+                    El récord es el <em>menor</em> número de intentos, así que menos es mejor.
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <div class="popup" id="overPopup" style="display:none;">
+        <div class="popup-content">
+            <h2 id="overTitle">Sin intentos</h2>
+            <p id="overScore"></p>
+            <p id="overBest"></p>
+            <button id="playAgainBtn" type="button">Jugar de nuevo</button>
+        </div>
+    </div>
+
+    <script src="../mobile-layout.js"></script>
+    <script>
+    MobileLayout({
+        show: { mobileScore: 'block' },
+        fit: function (vHeight) {
+            var canvas = document.getElementById('mmCanvas');
+            var ratio  = 400 / 620;
+            /* -8: el canvas lleva borde de 3px por lado con content-box, así que
+               innerWidth pelado desborda el viewport en móvil. */
+            var availW = window.innerWidth - 8;
+            var availH = vHeight - (isMobile() ? 40 : 0);
+            var newH = Math.min(availH, availW / ratio);
+            var newW = newH * ratio;
+            if (newW > availW) { newW = availW; newH = newW / ratio; }
+            canvas.style.width  = newW + 'px';
+            canvas.style.height = newH + 'px';
+        },
+        reset: function () {
+            var canvas = document.getElementById('mmCanvas');
+            canvas.style.width  = '';
+            canvas.style.height = '';
+        },
+    });
+    </script>
+    <script src="../audio.js"></script>
+    <script src="../game-utils.js"></script>
+    <script src="./main.js"></script>
+    <script src="../fullscreen-btn.js"></script>
+</body>
+</html>

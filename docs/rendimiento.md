@@ -5,11 +5,11 @@ corresponde a un cuello de botella que se midió.
 
 ## Catalog thumbnails
 
-All 54 thumbnail canvases live in the DOM at once, but the catalog paginates by
+All 64 thumbnail canvases live in the DOM at once, but the catalog paginates by
 toggling `display` on the cards, so only 8 are shown at a time. `thumbnails.js`
 therefore draws each one lazily, through an `IntersectionObserver`: a hidden card
 has no layout box and never intersects, and paginating or filtering to it gives it
-one. Drawing all 54 up front spent ~85% of the work on canvases nobody could see —
+one. Drawing all 64 up front spent ~85% of the work on canvases nobody could see —
 and since they render at device pixel density, each is a 440x440 backing store.
 
 Two consequences when touching this:

@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <title>Estelas de Luz</title>
+    <meta name="description" content="Motos de luz sobre una rejilla: cada una deja un rastro sólido y gana el último que quede sin chocar. Rivales que miran el espacio abierto antes de girar.">
+    <meta name="theme-color" content="#181818">
+    <link rel="canonical" href="https://games.hahndev.com/tron/">
+    <link rel="icon" type="image/svg+xml" href="../favicon.svg">
+    <meta property="og:type" content="website">
+    <meta property="og:site_name" content="Juegos Web JS/CSS">
+    <meta property="og:title" content="Estelas de Luz — Arcade">
+    <meta property="og:description" content="Motos de luz sobre una rejilla: cada una deja un rastro sólido y gana el último que quede sin chocar.">
+    <meta property="og:url" content="https://games.hahndev.com/tron/">
+    <meta property="og:image" content="https://games.hahndev.com/favicon.svg">
+    <meta name="twitter:card" content="summary">
+    <meta name="twitter:title" content="Estelas de Luz — Arcade">
+    <meta name="twitter:description" content="Motos de luz sobre una rejilla: gana el último que quede sin chocar.">
+    <link rel="stylesheet" href="./styles.css">
+</head>
+<body>
+    <main>
+        <div class="responsive-layout">
+            <div class="game-side" id="gameSide">
+                <canvas id="tronCanvas" class="tron-canvas" width="420" height="420"></canvas>
+                <div id="mobileScore" class="mobile-score"></div>
+            </div>
+            <div class="info-side" id="infoSide">
+                <h1>Estelas de Luz</h1>
+                <p>Tu moto no para nunca y va dejando un muro sólido detrás. Chocar contra cualquier rastro —incluido el tuyo—, contra un rival o contra el borde te elimina. Gana el último que siga en pista.</p>
+                <p>Los rivales no van a ciegas: antes de girar miden cuánto <strong>espacio abierto</strong> les queda por cada lado, así que encerrarlos funciona, pero se encierran a ti si te descuidas.</p>
+                <div class="score-panel">
+                    <span>Puntos: <b id="score">0</b></span>
+                    <span>Ronda: <b id="roundLabel">1</b></span>
+                    <span>En pista: <b id="aliveLabel">0</b></span>
+                    <span>Récord: <b id="highScore">0</b></span>
+                </div>
+                <div class="buttons-panel">
+                    <button id="startBtn" type="button">Iniciar</button>
+                    <button id="restartBtn" type="button" disabled>Reiniciar</button>
+                </div>
+                <div class="hint">
+                    <strong style="color:#aaa;">Consejos:</strong><br>
+                    Flechas o WASD para girar; en móvil, desliza el dedo.<br>
+                    No puedes dar media vuelta: sería chocar con tu propio rastro.<br>
+                    Pegarte a tu muro deja el centro libre y a los rivales sin sitio.<br>
+                    Cada ronda va más rápida y entra una moto más.
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <div class="popup" id="overPopup" style="display:none;">
+        <div class="popup-content">
+            <h2 id="overTitle">Te has estrellado</h2>
+            <p id="overScore">Puntuación: 0</p>
+            <p id="overRound">Rondas superadas: 0</p>
+            <button id="playAgainBtn" type="button">Jugar de nuevo</button>
+        </div>
+    </div>
+
+    <script src="../mobile-layout.js"></script>
+    <script>
+    MobileLayout({
+        show: { mobileScore: 'block' },
+        fit: function (vHeight) {
+            var canvas = document.getElementById('tronCanvas');
+            /* -8: el canvas lleva borde de 3px por lado con content-box, así que
+               innerWidth pelado desborda el viewport en móvil. */
+            var availW = window.innerWidth - 8;
+            var availH = vHeight - (isMobile() ? 40 : 0);
+            var side = Math.min(availW, availH);   // la pista es cuadrada
+            canvas.style.width  = side + 'px';
+            canvas.style.height = side + 'px';
+        },
+        reset: function () {
+            var canvas = document.getElementById('tronCanvas');
+            canvas.style.width  = '';
+            canvas.style.height = '';
+        },
+    });
+    </script>
+    <script src="../audio.js"></script>
+    <script src="../game-utils.js"></script>
+    <script src="./main.js"></script>
+    <script src="../fullscreen-btn.js"></script>
+</body>
+</html>

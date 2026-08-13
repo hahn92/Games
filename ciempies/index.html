@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <title>Ciempiés</title>
+    <meta name="description" content="El ciempiés baja serpenteando por un campo de setas. Al reventarle un segmento del medio se parte en dos y cada mitad sigue por su cuenta.">
+    <meta name="theme-color" content="#181818">
+    <link rel="canonical" href="https://games.hahndev.com/ciempies/">
+    <link rel="icon" type="image/svg+xml" href="../favicon.svg">
+    <meta property="og:type" content="website">
+    <meta property="og:site_name" content="Juegos Web JS/CSS">
+    <meta property="og:title" content="Ciempiés — Shooter">
+    <meta property="og:description" content="Dispárale al medio y se parte en dos: cada mitad sigue por su cuenta.">
+    <meta property="og:url" content="https://games.hahndev.com/ciempies/">
+    <meta property="og:image" content="https://games.hahndev.com/favicon.svg">
+    <meta name="twitter:card" content="summary">
+    <meta name="twitter:title" content="Ciempiés — Shooter">
+    <meta name="twitter:description" content="Dispárale al medio y se parte en dos: cada mitad sigue por su cuenta.">
+    <link rel="stylesheet" href="./styles.css">
+</head>
+<body>
+    <main>
+        <div class="responsive-layout">
+            <div class="game-side" id="gameSide">
+                <canvas id="cpCanvas" class="cp-canvas" width="400" height="560"></canvas>
+                <div id="mobileScore" class="mobile-score"></div>
+            </div>
+            <div class="info-side" id="infoSide">
+                <h1>Ciempiés</h1>
+                <p>El bicho baja serpenteando y rebota contra cada seta que encuentra. Tú te mueves por la franja de abajo y disparas hacia arriba.</p>
+                <p>Si le aciertas <strong>en medio del cuerpo se parte en dos</strong>, y cada mitad sigue a lo suyo. Cuantos más tiros aciertas, más bichos independientes tienes encima.</p>
+                <p>Cada segmento destruido deja una <strong>seta</strong> donde cayó, y las setas desvían a los que vengan detrás. Vas construyendo tú mismo el laberinto que te complica el nivel.</p>
+                <div class="score-panel">
+                    <span>Puntos: <b id="score">0</b></span>
+                    <span>Vidas: <b id="livesLabel">3</b></span>
+                    <span>Nivel: <b id="levelLabel">1</b></span>
+                    <span>Récord: <b id="highScore">0</b></span>
+                </div>
+                <div class="buttons-panel">
+                    <button id="startBtn" type="button">Iniciar</button>
+                    <button id="restartBtn" type="button" disabled>Reiniciar</button>
+                </div>
+                <div class="hint">
+                    <strong style="color:#aaa;">Consejos:</strong><br>
+                    Flechas o WASD para moverte, espacio para disparar.<br>
+                    En móvil, arrastra el dedo: la nave te sigue y dispara sola.<br>
+                    Una seta aguanta cuatro tiros; abrir un pasillo cuesta munición y tiempo.<br>
+                    Partir el bicho da puntos, pero te deja dos objetivos: a veces conviene comerlo por la cola.<br>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <div class="popup" id="overPopup" style="display:none;">
+        <div class="popup-content">
+            <h2 id="overTitle">Fin de la partida</h2>
+            <p id="overScore"></p>
+            <p id="overLevel"></p>
+            <button id="playAgainBtn" type="button">Jugar de nuevo</button>
+        </div>
+    </div>
+
+    <script src="../mobile-layout.js"></script>
+    <script>
+    MobileLayout({
+        show: { mobileScore: 'block' },
+        fit: function (vHeight) {
+            var canvas = document.getElementById('cpCanvas');
+            var ratio  = 400 / 560;
+            /* -8: el canvas lleva borde de 3px por lado con content-box, así que
+               innerWidth pelado desborda el viewport en móvil. */
+            var availW = window.innerWidth - 8;
+            var availH = vHeight - (isMobile() ? 40 : 0);
+            var newH = Math.min(availH, availW / ratio);
+            var newW = newH * ratio;
+            if (newW > availW) { newW = availW; newH = newW / ratio; }
+            canvas.style.width  = newW + 'px';
+            canvas.style.height = newH + 'px';
+        },
+        reset: function () {
+            var canvas = document.getElementById('cpCanvas');
+            canvas.style.width  = '';
+            canvas.style.height = '';
+        },
+    });
+    </script>
+    <script src="../audio.js"></script>
+    <script src="../game-utils.js"></script>
+    <script src="./main.js"></script>
+    <script src="../fullscreen-btn.js"></script>
+</body>
+</html>

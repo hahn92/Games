@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <title>Mahjong Solitario</title>
+    <meta name="description" content="Empareja fichas iguales hasta vaciar la figura. Una ficha está libre si no tiene nada encima y le queda libre un lado; el reparto siempre tiene solución.">
+    <meta name="theme-color" content="#181818">
+    <link rel="canonical" href="https://games.hahndev.com/mahjong/">
+    <link rel="icon" type="image/svg+xml" href="../favicon.svg">
+    <meta property="og:type" content="website">
+    <meta property="og:site_name" content="Juegos Web JS/CSS">
+    <meta property="og:title" content="Mahjong Solitario — Puzzle">
+    <meta property="og:description" content="Empareja fichas libres hasta vaciar la figura. El reparto siempre tiene solución.">
+    <meta property="og:url" content="https://games.hahndev.com/mahjong/">
+    <meta property="og:image" content="https://games.hahndev.com/favicon.svg">
+    <meta name="twitter:card" content="summary">
+    <meta name="twitter:title" content="Mahjong Solitario — Puzzle">
+    <meta name="twitter:description" content="Empareja fichas libres hasta vaciar la figura. El reparto siempre tiene solución.">
+    <link rel="stylesheet" href="./styles.css">
+</head>
+<body>
+    <main>
+        <div class="responsive-layout">
+            <div class="game-side" id="gameSide">
+                <canvas id="mjCanvas" class="mj-canvas" width="460" height="520" tabindex="0"></canvas>
+                <div id="mobileScore" class="mobile-score"></div>
+            </div>
+            <div class="info-side" id="infoSide">
+                <h1>Mahjong Solitario</h1>
+                <p>Empareja fichas iguales hasta vaciar la figura. Sólo puedes tocar las que están <strong>libres</strong>: sin nada encima y con el lado izquierdo o el derecho despejado.</p>
+                <p>Esa segunda condición es la que hace que el montón se abra por los bordes. Una ficha con vecinas a los dos lados está encajonada aunque no tenga nada encima.</p>
+                <p>El reparto <strong>no es aleatorio</strong>: se construye al revés, colocando parejas sobre posiciones ya alcanzables, así que la figura siempre se puede deshacer. Si te bloqueas, ha sido por el orden que elegiste — y para eso está Deshacer.</p>
+                <div class="score-panel">
+                    <span>Fichas: <b id="leftLabel">0</b></span>
+                    <span>Jugadas: <b id="pairsLabel">0</b></span>
+                    <span>Tiempo: <b id="timeLabel">0:00</b></span>
+                    <span>Récord: <b id="highScore">—</b></span>
+                </div>
+                <div class="buttons-panel">
+                    <button id="startBtn" type="button">Iniciar</button>
+                    <button id="restartBtn" type="button" disabled>Reiniciar</button>
+                    <button id="hintBtn" type="button">Pista</button>
+                    <button id="undoBtn" type="button">Deshacer</button>
+                </div>
+                <div class="hint">
+                    <strong style="color:#aaa;">Consejos:</strong><br>
+                    Toca dos fichas libres del mismo dibujo para retirarlas.<br>
+                    Las bloqueadas salen apagadas: si no cambia de color, no se puede.<br>
+                    H da una pista, Z o Retroceso deshacen la última pareja.<br>
+                    El contador de jugadas te dice cuántas parejas libres quedan ahora mismo.<br>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <div class="popup" id="overPopup" style="display:none;">
+        <div class="popup-content">
+            <h2 id="overTitle">Fin de la partida</h2>
+            <p id="overScore"></p>
+            <p id="overPairs"></p>
+            <button id="playAgainBtn" type="button">Jugar de nuevo</button>
+        </div>
+    </div>
+
+    <script src="../mobile-layout.js"></script>
+    <script>
+    MobileLayout({
+        show: { mobileScore: 'block' },
+        fit: function (vHeight) {
+            var canvas = document.getElementById('mjCanvas');
+            var ratio  = 460 / 520;
+            /* -8: el canvas lleva borde de 3px por lado con content-box, así que
+               innerWidth pelado desborda el viewport en móvil. */
+            var availW = window.innerWidth - 8;
+            var availH = vHeight - (isMobile() ? 40 : 0);
+            var newH = Math.min(availH, availW / ratio);
+            var newW = newH * ratio;
+            if (newW > availW) { newW = availW; newH = newW / ratio; }
+            canvas.style.width  = newW + 'px';
+            canvas.style.height = newH + 'px';
+        },
+        reset: function () {
+            var canvas = document.getElementById('mjCanvas');
+            canvas.style.width  = '';
+            canvas.style.height = '';
+        },
+    });
+    </script>
+    <script src="../audio.js"></script>
+    <script src="../game-utils.js"></script>
+    <script src="./main.js"></script>
+    <script src="../fullscreen-btn.js"></script>
+</body>
+</html>

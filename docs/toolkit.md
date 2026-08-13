@@ -15,9 +15,9 @@ because games already called them unqualified.
 | Canvas | `pointerPos(canvas, e)`\* → `{x, y}` in canvas space; `GU.roundRectPath(ctx, x,y,w,h,r)`; `GU.gradientMemo()` |
 | Shapes | `GU.starPath(ctx, cx,cy, outer, inner?, points?, rot?)`, `GU.heartPath(ctx, cx,cy, size)`, `GU.polygonPath(ctx, cx,cy, r, sides, rot?)` — paths only, you fill/stroke |
 | Sprites | `GU.sprite(w, h, draw, {pad, maxScale})` → `.draw/.drawCentered/.drawRotated`; `GU.spriteSheet(build)` → `.get(key)` |
-| Input | `GU.swipe(el, {onSwipe, onTap, minDist, maxTime, live, mouse, preventDefault})`; `GU.keys(bindings, {preventDefault, onPress, onRelease})` → `.down/.pressed/.flush/.clear` |
+| Input | `GU.swipe(el, {onSwipe, onTap, minDist, maxTime, live, mouse, preventDefault})`; `GU.keys(bindings, {preventDefault, onPress, onRelease})` → `.down/.pressed/.set/.flush/.clear` |
 | HUD | `GU.hud({field: id, mobile: {el, html}})` → `.set/.add/.get/.refresh` (un campo a `null` se sigue sin pintarlo); `GU.popup(id)` → `.show(fields)/.hide()/.visible()`; `GU.highScore(key, {lower})` → `.value/.submit/.display/.has/.reset`; `GU.formatTime(ms, {ms, hours})` |
-| Controles | `GU.controls({start, restart, playAgain, popup, sound})` → `.running()/.idle()` — cablea los tres botones de la página |
+| Controles | `GU.controls({start, restart, playAgain, popup, sound})` → `.running()/.idle()` — cablea los tres botones de la página; `GU.buttons(selector, handler)` para un botón que sale más de una vez |
 | Shake | `new Shake({decay, ratio, max})`\* with `.hit(mag)`, `.update(dt)`, `.translate(ctx)`, `.active()`, `.stop()` |
 | Storage | `GameStore.getNum/setNum/getJSON/setJSON/get/set/remove`\*, `GameStore.available` |
 | Particles | `new Particles(max, {semiImplicit})`\* with `.burst(x, y, n, opts)`, `.add(x, y, vx, vy, opts)`, `.update(dt)`, `.draw(ctx)`, `.each(fn)`, `.clear()` |
@@ -166,6 +166,21 @@ because games already called them unqualified.
   cae en `start` y `playAgain` en `restart` cuando no se declaran. Un botón que no
   está en el markup se ignora sin ruido — chess y damas no tienen ninguno.
 
+- **`buttons`** — el hermano de `controls` para los botones que salen DOS VECES en
+  la página. chess, damas, reversi y hanoi repiten sus controles en el panel de
+  escritorio y en la tira de encima del tablero, así que no pueden llevar id —un
+  id tiene que ser único— y van por clase. Los cuatro escribían el mismo bucle de
+  `querySelectorAll(...).forEach(addEventListener)`. Se resuelve una vez, al
+  llamar: un juego que cree botones después tiene que volver a llamar, igual que
+  con `gridKeyboard` tras cada render.
+
+- **`keys().set(action, held)`** — fija una acción a mano, sin tecla de por medio.
+  Es para el control táctil: en móvil no hay teclado, y un juego de mantener
+  pulsado (empujar el motor en `lunar`, girar) necesita decir "esta acción está
+  activa mientras el dedo siga en esta zona". Sin esto cada juego acaba con dos
+  fuentes de verdad —el mapa de teclas y un objeto de toques aparte— y la lógica
+  tiene que consultar las dos. Dispara `onPress`/`onRelease` igual que una tecla.
+
 - **`hud`** — 47 games write their score twice, to the side panel and to `#mobileScore`.
   Writing `textContent` invalidates layout even when the string is identical, so a
   score that changes once a second was costing 60 layout invalidations a second to say
@@ -177,11 +192,18 @@ because games already called them unqualified.
   `fmtTime(elapsedMs)` cambia diez veces por segundo. Igual con `Math.ceil(timeLeft)`
   frente a `timeLeft`.
 
-  **Un campo puede valer `null`**: se sigue su valor pero no se pinta. Hace falta
-  cuando la línea de móvil enseña algo que el panel de escritorio no tiene — las
-  vidas en spaceinvaders, las monedas en cosecha. Sin declararlo, un cambio sólo en
-  esa variable no ensucia nada y la línea de móvil se queda con el valor viejo. Hay
-  una prueba que lo fija.
+  **La línea de móvil se recalcula en CADA `set()`** y se filtra comparando el
+  texto que produce, no los campos. Es a propósito: casi todas esas líneas enseñan
+  algo que el panel de escritorio no tiene —las vidas, el combo, un reloj— y su
+  callback lo lee por cierre. Si sólo se repintara al ensuciarse un campo, cada
+  juego tendría que acordarse de declarar todas esas variables, y olvidar una deja
+  la línea congelada sin dar un solo síntoma en consola. Construir la cadena es
+  concatenar; lo caro es tocar el DOM, y eso lo sigue evitando la comparación. Hay
+  dos pruebas que lo fijan, incluida la de que 60 `set()` sin cambios no escriben.
+
+  **Un campo puede valer `null`**: se sigue su valor pero no se pinta en ningún
+  sitio. Ya no hace falta para que la línea de móvil se entere de nada — sirve para
+  documentar de qué depende esa línea y para poder leerlo con `.get()`.
 
   Sólo cinco juegos escribían el HUD de verdad en cada frame (spaceinvaders desde
   `draw()`, cosecha y minero desde el bucle, laberinto desde `render`); están
