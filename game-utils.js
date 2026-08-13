@@ -1249,7 +1249,13 @@
      *   hud.add('score', 10);
      *
      * A field can be an id, an element, or {el, format} when the panel wants
-     * more than the bare number. */
+     * more than the bare number.
+     *
+     * Un campo puede valer `null`: se sigue su valor pero no se pinta en ningún
+     * sitio. Hace falta cuando la línea de móvil enseña algo que el panel de
+     * escritorio no tiene (las vidas en ritmo, el tiempo en cosecha). Sin
+     * declararlo, un cambio sólo en esa variable no ensucia nada y la línea de
+     * móvil se queda con el valor viejo. */
     function hud(spec) {
         var fields = {}, values = {}, mobile = null, lastMobile = null;
 
@@ -1257,7 +1263,8 @@
             if (!Object.prototype.hasOwnProperty.call(spec, name)) continue;
             if (name === 'mobile') { mobile = spec.mobile; continue; }
             var f = spec[name];
-            fields[name] = (typeof f === 'string' || f.tagName) ? { el: f } : f;
+            if (f == null) fields[name] = { el: null };
+            else fields[name] = (typeof f === 'string' || f.tagName) ? { el: f } : f;
             values[name] = undefined;
         }
         if (mobile && (typeof mobile === 'string' || mobile.tagName)) mobile = { el: mobile };
@@ -1362,6 +1369,88 @@
                     return global.getComputedStyle(node).display !== 'none';
                 }
                 return !!node.style.display && node.style.display !== 'none';
+            }
+        };
+        return api;
+    }
+
+    /* Los tres botones de una página de juego: Iniciar, Reiniciar y el "Jugar de
+     * nuevo" del popup final.
+     *
+     * Cuarenta y nueve juegos traían este bloque copiado, idéntico salvo el
+     * nombre de la función que llaman:
+     *
+     *   document.getElementById('startBtn').addEventListener('click', function () {
+     *       GameAudio.click(); startGame();
+     *   });
+     *   document.getElementById('restartBtn').addEventListener('click', ...);
+     *   document.getElementById('playAgainBtn').addEventListener('click', function () {
+     *       GameAudio.click();
+     *       document.getElementById('gameOverPopup').style.display = 'none';
+     *       startGame();
+     *   });
+     *
+     * y, repartido por startGame/gameOver, el vaivén de `disabled` entre los dos
+     * primeros. Aquí queda:
+     *
+     *   var ctl = GU.controls({ start: startGame, restart: restartGame,
+     *                           popup: 'gameOverPopup' });
+     *   ctl.running();   // en startGame: Iniciar apagado, Reiniciar encendido
+     *   ctl.idle();      // en gameOver:  al revés
+     *
+     * Detalles que arrastra por ti:
+     *
+     * - `GameAudio.click()` en los tres, que es lo que pide docs/audio.md. Se
+     *   emite ANTES del handler: si el handler abre un popup o cambia de pantalla,
+     *   el sonido ya salió.
+     * - `playAgain` esconde el popup antes de llamar al handler. Hacerlo después
+     *   deja un frame con el overlay encima del tablero ya reiniciado.
+     * - `restart` cae en `start` y `playAgain` en `restart` cuando no se declaran,
+     *   que es lo que hacía la mayoría a mano.
+     * - Un botón que no está en el markup se ignora sin ruido: hangman no tiene
+     *   popup, chess no tiene ninguno de los tres.
+     *
+     * opts: {sound: false} para el juego que quiera otro sonido en un botón. */
+    function controls(spec) {
+        spec = spec || {};
+        var sound = spec.sound !== false;
+        var over = spec.popup ? popup(spec.popup) : null;
+
+        function wire(id, handler, hidePopup) {
+            if (!handler) return null;
+            var node = el(id);
+            if (!node) return null;
+            node.addEventListener('click', function () {
+                if (sound && global.GameAudio && global.GameAudio.click) global.GameAudio.click();
+                if (hidePopup && over) over.hide();
+                handler();
+            });
+            return node;
+        }
+
+        var startFn     = spec.start;
+        var restartFn   = spec.restart   || startFn;
+        var playAgainFn = spec.playAgain || restartFn;
+
+        var startBtn   = wire(spec.startId   || 'startBtn',   startFn,     false);
+        var restartBtn = wire(spec.restartId || 'restartBtn', restartFn,   false);
+        wire(spec.playAgainId || 'playAgainBtn', playAgainFn, true);
+
+        function setDisabled(node, v) { if (node) node.disabled = v; }
+
+        var api = {
+            popup: over,
+            /* La partida está en marcha. */
+            running: function () {
+                setDisabled(startBtn, true);
+                setDisabled(restartBtn, false);
+                return api;
+            },
+            /* No hay partida: se puede iniciar, no se puede reiniciar. */
+            idle: function () {
+                setDisabled(startBtn, false);
+                setDisabled(restartBtn, true);
+                return api;
             }
         };
         return api;
@@ -1596,7 +1685,8 @@
         upgradeCanvas: upgradeCanvas, upgradeAllCanvases: upgradeAllCanvases,
         Store: Store, Particles: Particles, Shake: Shake,
         swipe: swipe, keys: keys,
-        hud: hud, popup: popup, highScore: highScore, formatTime: formatTime,
+        hud: hud, popup: popup, controls: controls,
+        highScore: highScore, formatTime: formatTime,
         starPath: starPath, heartPath: heartPath, polygonPath: polygonPath,
         sprite: sprite, spriteSheet: spriteSheet
     };
