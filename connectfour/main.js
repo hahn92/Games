@@ -546,8 +546,7 @@ function endGame(result, winCells) {
     setTimeout(function() {
         document.getElementById('gameOverPopup').style.display = 'flex';
     }, 600);
-    document.getElementById('startBtn').disabled = false;
-    document.getElementById('restartBtn').disabled = true;
+    gameControls.idle();
 }
 
 function updateScores() {
@@ -568,8 +567,7 @@ function startGame() {
     hoverPulseTime = 0;
     drawBoard();
     document.getElementById('gameOverPopup').style.display = 'none';
-    document.getElementById('startBtn').disabled = true;
-    document.getElementById('restartBtn').disabled = false;
+    gameControls.running();
     updateScores();
 }
 
@@ -639,13 +637,7 @@ document.addEventListener('keydown', function(e) {
     if (e.key === 'ArrowDown' || e.key === 'Enter') { if (hoverCol >= 0) playerDrop(hoverCol); }
 });
 
-document.getElementById('startBtn').addEventListener('click', function() { GameAudio.click(); startGame(); });
-document.getElementById('restartBtn').addEventListener('click', function() { GameAudio.click(); startGame(); });
-document.getElementById('playAgainBtn').addEventListener('click', function() {
-    GameAudio.click();
-    document.getElementById('gameOverPopup').style.display = 'none';
-    startGame();
-});
+var gameControls = GU.controls({ start: startGame, popup: 'gameOverPopup' });
 
 // Init
 newBoard();

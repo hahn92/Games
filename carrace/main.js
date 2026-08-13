@@ -1312,8 +1312,7 @@
         preSeedPlants();
         GameAudio.start();
         rafId = requestAnimationFrame(loop);
-        startBtn.disabled = true;
-        restartBtn.disabled = false;
+        gameControls.running();
     }
 
     function updateUI() {
@@ -1388,12 +1387,6 @@
     }, { passive: true });
 
     // Buttons
-    startBtn.addEventListener('click', function () { GameAudio.click(); startGame(); });
-    restartBtn.addEventListener('click', function () { GameAudio.click(); startGame(); });
-    playAgainBtn.addEventListener('click', function () {
-        GameAudio.click();
-        popup.style.display = 'none';
-        startGame();
-    });
+    var gameControls = GU.controls({ start: startGame, popup: 'gameOverPopup' });
 
 })();

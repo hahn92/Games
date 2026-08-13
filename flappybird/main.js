@@ -165,8 +165,7 @@ function startGame() {
     resetGame();
     GameAudio.start();
     isPlaying = true;
-    document.getElementById('restartBtn').disabled = false;
-    document.getElementById('startBtn').disabled = true;
+    gameControls.running();
     document.getElementById('gameOverPopup').style.display = 'none';
     gameLoop = rafInterval(update, 15);
 }
@@ -293,8 +292,7 @@ function endGame() {
 
     document.getElementById('gameOverPopup').style.display = 'flex';
     document.getElementById('finalScore').textContent = 'Puntaje: ' + score;
-    document.getElementById('startBtn').disabled = false;
-    document.getElementById('restartBtn').disabled = true;
+    gameControls.idle();
 
     // Draw medal and new record on popup canvas overlay via final draw
     draw();
@@ -696,11 +694,5 @@ document.addEventListener('keydown', e => {
     if (!isPlaying) return;
     if (e.code === 'Space' || e.code === 'ArrowUp') flap();
 });
-document.getElementById('startBtn').addEventListener('click', () => { GameAudio.click(); startGame(); });
-document.getElementById('restartBtn').addEventListener('click', () => { GameAudio.click(); restartGame(); });
-document.getElementById('playAgainBtn').addEventListener('click', () => {
-    GameAudio.click();
-    document.getElementById('gameOverPopup').style.display = 'none';
-    startGame();
-});
+var gameControls = GU.controls({ start: startGame, restart: restartGame, playAgain: startGame, popup: 'gameOverPopup' });
 resetGame();

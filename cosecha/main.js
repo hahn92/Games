@@ -227,8 +227,7 @@ function resetGame() {
 function startGame() {
     resetGame();
     isPlaying = true;
-    startBtn.disabled = true;
-    restartBtn.disabled = false;
+    gameControls.running();
     lastT = now();
     GameAudio.start();
     if (animId) cancelAnimationFrame(animId);
@@ -299,14 +298,28 @@ function harvest(plotIdx) {
 }
 
 /* ─────────────────────── HUD ─────────────────────── */
-function updateHUD() {
-    scoreEl.textContent = earned;
-    highScoreEl.textContent = best;
-    if (mobileScoreEl) {
-        mobileScoreEl.innerHTML = '<span style="color:#ffd54a">Monedas: ' + coins + '</span> · ' +
+/* loop() cierra cada frame llamando aquí, y el reloj cambia de segundo una vez
+ * de cada sesenta: sin filtro son dos textContent y un innerHTML por frame para
+ * repetir lo mismo. GU.hud compara antes de tocar el DOM.
+ *
+ * `coins` y el segundo que se muestra sólo viven en la línea de móvil, así que
+ * van como campos sin elemento — es lo que hace que la línea se repinte cuando
+ * cambian ellos y no `earned`. El segundo se sigue ya redondeado: seguir
+ * `timeLeft` en crudo cambiaría 60 veces por segundo y anularía el filtro. */
+var cosechaHud = GU.hud({
+    earned: scoreEl,
+    best:   highScoreEl,
+    coins:  null,
+    secs:   null,
+    mobile: { el: mobileScoreEl, html: function () {
+        return '<span style="color:#ffd54a">Monedas: ' + coins + '</span> · ' +
             '<span style="color:#8fd3f4">Ganadas: ' + earned + '</span> · ' +
             '<span style="color:#ff8a5a">' + Math.ceil(timeLeft) + 's</span>';
-    }
+    } }
+});
+
+function updateHUD() {
+    cosechaHud.set({ earned: earned, best: best, coins: coins, secs: Math.ceil(timeLeft) });
 }
 
 function showPopup() {
@@ -837,9 +850,7 @@ canvas.addEventListener('touchstart', function (e) {
 }, { passive: false });
 
 /* Botones */
-startBtn.addEventListener('click',     function () { GameAudio.click(); startGame(); });
-restartBtn.addEventListener('click',   function () { GameAudio.click(); startGame(); });
-playAgainBtn.addEventListener('click', function () { GameAudio.click(); startGame(); });
+var gameControls = GU.controls({ start: startGame });
 
 /* ─────────────────────── Render inicial (título) ─────────────────────── */
 function initialRender() {

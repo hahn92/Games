@@ -1577,8 +1577,7 @@
         if (rafId) cancelAnimationFrame(rafId);
         rafId = requestAnimationFrame(loop);
 
-        startBtn.disabled = true;
-        restartBtn.disabled = false;
+        gameControls.running();
     }
 
     function endGame() {
@@ -1595,17 +1594,10 @@
         finalHighEl.textContent  = score >= highScore ? 'Nuevo record!' : `Mejor: ${highScore}`;
         gameOverPopup.style.display = 'flex';
 
-        startBtn.disabled = false;
-        restartBtn.disabled = true;
+        gameControls.idle();
     }
 
-    startBtn.addEventListener('click', () => { GameAudio.click(); startGame(); });
-    restartBtn.addEventListener('click', () => { GameAudio.click(); startGame(); });
-    playAgainBtn.addEventListener('click', () => {
-        GameAudio.click();
-        gameOverPopup.style.display = 'none';
-        startGame();
-    });
+    var gameControls = GU.controls({ start: startGame, popup: 'gameOverPopup' });
 
     // Show high score on load
     if (highScoreEl) highScoreEl.textContent = highScore;

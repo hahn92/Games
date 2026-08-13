@@ -500,8 +500,7 @@ function startGame() {
     isOver = false;
     lastT = 0;
     popup.style.display = 'none';
-    startBtn.disabled = true;
-    restartBtn.disabled = false;
+    gameControls.running();
     updateHUD();
     GameAudio.start();
 }
@@ -523,9 +522,7 @@ function endGame() {
 }
 
 /* ─────────────────────── Eventos ─────────────────────── */
-startBtn.addEventListener('click', function () { GameAudio.click(); startGame(); });
-restartBtn.addEventListener('click', function () { GameAudio.click(); startGame(); });
-playAgainBtn.addEventListener('click', function () { GameAudio.click(); startGame(); });
+var gameControls = GU.controls({ start: startGame });
 
 // Tap / clic sobre el canvas
 function canvasPos(clientX, clientY) {

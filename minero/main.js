@@ -139,13 +139,30 @@ function resetGame() {
     isLevelTransition = false;
     levelTransitionT = 0;
     startLevel();
-    scoreEl.textContent = '0';
-    updateMobileScore();
+    updateMobileScore();   // el marcador de escritorio va por el mismo sitio
 }
 
+/* La línea de móvil enseña el tiempo que queda, pero antes sólo se reescribía
+ * al recoger oro o al empezar nivel: el reloj del canvas iba bajando y el de la
+ * superposición se quedaba clavado en el segundo de la última recogida, así que
+ * había dos tiempos distintos en pantalla a la vez. Ahora se refresca en cada
+ * frame desde update(), que es lo correcto para un reloj — y sale gratis porque
+ * GU.hud compara antes de escribir: el texto sólo cambia una vez por segundo.
+ *
+ * Por eso `secs` se sigue ya redondeado y no `timeLeft` en crudo, que cambiaría
+ * en cada frame y dejaría el filtro sin efecto. */
+var mineroHud = GU.hud({
+    score: scoreEl,
+    quota: null,
+    level: null,
+    secs:  null,
+    mobile: { el: mobileScoreEl, html: function () {
+        return 'Oro ' + score + '/' + quota + '  ·  Nv ' + level + '  ·  ' + Math.ceil(timeLeft) + 's';
+    } }
+});
+
 function updateMobileScore() {
-    if (mobileScoreEl) mobileScoreEl.textContent =
-        'Oro ' + score + '/' + quota + '  ·  Nv ' + level + '  ·  ' + Math.ceil(timeLeft) + 's';
+    mineroHud.set({ score: score, quota: quota, level: level, secs: Math.ceil(timeLeft) });
 }
 
 /* ──────────────────────── Acción: lanzar gancho ─────────────────── */
@@ -192,6 +209,7 @@ function update(dt) {
     // temporizador
     timeLeft -= dt / 60;
     var secs = Math.ceil(timeLeft);
+    updateMobileScore();   // dirty-checked: sólo escribe al cambiar de segundo
     if (secs <= 5 && secs > 0 && secs !== lastTickWarn) {
         lastTickWarn = secs;
         GameAudio.tick();
@@ -262,7 +280,6 @@ function update(dt) {
                          : '#ffd93d'
                 });
                 spawnParticles(HOOK_ORIGIN_X, MINER_Y + 36, hook.grabbed.color, 10);
-                scoreEl.textContent = score;
                 updateMobileScore();
 
                 if (score >= quota) {
@@ -849,17 +866,7 @@ canvas.addEventListener('mousedown', function (e) { handleInput(e); });
 canvas.addEventListener('touchstart', function (e) { e.preventDefault(); handleInput(e); }, { passive: false });
 document.addEventListener('keydown', handleInput);
 
-startBtn.addEventListener('click', function () { GameAudio.click(); startGame(); });
-restartBtn.addEventListener('click', function () {
-    GameAudio.click();
-    popup.style.display = 'none';
-    startGame();
-});
-playAgainBtn.addEventListener('click', function () {
-    GameAudio.click();
-    popup.style.display = 'none';
-    startGame();
-});
+var gameControls = GU.controls({ start: startGame, popup: 'gameOverPopup' });
 
 function startGame() {
     popup.style.display = 'none';

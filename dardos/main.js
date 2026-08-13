@@ -374,8 +374,7 @@
         gameOverPopup.style.display = 'none';
         initGame();
         gameActive = true;
-        startBtn.disabled = true;
-        restartBtn.disabled = false;
+        gameControls.running();
         GameAudio.start();
         lastTime = performance.now();
         raf = requestAnimationFrame(frame);
@@ -423,9 +422,7 @@
 
     // ── events ────────────────────────────────────────────────────
 
-    startBtn.addEventListener('click', function () { GameAudio.click(); startGame(); });
-    restartBtn.addEventListener('click', function () { GameAudio.click(); startGame(); });
-    playAgainBtn.addEventListener('click', function () { GameAudio.click(); startGame(); });
+    var gameControls = GU.controls({ start: startGame });
 
     canvas.addEventListener('click', launchDart);
     canvas.addEventListener('touchstart', function (e) {

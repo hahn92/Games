@@ -436,17 +436,7 @@ canvas.addEventListener('mousedown', function (e) { handleInput(e); });
 canvas.addEventListener('touchstart', function (e) { e.preventDefault(); handleInput(e); }, { passive: false });
 document.addEventListener('keydown', handleInput);
 
-startBtn.addEventListener('click', function () { GameAudio.click(); startGame(); });
-restartBtn.addEventListener('click', function () {
-    GameAudio.click();
-    popup.style.display = 'none';
-    startGame();
-});
-playAgainBtn.addEventListener('click', function () {
-    GameAudio.click();
-    popup.style.display = 'none';
-    startGame();
-});
+var gameControls = GU.controls({ start: startGame, popup: 'gameOverPopup' });
 
 function startGame() {
     popup.style.display = 'none';

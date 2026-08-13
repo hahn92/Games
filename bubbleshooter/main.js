@@ -977,8 +977,7 @@ function startGame() {
     nextColor    = randomColorFromGrid();
     gameState = 'playing';
 
-    document.getElementById('startBtn').disabled   = true;
-    document.getElementById('restartBtn').disabled = false;
+    gameControls.running();
     document.getElementById('gameOverPopup').style.display = 'none';
 
     GameAudio.start();
@@ -1025,9 +1024,7 @@ canvas.addEventListener('touchend', (e) => {
     fireCurrentBubble();
 }, { passive: false });
 
-document.getElementById('startBtn').addEventListener('click', () => { GameAudio.click(); startGame(); });
-document.getElementById('restartBtn').addEventListener('click', () => { GameAudio.click(); restartGame(); });
-document.getElementById('playAgainBtn').addEventListener('click', () => { GameAudio.click(); restartGame(); });
+var gameControls = GU.controls({ start: startGame, restart: restartGame });
 
 // ─── Boot ────────────────────────────────────────────────────────────────────
 updateUI();

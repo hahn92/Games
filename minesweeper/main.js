@@ -431,8 +431,7 @@ function gameOver(won) {
         document.getElementById('gameOverPopup').style.display = 'flex';
     }, 800);
 
-    document.getElementById('startBtn').disabled = false;
-    document.getElementById('restartBtn').disabled = true;
+    gameControls.idle();
 }
 
 function startGame() {
@@ -447,8 +446,7 @@ function startGame() {
 
     clearInterval(timerInterval);
     document.getElementById('gameOverPopup').style.display = 'none';
-    document.getElementById('startBtn').disabled = true;
-    document.getElementById('restartBtn').disabled = false;
+    gameControls.running();
     updateHUD();
     // Re-aplicar layout móvil después de que renderBoard fije dimensiones del tablero
     if (typeof adjustMobileLayout === 'function') adjustMobileLayout();
@@ -467,13 +465,7 @@ document.getElementById('flagToggle').addEventListener('click', function() {
     this.style.color = flagMode ? '#fff' : '#222';
 });
 
-document.getElementById('startBtn').addEventListener('click', function() { GameAudio.click(); startGame(); });
-document.getElementById('restartBtn').addEventListener('click', function() { GameAudio.click(); restartGame(); });
-document.getElementById('playAgainBtn').addEventListener('click', function() {
-    GameAudio.click();
-    document.getElementById('gameOverPopup').style.display = 'none';
-    startGame();
-});
+var gameControls = GU.controls({ start: startGame, restart: restartGame, playAgain: startGame, popup: 'gameOverPopup' });
 
 // Init
 buildDifficultySelector();

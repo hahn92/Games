@@ -237,8 +237,7 @@ function startGame() {
     isPlaying = true;
     isOver = false;
     popup.style.display = 'none';
-    startBtn.disabled = true;
-    restartBtn.disabled = false;
+    gameControls.running();
     if (typeof GameAudio !== 'undefined') GameAudio.start();
     lastT = performance.now();
     if (animId) cancelAnimationFrame(animId);
@@ -322,9 +321,7 @@ canvas.addEventListener('click', function () {
     if (!isPlaying && popupTimer === null) startGame();
 });
 
-startBtn.addEventListener('click', function () { GameAudio.click(); startGame(); });
-restartBtn.addEventListener('click', function () { GameAudio.click(); startGame(); });
-playAgainBtn.addEventListener('click', function () { GameAudio.click(); startGame(); });
+var gameControls = GU.controls({ start: startGame });
 
 /* ─────────────────────── Partículas ─────────────────────── */
 function spawnBounce(x, y) {

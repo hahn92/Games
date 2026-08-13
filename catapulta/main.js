@@ -173,8 +173,7 @@ function startGame() {
     state = 'aiming';
     levelIntro = 1.4;
     GameAudio.start();
-    startBtn.disabled = true;
-    restartBtn.disabled = false;
+    gameControls.running();
     if (!animFrameId) { lastT = 0; animFrameId = requestAnimationFrame(loop); }
 }
 
@@ -244,9 +243,7 @@ canvas.addEventListener('touchmove',  onPointerMove, { passive: false });
 canvas.addEventListener('touchend',   onPointerUp,   { passive: false });
 canvas.addEventListener('touchcancel',onPointerUp,   { passive: false });
 
-startBtn.addEventListener('click', function () { GameAudio.click(); startGame(); });
-restartBtn.addEventListener('click', function () { GameAudio.click(); startGame(); });
-playAgainBtn.addEventListener('click', function () { GameAudio.click(); startGame(); });
+var gameControls = GU.controls({ start: startGame });
 
 /* ───────── Particle helpers ───────── */
 function spawnBlockParticles(b) {

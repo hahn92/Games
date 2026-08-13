@@ -717,8 +717,7 @@ function gameOver() {
     draw();
     document.getElementById('finalScore').textContent = 'Puntaje: ' + score + ' | Oleada: ' + wave;
     document.getElementById('gameOverPopup').style.display = 'flex';
-    document.getElementById('startBtn').disabled = false;
-    document.getElementById('restartBtn').disabled = true;
+    gameControls.idle();
 }
 
 function startGame() {
@@ -726,8 +725,7 @@ function startGame() {
     initGame();
     updateHUD();
     document.getElementById('gameOverPopup').style.display = 'none';
-    document.getElementById('startBtn').disabled = true;
-    document.getElementById('restartBtn').disabled = false;
+    gameControls.running();
     cancelAnimationFrame(animFrameId);
     animFrameId = requestAnimationFrame(gameLoop);
 }
@@ -768,13 +766,7 @@ function addHold(btn, key) {
 addHold(btnLeft,  'left');
 addHold(btnRight, 'right');
 
-document.getElementById('startBtn').addEventListener('click', function() { GameAudio.click(); startGame(); });
-document.getElementById('restartBtn').addEventListener('click', function() { GameAudio.click(); startGame(); });
-document.getElementById('playAgainBtn').addEventListener('click', function() {
-    GameAudio.click();
-    document.getElementById('gameOverPopup').style.display = 'none';
-    startGame();
-});
+var gameControls = GU.controls({ start: startGame, popup: 'gameOverPopup' });
 
 // Init
 ctx.fillStyle = '#1a237e'; ctx.fillRect(0, 0, W, H);

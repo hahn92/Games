@@ -1033,8 +1033,7 @@ function runDeathAnim(ts) {
     } else {
         document.getElementById('finalScore').textContent = 'Puntaje: ' + score;
         document.getElementById('gameOverPopup').style.display = 'flex';
-        document.getElementById('startBtn').disabled = false;
-        document.getElementById('restartBtn').disabled = true;
+        gameControls.idle();
     }
 }
 
@@ -1124,8 +1123,7 @@ function startGame() {
     screenShake = 0;
 
     document.getElementById('gameOverPopup').style.display = 'none';
-    document.getElementById('startBtn').disabled = true;
-    document.getElementById('restartBtn').disabled = false;
+    gameControls.running();
 
     cancelAnimationFrame(animFrameId);
     updateScore();
@@ -1242,13 +1240,7 @@ if (btnJump) {
     btnJump.addEventListener('touchstart', function(e) { e.preventDefault(); jump(); }, { passive: false });
 }
 
-document.getElementById('startBtn').addEventListener('click', function() { GameAudio.click(); startGame(); });
-document.getElementById('restartBtn').addEventListener('click', function() { GameAudio.click(); startGame(); });
-document.getElementById('playAgainBtn').addEventListener('click', function() {
-    GameAudio.click();
-    document.getElementById('gameOverPopup').style.display = 'none';
-    startGame();
-});
+var gameControls = GU.controls({ start: startGame, popup: 'gameOverPopup' });
 
 // Init
 document.getElementById('score').textContent = '0';

@@ -501,18 +501,7 @@ canvas.addEventListener('touchmove', onMove, { passive: false });
 canvas.addEventListener('touchend', onUp, { passive: false });
 
 // ===== Botones =====
-document.getElementById('startBtn').addEventListener('click', () => {
-    if (typeof GameAudio !== 'undefined') GameAudio.click();
-    startGame();
-});
-document.getElementById('restartBtn').addEventListener('click', () => {
-    if (typeof GameAudio !== 'undefined') GameAudio.click();
-    startGame();
-});
-document.getElementById('playAgainBtn').addEventListener('click', () => {
-    if (typeof GameAudio !== 'undefined') GameAudio.click();
-    startGame();
-});
+var gameControls = GU.controls({ start: startGame });
 
 // ===== Init =====
 function init() {

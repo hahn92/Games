@@ -320,8 +320,7 @@ function startGame() {
     buildKeyboard();
     setStatus('Intento 1 de 6');
     document.getElementById('gameOverPopup').style.display = 'none';
-    document.getElementById('startBtn').disabled = true;
-    document.getElementById('restartBtn').disabled = false;
+    gameControls.running();
     updateScores();
     // Highlight first tile
     setTimeout(highlightCurrentTile, 50);
@@ -357,13 +356,7 @@ document.addEventListener('keydown', function(e) {
     infoSide.appendChild(statsSection);
 })();
 
-document.getElementById('startBtn').addEventListener('click', function() { GameAudio.click(); startGame(); });
-document.getElementById('restartBtn').addEventListener('click', function() { GameAudio.click(); startGame(); });
-document.getElementById('playAgainBtn').addEventListener('click', function() {
-    GameAudio.click();
-    document.getElementById('gameOverPopup').style.display = 'none';
-    startGame();
-});
+var gameControls = GU.controls({ start: startGame, popup: 'gameOverPopup' });
 
 buildGrid();
 buildKeyboard();

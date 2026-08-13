@@ -187,9 +187,7 @@ canvas.addEventListener('touchmove', (e) => { e.preventDefault(); handleTouch(e)
 canvas.addEventListener('touchend', (e) => { e.preventDefault(); handleTouch(e); }, { passive: false });
 canvas.addEventListener('touchcancel', (e) => { touchLeft = false; touchRight = false; }, { passive: false });
 
-startBtn.addEventListener('click', () => { GameAudio.click(); startGame(); });
-restartBtn.addEventListener('click', () => { GameAudio.click(); startGame(); });
-playAgainBtn.addEventListener('click', () => { GameAudio.click(); startGame(); });
+var gameControls = GU.controls({ start: startGame });
 
 // ---- Inicio ----
 function startGame() {

@@ -208,8 +208,7 @@ function win() {
         document.getElementById('gameOverPopup').style.display = 'flex';
     }, allTiles.length * 40 + 900);
 
-    document.getElementById('startBtn').disabled = false;
-    document.getElementById('restartBtn').disabled = true;
+    gameControls.idle();
     var hintBtn = document.getElementById('hintBtn');
     if (hintBtn) hintBtn.disabled = true;
 }
@@ -338,20 +337,13 @@ function startGame() {
     renderBoard();
     updateHUD();
     document.getElementById('gameOverPopup').style.display = 'none';
-    document.getElementById('startBtn').disabled = true;
-    document.getElementById('restartBtn').disabled = false;
+    gameControls.running();
     var hintBtn = document.getElementById('hintBtn');
     if (hintBtn) { hintBtn.disabled = false; hintBtn.textContent = 'Pista (3)'; }
 }
 
 // ===================== INIT =====================
-document.getElementById('startBtn').addEventListener('click', function() { GameAudio.click(); startGame(); });
-document.getElementById('restartBtn').addEventListener('click', function() { GameAudio.click(); startGame(); });
-document.getElementById('playAgainBtn').addEventListener('click', function() {
-    GameAudio.click();
-    document.getElementById('gameOverPopup').style.display = 'none';
-    startGame();
-});
+var gameControls = GU.controls({ start: startGame, popup: 'gameOverPopup' });
 
 injectSizeSelector();
 injectHintButton();

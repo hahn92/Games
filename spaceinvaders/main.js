@@ -134,8 +134,7 @@ function startGame() {
     resetGame();
     GameAudio.start();
     isPlaying = true;
-    document.getElementById('restartBtn').disabled = false;
-    document.getElementById('startBtn').disabled = true;
+    gameControls.running();
     document.getElementById('gameOverPopup').style.display = 'none';
     cancelAnimationFrame(animFrameId);
     lastFrameTime = 0;
@@ -431,26 +430,30 @@ function endGame() {
     updateScore();
     document.getElementById('gameOverPopup').style.display = 'flex';
     document.getElementById('finalScore').textContent = 'Puntaje: ' + score + ' · Nivel ' + level;
-    document.getElementById('startBtn').disabled = false;
-    document.getElementById('restartBtn').disabled = true;
+    gameControls.idle();
     draw();
 }
 
 // draw() la llama cada frame, así que sólo escribe en el DOM cuando algún valor
 // cambia: asignar textContent 60 veces por segundo fuerza recálculo de estilo.
-let hudCache = '';
+/* draw() llama a updateScore() en cada frame, así que sin filtro esto serían
+ * tres escrituras de textContent 60 veces por segundo para decir lo mismo.
+ * GU.hud ya compara antes de escribir — `level` y `lives` no salen en el panel
+ * de escritorio pero sí en la línea de móvil, y por eso se declaran igual: si
+ * no se siguieran, una vida perdida no ensuciaría nada y la línea se quedaría
+ * con el número viejo. */
+const invadersHud = GU.hud({
+    score: 'score',
+    best:  'highScore',
+    level: null,
+    lives: null,
+    mobile: { el: 'mobileScore', html: function () {
+        return 'Puntaje: ' + score + '  ·  Nivel ' + level + '  ·  Vidas ' + lives;
+    } }
+});
 
 function updateScore() {
-    const key = score + '|' + level + '|' + lives + '|' + highScore;
-    if (key === hudCache) return;
-    hudCache = key;
-
-    const el = document.getElementById('score');
-    if (el) el.textContent = score;
-    const ms = document.getElementById('mobileScore');
-    if (ms) ms.textContent = 'Puntaje: ' + score + '  ·  Nivel ' + level + '  ·  Vidas ' + lives;
-    const hs = document.getElementById('highScore');
-    if (hs) hs.textContent = highScore;
+    invadersHud.set({ score: score, best: highScore, level: level, lives: lives });
 }
 
 function getInvaderColor(row) {
@@ -900,13 +903,7 @@ document.addEventListener('keydown', e => {
 });
 document.addEventListener('keyup', e => { keys[e.code] = false; });
 
-document.getElementById('startBtn').addEventListener('click', () => { GameAudio.click(); startGame(); });
-document.getElementById('restartBtn').addEventListener('click', () => { GameAudio.click(); restartGame(); });
-document.getElementById('playAgainBtn').addEventListener('click', () => {
-    GameAudio.click();
-    document.getElementById('gameOverPopup').style.display = 'none';
-    startGame();
-});
+var gameControls = GU.controls({ start: startGame, restart: restartGame, playAgain: startGame, popup: 'gameOverPopup' });
 
 document.getElementById('btnShoot').addEventListener('click', () => {
     if (!isPlaying) return;

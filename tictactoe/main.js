@@ -263,8 +263,7 @@ function endGame(result) {
     setTimeout(function() {
         document.getElementById('gameOverPopup').style.display = 'flex';
     }, 600);
-    document.getElementById('startBtn').disabled = false;
-    document.getElementById('restartBtn').disabled = true;
+    gameControls.idle();
 
     // Clear hover hints
     document.querySelectorAll('.ttt-cell').forEach(function(c) {
@@ -330,8 +329,7 @@ function startGame() {
         isPlaying = true;
         setStatus('Tu turno (X)', 'turn');
         document.getElementById('gameOverPopup').style.display = 'none';
-        document.getElementById('startBtn').disabled = true;
-        document.getElementById('restartBtn').disabled = false;
+        gameControls.running();
         updateScores();
         updateHoverIndicator();
     });
@@ -357,20 +355,7 @@ document.querySelectorAll('.ttt-cell').forEach(function(cell) {
     });
 });
 
-document.getElementById('startBtn').addEventListener('click', function() {
-    GameAudio.click();
-    document.getElementById('gameOverPopup').style.display = 'none';
-    startGame();
-});
-document.getElementById('restartBtn').addEventListener('click', function() {
-    GameAudio.click();
-    startGame();
-});
-document.getElementById('playAgainBtn').addEventListener('click', function() {
-    GameAudio.click();
-    document.getElementById('gameOverPopup').style.display = 'none';
-    startGame();
-});
+var gameControls = GU.controls({ start: startGame, popup: 'gameOverPopup' });
 
 // Init
 buildAIDiffSelector();

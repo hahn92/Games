@@ -720,10 +720,8 @@ GU.keys({ fire: [' ', 'Enter'] }, {
 canvas.addEventListener('mousedown', function () { advance(); });
 GU.swipe(canvas, { preventDefault: true, onTap: function () { advance(); } });
 
-document.getElementById('startBtn').addEventListener('click', function () { GameAudio.click(); newGame(); });
-document.getElementById('restartBtn').addEventListener('click', function () { GameAudio.click(); newGame(); });
+var gameControls = GU.controls({ start: newGame });
 document.getElementById('throwBtn').addEventListener('click', advance);
-document.getElementById('playAgainBtn').addEventListener('click', function () { GameAudio.click(); newGame(); });
 
 syncHud();
 

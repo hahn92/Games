@@ -1527,8 +1527,7 @@ function startGame() {
     initLanes();
     updateHUD();
     document.getElementById('gameOverPopup').style.display = 'none';
-    document.getElementById('startBtn').disabled = true;
-    document.getElementById('restartBtn').disabled = false;
+    gameControls.running();
     cancelAnimationFrame(animFrameId);
     animFrameId = requestAnimationFrame(gameLoop);
 }
@@ -1539,8 +1538,7 @@ function gameOver() {
     cancelAnimationFrame(animFrameId);
     document.getElementById('finalScore').textContent = 'Puntaje: ' + score;
     document.getElementById('gameOverPopup').style.display = 'flex';
-    document.getElementById('startBtn').disabled = false;
-    document.getElementById('restartBtn').disabled = true;
+    gameControls.idle();
 }
 
 // Keyboard
@@ -1594,13 +1592,7 @@ addTap('btnRight', 0, 1);
     }, { passive: false });
 })();
 
-document.getElementById('startBtn').addEventListener('click', function() { GameAudio.click(); startGame(); });
-document.getElementById('restartBtn').addEventListener('click', function() { GameAudio.click(); startGame(); });
-document.getElementById('playAgainBtn').addEventListener('click', function() {
-    GameAudio.click();
-    document.getElementById('gameOverPopup').style.display = 'none';
-    startGame();
-});
+var gameControls = GU.controls({ start: startGame, popup: 'gameOverPopup' });
 
 // Init
 initLanes();

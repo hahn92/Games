@@ -312,8 +312,7 @@ function startGame() {
     clearInterval(timerInterval);
 
     document.getElementById('gameOverPopup').style.display = 'none';
-    document.getElementById('startBtn').disabled = true;
-    document.getElementById('restartBtn').disabled = false;
+    gameControls.running();
 
     updateScore();
     updateTimer();
@@ -351,8 +350,7 @@ function gameOver() {
         '<br><span style="font-size:1rem;color:#8fd3f4;">Mejor: ' + highScore + '</span>';
 
     popup.style.display = 'flex';
-    document.getElementById('startBtn').disabled = false;
-    document.getElementById('restartBtn').disabled = true;
+    gameControls.idle();
 
     if (document.getElementById('mobileStartBtn')) {
         document.getElementById('mobileStartBtn').style.display = 'block';
@@ -360,13 +358,7 @@ function gameOver() {
 }
 
 /* ---- Wire buttons ---- */
-document.getElementById('startBtn').addEventListener('click', function() { GameAudio.click(); startGame(); });
-document.getElementById('restartBtn').addEventListener('click', function() { GameAudio.click(); restartGame(); });
-document.getElementById('playAgainBtn').addEventListener('click', function() {
-    GameAudio.click();
-    document.getElementById('gameOverPopup').style.display = 'none';
-    startGame();
-});
+var gameControls = GU.controls({ start: startGame, restart: restartGame, playAgain: startGame, popup: 'gameOverPopup' });
 
 /* ---- Wrap score span for animation ---- */
 function wrapScoreSpan() {

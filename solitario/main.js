@@ -632,13 +632,11 @@ canvas.addEventListener('touchend', function (e) {
     drop(p.x, p.y);
 }, { passive: false });
 
-document.getElementById('startBtn').addEventListener('click', function () { GameAudio.click(); newGame(); });
-document.getElementById('restartBtn').addEventListener('click', function () { GameAudio.click(); newGame(); });
+var gameControls = GU.controls({ start: newGame });
 document.getElementById('undoBtn').addEventListener('click', function () { GameAudio.click(); undo(); });
 document.getElementById('drawSel').addEventListener('change', function () {
     gs.draw3 = this.value === '3';
 });
-document.getElementById('playAgainBtn').addEventListener('click', function () { GameAudio.click(); newGame(); });
 
 syncHud();
 

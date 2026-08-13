@@ -260,8 +260,7 @@ function startGame() {
     playerTurn = false;
 
     document.getElementById('gameOverPopup').style.display = 'none';
-    document.getElementById('startBtn').disabled = true;
-    document.getElementById('restartBtn').disabled = false;
+    gameControls.running();
 
     // Reset buttons visual state
     COLORS.forEach(function(color) {
@@ -294,8 +293,7 @@ function gameOver() {
         '<br><span style="font-size:1rem;color:#8fd3f4;">Mejor: ' + highScore + ' | Nivel max: ' + round + '</span>';
 
     document.getElementById('gameOverPopup').style.display = 'flex';
-    document.getElementById('startBtn').disabled = false;
-    document.getElementById('restartBtn').disabled = true;
+    gameControls.idle();
 
     if (document.getElementById('mobileStartBtn')) {
         document.getElementById('mobileStartBtn').style.display = 'block';
@@ -313,13 +311,7 @@ COLORS.forEach(function(color) {
     }, { passive: false });
 });
 
-document.getElementById('startBtn').addEventListener('click', function() { GameAudio.click(); startGame(); });
-document.getElementById('restartBtn').addEventListener('click', function() { GameAudio.click(); restartGame(); });
-document.getElementById('playAgainBtn').addEventListener('click', function() {
-    GameAudio.click();
-    document.getElementById('gameOverPopup').style.display = 'none';
-    startGame();
-});
+var gameControls = GU.controls({ start: startGame, restart: restartGame, playAgain: startGame, popup: 'gameOverPopup' });
 
 /* ---- Init ---- */
 function init() {

@@ -590,18 +590,7 @@
         fireAnti(p.x, p.y);
     }, { passive: false });
 
-    document.getElementById('startBtn').addEventListener('click', function () {
-        GameAudio.click();
-        startGame();
-    });
-    document.getElementById('restartBtn').addEventListener('click', function () {
-        GameAudio.click();
-        startGame();
-    });
-    document.getElementById('playAgainBtn').addEventListener('click', function () {
-        GameAudio.click();
-        startGame();
-    });
+    var gameControls = GU.controls({ start: startGame });
 
     // Estado inicial de pantalla
     makeCities();

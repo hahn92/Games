@@ -266,8 +266,7 @@ function startGame() {
     attempts = 0;
     createBoard();
     isPlaying = true;
-    document.getElementById('restartBtn').disabled = false;
-    document.getElementById('startBtn').disabled = true;
+    gameControls.running();
     document.getElementById('gameOverPopup').style.display = 'none';
     removeVictoryOverlay();
     updateStats();
@@ -327,8 +326,7 @@ function showVictory() {
         startGame();
     });
 
-    document.getElementById('startBtn').disabled = false;
-    document.getElementById('restartBtn').disabled = true;
+    gameControls.idle();
 }
 
 function removeVictoryOverlay() {
@@ -354,8 +352,7 @@ function gameOver(won) {
     popup.style.display = 'flex';
 
     document.getElementById('finalScore').textContent = won ? 'Ganaste! Puntaje: ' + score : 'Perdiste! Puntaje: 0';
-    document.getElementById('startBtn').disabled = false;
-    document.getElementById('restartBtn').disabled = true;
+    gameControls.idle();
 }
 
 // ---- Difficulty buttons ----
@@ -404,13 +401,7 @@ function injectInfoUI() {
 }
 
 // ---- Wire up buttons ----
-document.getElementById('startBtn').addEventListener('click', () => { GameAudio.click(); startGame(); });
-document.getElementById('restartBtn').addEventListener('click', () => { GameAudio.click(); restartGame(); });
-document.getElementById('playAgainBtn').addEventListener('click', () => {
-    GameAudio.click();
-    document.getElementById('gameOverPopup').style.display = 'none';
-    startGame();
-});
+var gameControls = GU.controls({ start: startGame, restart: restartGame, playAgain: startGame, popup: 'gameOverPopup' });
 
 // ---- Init ----
 injectInfoUI();

@@ -226,8 +226,7 @@ function startGame() {
     createBoard();
     GameAudio.start();
     isPlaying = true;
-    document.getElementById('restartBtn').disabled = false;
-    document.getElementById('startBtn').disabled = true;
+    gameControls.running();
 }
 
 function restartGame() {
@@ -244,17 +243,10 @@ function gameOver() {
     void popup.offsetWidth;
     popup.style.display = 'flex';
     document.getElementById('finalScore').textContent = 'Puntaje: ' + score;
-    document.getElementById('startBtn').disabled = false;
-    document.getElementById('restartBtn').disabled = true;
+    gameControls.idle();
 }
 
-document.getElementById('startBtn').addEventListener('click', () => { GameAudio.click(); startGame(); });
-document.getElementById('restartBtn').addEventListener('click', () => { GameAudio.click(); restartGame(); });
-document.getElementById('playAgainBtn').addEventListener('click', () => {
-    GameAudio.click();
-    document.getElementById('gameOverPopup').style.display = 'none';
-    startGame();
-});
+var gameControls = GU.controls({ start: startGame, restart: restartGame, playAgain: startGame, popup: 'gameOverPopup' });
 
 // Controles táctiles
 document.getElementById('btnUp').addEventListener('click', () => isPlaying && move('up'));

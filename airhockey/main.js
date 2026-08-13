@@ -208,9 +208,7 @@ canvas.addEventListener('touchmove', (e) => {
 }, { passive: false });
 canvas.addEventListener('touchend', () => { dragging = false; }, { passive: false });
 
-startBtn.addEventListener('click', () => { GameAudio.click(); startGame(); });
-restartBtn.addEventListener('click', () => { GameAudio.click(); startGame(); });
-playAgainBtn.addEventListener('click', () => { GameAudio.click(); startGame(); });
+var gameControls = GU.controls({ start: startGame });
 
 // ---- Física ----
 function clampPuckSpeed() {

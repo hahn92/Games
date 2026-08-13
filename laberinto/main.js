@@ -17,6 +17,15 @@
     var timerEl     = document.getElementById('timerDisplay');
     var bestEl      = document.getElementById('bestTimeDisplay');
     var mobileScore = document.getElementById('mobileScore');
+
+    var hud = GU.hud({
+        level: levelEl,
+        timer: timerEl,
+        best:  bestEl,
+        mobile: { el: mobileScore, html: function (v) {
+            return 'Nv.' + v.level + '  ' + v.timer;
+        } }
+    });
     var startBtn    = document.getElementById('startBtn');
     var restartBtn  = document.getElementById('restartBtn');
     var winPopup    = document.getElementById('winPopup');
@@ -105,10 +114,17 @@
         var bests = loadBests();
         if (!bests[lvl] || ms < bests[lvl]) bests[lvl] = ms;
         GameStore.setJSON(LS_KEY, bests);
+        bestsCache = null;                 // el guardado es el único invalidador
     }
+
+    /* drawHUD() pinta la mejor marca en cada frame, así que getBest() se
+     * llamaba 60 veces por segundo — y cada llamada era un loadBests(), es
+     * decir un JSON.parse del objeto entero de récords. Se cachea el objeto y
+     * se tira sólo al guardar, que es lo único que puede cambiarlo. */
+    var bestsCache = null;
     function getBest(lvl) {
-        var bests = loadBests();
-        return bests[lvl] || null;
+        if (!bestsCache) bestsCache = loadBests();
+        return bestsCache[lvl] || null;
     }
 
     /* ── timer formatting ───────────────────────────────────────── */
@@ -407,14 +423,18 @@
         ctx.lineTo(W, 88);
         ctx.stroke();
 
-        // mobile score overlay
-        if (mobileScore && mobileScore.style.display !== 'none') {
-            mobileScore.textContent = 'Nv.' + level + '  ' + fmtTime(elapsedMs);
-        }
-        if (levelEl) levelEl.textContent = level;
-        if (timerEl) timerEl.textContent = fmtTime(elapsedMs);
-        if (bestEl)  bestEl.textContent  = fmtTime(best);
+        /* Estas cuatro escrituras salían tal cual en cada frame. El reloj sólo
+         * cambia diez veces por segundo (fmtTime llega a la décima) y el nivel
+         * casi nunca, así que las otras cincuenta eran repetir el mismo texto
+         * invalidando el layout. Se siguen los textos YA formateados: seguir
+         * `elapsedMs` en crudo cambiaría siempre y no filtraría nada. */
+        hud.set({
+            level: level,
+            timer: fmtTime(elapsedMs),
+            best:  fmtTime(best)
+        });
     }
+
 
     /* ── maze walls ─────────────────────────────────────────────── */
     function drawMaze() {
@@ -582,10 +602,11 @@
         startGame();
     }
 
+    /* Va por el mismo hud que drawHUD: si escribiera los nodos por su cuenta,
+     * los dos tendrían opinión sobre el mismo texto y el filtro de drawHUD
+     * compararía contra un valor que no puso él. */
     function updateHUD() {
-        if (levelEl) levelEl.textContent = level;
-        var best = getBest(level);
-        if (bestEl) bestEl.textContent = fmtTime(best);
+        hud.set({ level: level, best: fmtTime(getBest(level)) });
     }
 
     /* ══════════════════════════════════════════════════════════════
