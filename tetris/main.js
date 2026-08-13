@@ -14,7 +14,12 @@ const COLORS = [
 
 let board = Array.from({ length: ROWS }, () => Array(COLS).fill(0));
 let current, next, holdPiece = null;
-let score = 0, highScore = GameStore.getNum('tetrisHighScore', 0);
+/* El récord va por GU.highScore: la comparación, la escritura y el valor
+ * por defecto en un solo sitio. `highScore` se mantiene porque el resto
+ * del fichero la usa. */
+var gameBest = GU.highScore('tetrisHighScore');
+
+let score = 0, highScore = gameBest.display(0);
 let gameInterval, speed = 500, isPlaying = false;
 
 let totalLines = 0, level = 1;
@@ -392,17 +397,18 @@ function drawBoard() {
     }
 }
 
+var gameHud = GU.hud({
+    score: document.getElementById('score'),
+    highScore: document.getElementById('highScore'),
+    mobile: { el: document.getElementById('mobileScore'), format: function () {
+        return 'Puntaje: ' + score;
+    } }
+});
+
 function updateScoreDOM() {
-    document.getElementById('score').textContent = score;
-    if (document.getElementById('mobileScore')) {
-        document.getElementById('mobileScore').textContent = 'Puntaje: ' + score;
-    }
-    document.getElementById('highScore').textContent = highScore;
-    if (score > highScore) {
-        highScore = score;
-        GameStore.set('tetrisHighScore', highScore);
-        document.getElementById('highScore').textContent = highScore;
-    }
+    gameBest.submit(score);
+    highScore = gameBest.display(0);
+    gameHud.set({ score: score, highScore: highScore });
 }
 
 /* Bolsa de 7: se reparte una permutacion de las siete piezas antes de repetir

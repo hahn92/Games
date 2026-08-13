@@ -29,7 +29,12 @@ var nextExtraLife = EXTRA_LIFE_STEP;
 var shake = new Shake({ max: 14 });
 var deathFlash = 0;
 
-highScore = GameStore.getNum('asteroidsHigh', 0);
+/* El récord va por GU.highScore: la comparación, la escritura y el valor
+ * por defecto en un solo sitio. `highScore` se mantiene porque el resto
+ * del fichero la usa. */
+var gameBest = GU.highScore('asteroidsHigh');
+
+highScore = gameBest.display(0);
 
 // Star field — pequeños cuadrados blancos (estilo fruitcatcher)
 var starField = [];
@@ -532,12 +537,19 @@ function draw() {
     }
 }
 
+var gameHud = GU.hud({
+    score: document.getElementById('score'),
+    highScore: document.getElementById('highScore'),
+    lives: document.getElementById('lives'),
+    mobile: { el: document.getElementById('mobileScore'), format: function () {
+        return 'P:' + score + ' V:' + lives;
+    } }
+});
+
 function updateHUD() {
-    if (score > highScore) { highScore = score; GameStore.set('asteroidsHigh', highScore); }
-    document.getElementById('score').textContent = score;
-    document.getElementById('highScore').textContent = highScore;
-    document.getElementById('lives').textContent = lives;
-    document.getElementById('mobileScore').textContent = 'P:' + score + ' V:' + lives;
+    gameBest.submit(score);
+    highScore = gameBest.display(0);
+    gameHud.set({ score: score, highScore: highScore, lives: lives });
 }
 
 var lastFrameTs = 0;

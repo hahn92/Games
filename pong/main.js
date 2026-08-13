@@ -19,7 +19,12 @@ let ballX = WIDTH/2 - BALL_SIZE/2;
 let ballY = HEIGHT/2 - BALL_SIZE/2;
 let ballSpeedX = 5, ballSpeedY = 3;
 let playerScore = 0, aiScore = 0;
-let highScore = GameStore.getNum('pongHighScore', 0);
+/* El récord va por GU.highScore: la comparación, la escritura y el valor
+ * por defecto en un solo sitio. `highScore` se mantiene porque el resto
+ * del fichero la usa. */
+var gameBest = GU.highScore('pongHighScore');
+
+let highScore = gameBest.display(0);
 let isPlaying = false, gameInterval;
 let speed = 1000/60;
 
@@ -420,17 +425,18 @@ function resetBall() {
     rallyBounces = 0;
 }
 
+var gameHud = GU.hud({
+    score: document.getElementById('score'),
+    highScore: document.getElementById('highScore'),
+    mobile: { el: document.getElementById('mobileScore'), format: function () {
+        return `${playerScore} – ${aiScore}`;
+    } }
+});
+
 function updateScore() {
-    document.getElementById('score').textContent = `${playerScore} – ${aiScore}`;
-    if (document.getElementById('mobileScore')) {
-        document.getElementById('mobileScore').textContent = `${playerScore} – ${aiScore}`;
-    }
-    document.getElementById('highScore').textContent = highScore;
-    if (playerScore > highScore) {
-        highScore = playerScore;
-        GameStore.set('pongHighScore', highScore);
-        document.getElementById('highScore').textContent = highScore;
-    }
+    gameBest.submit(playerScore);
+    highScore = gameBest.display(0);
+    gameHud.set({ score: `${playerScore} – ${aiScore}`, highScore: highScore });
 }
 
 function startGame() {

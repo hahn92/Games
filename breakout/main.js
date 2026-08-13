@@ -34,7 +34,12 @@ const LEVEL_TRANSITION_FRAMES = 120;
 
 let bricks = [], rows = 5, cols = 10;
 const brickWidth = 54, brickHeight = 18, brickPadding = 8, brickOffsetTop = 40, brickOffsetLeft = 20;
-let score = 0, highScore = GameStore.getNum('breakoutHighScore', 0);
+/* El récord va por GU.highScore: la comparación, la escritura y el valor
+ * por defecto en un solo sitio. `highScore` se mantiene porque el resto
+ * del fichero la usa. */
+var gameBest = GU.highScore('breakoutHighScore');
+
+let score = 0, highScore = gameBest.display(0);
 let isPlaying = false, gameInterval;
 let speed = 1000/60;
 
@@ -565,17 +570,18 @@ function resetBall() {
     ballTrail.length = 0;
 }
 
+var gameHud = GU.hud({
+    score: document.getElementById('score'),
+    highScore: document.getElementById('highScore'),
+    mobile: { el: document.getElementById('mobileScore'), format: function () {
+        return 'Puntaje: ' + score;
+    } }
+});
+
 function updateScore() {
-    document.getElementById('score').textContent = score;
-    if (document.getElementById('mobileScore')) {
-        document.getElementById('mobileScore').textContent = 'Puntaje: ' + score;
-    }
-    document.getElementById('highScore').textContent = highScore;
-    if (score > highScore) {
-        highScore = score;
-        GameStore.set('breakoutHighScore', highScore);
-        document.getElementById('highScore').textContent = highScore;
-    }
+    gameBest.submit(score);
+    highScore = gameBest.display(0);
+    gameHud.set({ score: score, highScore: highScore });
 }
 
 function startGame() {

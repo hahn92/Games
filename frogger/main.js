@@ -8,7 +8,12 @@ var COLS = 10, ROWS = 12;
 var CELL = W / COLS; // 40
 
 var score, highScore, lives, isPlaying, animFrameId;
-highScore = GameStore.getNum('froggerHigh', 0);
+/* El récord va por GU.highScore: la comparación, la escritura y el valor
+ * por defecto en un solo sitio. `highScore` se mantiene porque el resto
+ * del fichero la usa. */
+var gameBest = GU.highScore('froggerHigh');
+
+highScore = gameBest.display(0);
 
 /* Gradient cache. Only keys that are provably bounded go in here — anything
    keyed on a scrolling or bobbing coordinate would grow every frame. */
@@ -1505,12 +1510,19 @@ function moveFrog(dr, dc) {
     updateHUD();
 }
 
+var gameHud = GU.hud({
+    score: document.getElementById('score'),
+    highScore: document.getElementById('highScore'),
+    lives: document.getElementById('lives'),
+    mobile: { el: document.getElementById('mobileScore'), format: function () {
+        return 'P:' + score + ' V:' + lives;
+    } }
+});
+
 function updateHUD() {
-    if (score > highScore) { highScore = score; GameStore.set('froggerHigh', highScore); }
-    document.getElementById('score').textContent = score;
-    document.getElementById('highScore').textContent = highScore;
-    document.getElementById('lives').textContent = lives;
-    document.getElementById('mobileScore').textContent = 'P:' + score + ' V:' + lives;
+    gameBest.submit(score);
+    highScore = gameBest.display(0);
+    gameHud.set({ score: score, highScore: highScore, lives: lives });
 }
 
 function startGame() {
