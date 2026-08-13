@@ -62,3 +62,10 @@ Tableros por turnos, sin bucle de física.
   strictly. Comparing afterwards means comparing against the value you just wrote,
   which is what forced the old `< 50ms` tolerance and reported false records on a
   near-tie. Keep the read before the write.
+- `getBest()` cachea el objeto de récords y sólo lo tira en `saveBest`. `drawHUD()`
+  lo llama en cada frame, así que sin caché eran 60 `JSON.parse` por segundo del
+  objeto entero. Si algún día otra cosa puede escribir los récords, tiene que
+  invalidar `bestsCache` también.
+- Las cuatro escrituras de DOM de `drawHUD()` van por `GU.hud`. Se le pasa el texto
+  ya formateado (`fmtTime(elapsedMs)`), no los milisegundos: en crudo cambian en
+  cada frame y el filtro no filtraría nada.

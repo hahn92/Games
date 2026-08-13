@@ -17,11 +17,21 @@
    - the shared `@media (max-width: 900px)` collapse comes from the root stylesheet —
      add a local block ONLY for game-specific deltas
    - `body { background: var(--grad-bg); ... }`
-   - `#startBtn, #restartBtn` button styles
-   - `#playAgainBtn` (or equivalent end-of-game button) styles
-   - `.popup` and `.popup-content` overlay styles
+   - **Nada más de cromo.** Los botones (`#startBtn`, `#restartBtn`, `#playAgainBtn`)
+     y el overlay (`.popup`, `.popup-content`, `.info-side p`, `.buttons-panel`) ya
+     vienen de la raíz. Copiarlos otra vez es exactamente lo que se acaba de
+     deshacer en 53 juegos. Si tu juego quiere un aspecto distinto, declara **sólo
+     la propiedad que cambia**.
+   - Ojo con la trampa: las reglas de los botones van en `:where()` y por tanto
+     tienen especificidad cero, así que cualquier regla tuya les gana — pero una
+     propiedad que tú no declares te sigue llegando de la raíz. Si tu botón no
+     quiere el `margin: 0 0.5rem` compartido, escribe `margin: 0`; callarte no
+     basta.
    - Game-specific canvas class (border: `3px solid var(--accent-color)`, border-radius, box-shadow)
 6. Add `GameAudio.*()` calls for all key game events (never inside render loops)
+6b. Cablea los botones con `GU.controls({ start, restart, popup })` y marca los
+   estados con `.running()` / `.idle()`. No repitas los `addEventListener` ni los
+   `disabled` a mano.
 7. Never use emoji for game-critical visuals — always use canvas shapes
 7b. If the board is built from `<div>`s rather than `<button>`s, wire it with
    `GU.keyActivate` per cell and `GU.gridKeyboard` after each render — otherwise the

@@ -1,5 +1,19 @@
 # Herramientas de desarrollo
 
+## Pruebas
+
+```bash
+node game-utils.test.js
+```
+
+Lo único del repo que se puede comprobar sin navegador. Cubre las piezas de
+`game-utils.js` que tocan el DOM (`GU.controls`, `GU.hud`) cargándolas en un `vm`
+con un doble de DOM escrito a mano — sin dependencias ni runner, porque este
+proyecto no tiene build y no va a tenerlo. Sale con código 1 si algo falla.
+
+No sustituye a mirar el juego: nada de esto detecta que un canvas no se pinte
+(→ [Trampas](./trampas.md)).
+
 ## Developer tools
 
 ### Skills (slash commands)

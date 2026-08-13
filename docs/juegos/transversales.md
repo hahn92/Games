@@ -45,3 +45,22 @@ particles, and `asteroids` and `pinball` use fragment shapes and per-particle gl
 per side with `content-box`, so using the raw `innerWidth` made the element 6px wider
 than the viewport and the page scrolled sideways on a phone. `chess` uses the raw
 value on purpose — its canvas only has a bottom border.
+
+## Juegos con los tres botones cableados por `GU.controls`
+38 juegos. Los otros 13 se quedaron a mano porque sus manejadores llevan lógica
+propia y no son un simple "suena y llama":
+`batallanaval`, `blackjack`, `gemas`, `hangman`, `hanoi`, `laberinto`, `nonograma`,
+`pacman`, `plinko`, `snake`, `sokoban`, `sudoku` y `typingspeed`. `chess`, `damas`
+y `reversi` no tienen ninguno de los tres.
+
+## Un reloj que se mostraba en dos sitios y no coincidía
+`minero` pinta los segundos que quedan en el canvas **y** en la superposición
+`#mobileScore`. El canvas iba en vivo, pero la superposición sólo se reescribía al
+recoger oro o al empezar nivel, así que en el móvil se veían dos números distintos
+a la vez. Ahora se refresca en cada frame desde `update()`, que es lo que un reloj
+pide, y sale gratis porque `GU.hud` compara antes de escribir: sigue `Math.ceil(timeLeft)`
+y no `timeLeft`, así que sólo toca el DOM al cambiar de segundo.
+
+Vale como aviso general: si una línea de móvil enseña algo que cambia solo — un
+reloj, una cuenta atrás — refrescarla únicamente en los eventos del juego la deja
+congelada. Con el HUD compartido refrescar por frame ya no cuesta nada.

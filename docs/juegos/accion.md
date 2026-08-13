@@ -12,4 +12,10 @@ Los dos shooters con notas propias.
 - Thrust fire particles: orange/yellow particles spawned at ship tail when thrusting
 - Asteroid trails: last 5 positions stored in `trail[]` array, drawn faded
 - Explosion: triangular fragment particles (`spawnFragments()`) that spin and fade
-- Screen shake on ship death via translate offset
+- Sacudida y destello rojo al perder una vida. Durante un tiempo esto fue mentira:
+  `screenShake`, `shakeOffX`, `shakeOffY` y `deathFlash` se asignaban al chocar y no
+  los leía nadie, así que el efecto no se veía. Ahora van sobre el `Shake` del
+  toolkit — es el único juego que lo usa. Dos cosas del montaje importan: el fondo
+  se pinta **antes** del `translate`, o por el borde contrario asoma una franja del
+  frame anterior; y el destello va **después** del `restore`, porque cubre el canvas
+  entero y desplazado dejaría una banda sin cubrir

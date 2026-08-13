@@ -16,7 +16,8 @@ because games already called them unqualified.
 | Shapes | `GU.starPath(ctx, cx,cy, outer, inner?, points?, rot?)`, `GU.heartPath(ctx, cx,cy, size)`, `GU.polygonPath(ctx, cx,cy, r, sides, rot?)` — paths only, you fill/stroke |
 | Sprites | `GU.sprite(w, h, draw, {pad, maxScale})` → `.draw/.drawCentered/.drawRotated`; `GU.spriteSheet(build)` → `.get(key)` |
 | Input | `GU.swipe(el, {onSwipe, onTap, minDist, maxTime, live, mouse, preventDefault})`; `GU.keys(bindings, {preventDefault, onPress, onRelease})` → `.down/.pressed/.flush/.clear` |
-| HUD | `GU.hud({field: id, mobile: {el, html}})` → `.set/.add/.get/.refresh`; `GU.popup(id)` → `.show(fields)/.hide()/.visible()`; `GU.highScore(key, {lower})` → `.value/.submit/.display/.has/.reset`; `GU.formatTime(ms, {ms, hours})` |
+| HUD | `GU.hud({field: id, mobile: {el, html}})` → `.set/.add/.get/.refresh` (un campo a `null` se sigue sin pintarlo); `GU.popup(id)` → `.show(fields)/.hide()/.visible()`; `GU.highScore(key, {lower})` → `.value/.submit/.display/.has/.reset`; `GU.formatTime(ms, {ms, hours})` |
+| Controles | `GU.controls({start, restart, playAgain, popup, sound})` → `.running()/.idle()` — cablea los tres botones de la página |
 | Shake | `new Shake({decay, ratio, max})`\* with `.hit(mag)`, `.update(dt)`, `.translate(ctx)`, `.active()`, `.stop()` |
 | Storage | `GameStore.getNum/setNum/getJSON/setJSON/get/set/remove`\*, `GameStore.available` |
 | Particles | `new Particles(max, {semiImplicit})`\* with `.burst(x, y, n, opts)`, `.add(x, y, vx, vy, opts)`, `.update(dt)`, `.draw(ctx)`, `.each(fn)`, `.clear()` |
@@ -156,11 +157,36 @@ because games already called them unqualified.
   has real `<button>`s keeps them operable. `e.repeat` is filtered out of the press edge,
   or the OS key-repeat rate turns one keypress into a burst of shots.
 
-- **`hud`** — 47 games write their score twice, to the side panel and to `#mobileScore`,
-  and 18 do it from a function that runs every frame. Writing `textContent` invalidates
-  layout even when the string is identical, so a score that changes once a second was
-  costing 60 layout invalidations a second to say the same thing. Every write here is
-  dirty-checked. Call `.refresh()` after a layout switch has replaced the nodes.
+- **`controls`** — los tres botones de una página de juego (Iniciar, Reiniciar y el
+  "Jugar de nuevo" del popup) estaban cableados a mano en 49 juegos con el mismo
+  bloque de doce líneas, y el vaivén de `disabled` entre los dos primeros repartido
+  por `startGame`/`gameOver`. Emite `GameAudio.click()` **antes** del handler, porque
+  el handler puede cambiar de pantalla; y `playAgain` esconde el popup **antes** de
+  llamar, o queda un frame con el overlay sobre el tablero ya reiniciado. `restart`
+  cae en `start` y `playAgain` en `restart` cuando no se declaran. Un botón que no
+  está en el markup se ignora sin ruido — chess y damas no tienen ninguno.
+
+- **`hud`** — 47 games write their score twice, to the side panel and to `#mobileScore`.
+  Writing `textContent` invalidates layout even when the string is identical, so a
+  score that changes once a second was costing 60 layout invalidations a second to say
+  the same thing. Every write here is dirty-checked. Call `.refresh()` after a layout
+  switch has replaced the nodes.
+
+  **Sigue el texto ya formateado, no la magnitud en crudo.** Un campo con `elapsedMs`
+  cambia en cada frame y deja el filtro sin efecto; el mismo campo con
+  `fmtTime(elapsedMs)` cambia diez veces por segundo. Igual con `Math.ceil(timeLeft)`
+  frente a `timeLeft`.
+
+  **Un campo puede valer `null`**: se sigue su valor pero no se pinta. Hace falta
+  cuando la línea de móvil enseña algo que el panel de escritorio no tiene — las
+  vidas en spaceinvaders, las monedas en cosecha. Sin declararlo, un cambio sólo en
+  esa variable no ensucia nada y la línea de móvil se queda con el valor viejo. Hay
+  una prueba que lo fija.
+
+  Sólo cinco juegos escribían el HUD de verdad en cada frame (spaceinvaders desde
+  `draw()`, cosecha y minero desde el bucle, laberinto desde `render`); están
+  migrados. El resto lo hace por evento y se dejaron como estaban a propósito: ahí
+  la migración es dedup sin ganancia medible.
 
 - **`highScore`** — the load-compare-store dance, done once. The three games that record
   a TIME rather than a score (laberinto, memorama, slidingpuzzle) each had to invert the

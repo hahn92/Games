@@ -25,7 +25,7 @@ Or open `index.html` (root or per-game) directly in a browser.
 | File | Purpose |
 |------|---------|
 | `index.html` | Game catalog/landing page |
-| `styles.css` | Shared design system (CSS variables, card layout, global rules) **and the shared game-page layout**: `.responsive-layout`, `.game-side`, `.info-side`, `.mobile-score` are defined here once — per-game `styles.css` must NOT redefine them (only override if a game truly needs a variant). Also holds the shared `@media (max-width: 900px)` collapse; games only declare their own deltas |
+| `styles.css` | Shared design system (CSS variables, card layout, global rules) **and the shared game-page layout**: `.responsive-layout`, `.game-side`, `.info-side`, `.mobile-score` are defined here once — per-game `styles.css` must NOT redefine them (only override if a game truly needs a variant). Also holds the shared `@media (max-width: 900px)` collapse; games only declare their own deltas. **Y el cromo compartido de la página de juego**: `.popup`, `.popup-content`, `#startBtn`/`#restartBtn`, `#playAgainBtn`, `.info-side p`, `.buttons-panel`. Estaban copiadas en 29–47 juegos cada una — 2364 declaraciones duplicadas |
 | `audio.js` | Shared Web Audio API sound system — `GameAudio.*()` calls |
 | `mobile-layout.js` | Shared mobile-layout bootstrap — `MobileLayout({...})`. **Required in every game**, loaded before `main.js`. See "Mobile support pattern" below |
 | `game-utils.js` | Shared JS toolkit — loop helpers, math/color helpers, canvas pointer mapping, the `ctx.roundRect` polyfill, safe storage and a particle pool. **Required in every game**, loaded after `audio.js` and before `main.js`. See "Shared toolkit" below |
