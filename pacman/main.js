@@ -672,14 +672,16 @@
 
     // ── Botones ──────────────────────────────────────────────
     function doStart(){
-        gameOverPopup.style.display='none';
         startGame();
-        startBtn.disabled=true; restartBtn.disabled=false;
-        GameAudio.click();
+        gameControls.running();
     }
-    startBtn.addEventListener('click', doStart);
-    restartBtn.addEventListener('click', function(){ if(!restartBtn.disabled){doStart();} });
-    playAgainBtn.addEventListener('click', doStart);
+    var gameControls = GU.controls({
+        start:   doStart,
+        /* Reiniciar se comprueba a mano porque `disabled` en un <button> ya
+         * bloquea el clic; esto sólo cubre que alguien lo dispare por código. */
+        restart: function(){ if(!restartBtn.disabled) doStart(); },
+        popup:   'gameOverPopup'
+    });
 
     // ── Inicio en idle ───────────────────────────────────────
     (function(){

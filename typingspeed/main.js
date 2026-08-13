@@ -236,8 +236,7 @@ function startGame() {
     clearInterval(timerInterval);
 
     document.getElementById('gameOverPopup').style.display = 'none';
-    document.getElementById('startBtn').disabled = true;
-    document.getElementById('restartBtn').disabled = false;
+    gameControls.running();
 
     var input = document.getElementById('wordInput');
     input.value = '';
@@ -315,8 +314,7 @@ function endGame() {
     // Trigger animation
     void content.offsetWidth;
 
-    document.getElementById('startBtn').disabled = false;
-    document.getElementById('restartBtn').disabled = true;
+    gameControls.idle();
 }
 
 // ===================== INPUT =====================
@@ -358,19 +356,13 @@ document.getElementById('wordInput').addEventListener('keydown', function(e) {
     }
 });
 
-document.getElementById('startBtn').addEventListener('click', function() { GameAudio.click(); startGame(); });
-document.getElementById('restartBtn').addEventListener('click', function() { GameAudio.click(); startGame(); });
-/* Delegado en el popup, que nunca se sustituye. endGame() reescribe el
- * innerHTML del contenido —incluido #playAgainBtn—, así que un listener
- * puesto sobre el botón al cargar queda apuntando a un nodo que ya no existe
- * en cuanto termina la primera partida. */
-document.getElementById('gameOverPopup').addEventListener('click', function (e) {
-    var btn = e.target.closest ? e.target.closest('#playAgainBtn') : null;
-    if (!btn) return;
-    GameAudio.click();
-    document.getElementById('gameOverPopup').style.display = 'none';
-    startGame();
-});
+/* endGame() reescribe el innerHTML del contenido del popup, incluido
+ * #playAgainBtn, así que ese botón no puede cablearse directamente: el nodo al
+ * que se hubiera atado el listener deja de existir en cuanto termina la primera
+ * partida. GU.controls delega en el popup — que no se sustituye nunca — siempre
+ * que se le declare, así que aquí ya no hay nada especial que hacer. Este juego
+ * es justo el que motivó que lo haga. */
+var gameControls = GU.controls({ start: startGame, popup: 'gameOverPopup' });
 
 // ===================== INJECT EXTRA UI =====================
 (function injectUI() {

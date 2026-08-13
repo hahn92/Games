@@ -515,19 +515,12 @@
     }
 
     /* ── listeners de botones ──────────────────────────────────── */
-    if (startBtn)   startBtn.addEventListener('click', function () {
-        GameAudio.click();
-        startGame();
-    });
-    if (restartBtn) restartBtn.addEventListener('click', function () {
-        GameAudio.click();
-        running = false;
-        startGame();
-    });
-    if (playAgain)  playAgain.addEventListener('click', function () {
-        GameAudio.click();
-        gameOverPop.style.display = 'none';
-        startGame();
+    /* `running = false` antes de rearrancar: startGame() vuelve a pedir un
+     * frame y sin bajar la bandera quedarían dos bucles sobre el mismo tablero. */
+    var gameControls = GU.controls({
+        start:   startGame,
+        restart: function () { running = false; startGame(); },
+        popup:   'gameOverPopup'
     });
 
     // teclado: espacio/enter = soltar bola en el centro o en previewX

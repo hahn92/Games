@@ -711,8 +711,7 @@ function startGame() {
     if (isPlaying) return;
     isPlaying = true;
     GameAudio.start();
-    restartBtn.disabled = false;
-    startBtn.disabled = true;
+    gameControls.running();
     // En móvil se inicia tocando el canvas: el popup podía quedarse encima
     document.getElementById('gameOverPopup').style.display = 'none';
     resetRoundState();
@@ -736,20 +735,19 @@ function gameOver() {
     popup.style.display = 'flex';
     finalScore.textContent = `Puntaje: ${score}  |  Nivel: ${level}`;
     isPlaying = false;
-    startBtn.disabled = false;
-    restartBtn.disabled = true;
+    gameControls.idle();
     updateMobileScore();
 }
 
-document.getElementById('playAgainBtn').addEventListener('click', () => {
-    GameAudio.click();
-    document.getElementById('gameOverPopup').style.display = 'none';
-    isPlaying = false;
-    startGame();
+/* `isPlaying = false` antes de arrancar: startGame() reengancha el bucle de
+ * lógica y sin bajar la bandera antes quedarían dos corriendo sobre la misma
+ * serpiente. */
+var gameControls = GU.controls({
+    start:     startGame,
+    restart:   restartGame,
+    playAgain: function () { isPlaying = false; startGame(); },
+    popup:     'gameOverPopup'
 });
-
-startBtn.addEventListener('click', () => { GameAudio.click(); startGame(); });
-restartBtn.addEventListener('click', () => { GameAudio.click(); restartGame(); });
 
 // Inicializa
 syncCanvasLogicSize();

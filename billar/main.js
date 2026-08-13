@@ -496,12 +496,16 @@ function roundRectPath(x, y, w, h, r) { GU.roundRectPath(ctx, x, y, w, h, r); }
 /* ═══════════════════════════════════════════════════════════
    HUD
 ═══════════════════════════════════════════════════════════ */
+var gameHud = GU.hud({
+    score: scoreEl,
+    balls: ballsEl,
+    mobile: { el: mobileScore, format: function () {
+        return 'Puntos: ' + score + '  ·  Bolas: ' + remainingColored() + '  ·  Récord: ' + highScore;
+    } }
+});
+
 function updateHud() {
-    scoreEl.textContent = score;
-    ballsEl.textContent = remainingColored();
-    if (mobileScore) {
-        mobileScore.textContent = 'Puntos: ' + score + '  ·  Bolas: ' + remainingColored() + '  ·  Récord: ' + highScore;
-    }
+    gameHud.set({ score: score, balls: remainingColored() });
 }
 
 /* ═══════════════════════════════════════════════════════════

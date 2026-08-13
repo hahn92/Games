@@ -394,14 +394,12 @@ function changeLevel(delta) {
     setupLevel(n);
 }
 
-var restartBtns = document.querySelectorAll('.btn-restart');
-for (var i = 0; i < restartBtns.length; i++) restartBtns[i].addEventListener('click', function () {
-    GameAudio.click(); setupLevel(gs.n);
-});
-var lessBtns = document.querySelectorAll('.btn-less');
-for (var j = 0; j < lessBtns.length; j++) lessBtns[j].addEventListener('click', function () { changeLevel(-1); });
-var moreBtns = document.querySelectorAll('.btn-more');
-for (var k = 0; k < moreBtns.length; k++) moreBtns[k].addEventListener('click', function () { changeLevel(1); });
+/* Este juego no tiene Iniciar ni Jugar de nuevo: el puzzle está siempre en
+ * curso y sólo se reinicia o se cambia el número de discos. Y los tres botones
+ * salen dos veces, en el panel y en la tira de móvil, así que van por clase. */
+GU.buttons('.btn-restart', function () { setupLevel(gs.n); });
+GU.buttons('.btn-less', function () { changeLevel(-1); });
+GU.buttons('.btn-more', function () { changeLevel(1); });
 
 /* ── Popup victoria ── */
 function showWinPopup() {

@@ -112,10 +112,16 @@ function saveHigh() {
 }
 loadHigh();
 
+var gameHud = GU.hud({
+    score: scoreEl,
+    highScore: highScoreEl,
+    mobile: { el: mobileScore, format: function () {
+        return 'Altura: ' + state.score + '   Récord: ' + state.highScore;
+    } }
+});
+
 function updateHUD() {
-    scoreEl.textContent = state.score;
-    highScoreEl.textContent = state.highScore;
-    mobileScore.textContent = 'Altura: ' + state.score + '   Récord: ' + state.highScore;
+    gameHud.set({ score: state.score, highScore: state.highScore });
 }
 
 // ---- Generación de plataformas ----

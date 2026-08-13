@@ -681,16 +681,12 @@ canvas.addEventListener('mousedown', handlePointer);
 canvas.addEventListener('touchstart', handlePointer, { passive: false });
 
 // ===== Botones DOM =====
-document.getElementById('startBtn').addEventListener('click', () => {
-    if (state === 'idle') startGame();
-});
-document.getElementById('restartBtn').addEventListener('click', () => {
-    GameAudio.click();
-    startGame();
-});
-document.getElementById('playAgainBtn').addEventListener('click', () => {
-    GameAudio.click();
-    startGame();
+/* Iniciar sólo arranca desde parado: pulsarlo con la partida en curso no debe
+ * rehacer el tablero a media batalla. */
+var gameControls = GU.controls({
+    start:   function () { if (state === 'idle') startGame(); },
+    restart: startGame,
+    popup:   'gameOverPopup'
 });
 
 // ===== Init =====

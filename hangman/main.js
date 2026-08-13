@@ -433,20 +433,23 @@ resultCatButtons.forEach(btn => {
 
 // ─── BUTTON HANDLERS ──────────────────────────────────
 
-startBtn.addEventListener('click', () => {
-    catButtons.forEach(btn => btn.disabled = false);
-    resetScoreAndStart();
-});
-
-restartBtn.addEventListener('click', () => {
-    startGame();
-});
-
-playAgainBtn.addEventListener('click', () => {
-    GameAudio.click();
-    catButtons.forEach(btn => btn.disabled = false);
-    hideResult();
-    startGame();
+/* Iniciar reinicia el marcador, Reiniciar lo conserva. Las categorías se
+ * desbloquean al empezar de cero, no al reintentar la palabra.
+ *
+ * Aquí no se declara `popup`: el "Jugar de nuevo" de este juego vive en el panel
+ * de resultado de la propia página, no en un overlay, así que GU.controls lo
+ * cablea directamente. */
+var gameControls = GU.controls({
+    start: function () {
+        catButtons.forEach(btn => btn.disabled = false);
+        resetScoreAndStart();
+    },
+    restart: startGame,
+    playAgain: function () {
+        catButtons.forEach(btn => btn.disabled = false);
+        hideResult();
+        startGame();
+    }
 });
 
 // ─── INIT ─────────────────────────────────────────────

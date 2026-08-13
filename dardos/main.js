@@ -85,14 +85,18 @@
         updateHUD();
     }
 
-    function updateHUD() {
-        scoreEl.textContent = score;
-        levelEl.textContent = level;
-        highScoreEl.textContent = highScore;
-        if (mobileScoreEl) {
-            mobileScoreEl.textContent = `Puntos: ${score}  Niv: ${level}  Récord: ${highScore}`;
-        }
-    }
+    var gameHud = GU.hud({
+    score: scoreEl,
+    level: levelEl,
+    highScore: highScoreEl,
+    mobile: { el: mobileScoreEl, format: function () {
+        return `Puntos: ${score}  Niv: ${level}  Récord: ${highScore}`;
+    } }
+});
+
+function updateHUD() {
+    gameHud.set({ score: score, level: level, highScore: highScore });
+}
 
     function launchDart() {
         if (!gameActive || flyingDart) return;

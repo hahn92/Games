@@ -103,11 +103,17 @@ function saveStats() {
 }
 loadStats();
 
+var gameHud = GU.hud({
+    scorePlayer: scorePlayerEl,
+    scoreCpu: scoreCpuEl,
+    wins: winsEl,
+    mobile: { el: mobileScore, format: function () {
+        return 'Tú ' + state.scoreP + '  -  ' + state.scoreCpu + ' CPU';
+    } }
+});
+
 function updateHUD() {
-    scorePlayerEl.textContent = state.scoreP;
-    scoreCpuEl.textContent = state.scoreCpu;
-    winsEl.textContent = state.wins;
-    mobileScore.textContent = 'Tú ' + state.scoreP + '  -  ' + state.scoreCpu + ' CPU';
+    gameHud.set({ scorePlayer: state.scoreP, scoreCpu: state.scoreCpu, wins: state.wins });
 }
 
 // ---- Reset ----

@@ -1297,15 +1297,24 @@
 
         var api = {
             set: function (patch) {
-                var touched = false;
                 for (var name in patch) {
                     if (!Object.prototype.hasOwnProperty.call(patch, name)) continue;
                     if (values[name] === patch[name]) continue;
                     values[name] = patch[name];
-                    touched = true;
                     paint(name);
                 }
-                if (touched) paintMobile();
+                /* La línea de móvil se recalcula SIEMPRE, haya cambiado o no un
+                 * campo, y se filtra comparando el texto que produce.
+                 *
+                 * Es a propósito. Casi todas las líneas de móvil enseñan algo
+                 * que el panel de escritorio no tiene —las vidas, el combo, el
+                 * reloj— y su callback lo lee por cierre de las variables del
+                 * juego. Si sólo se repintara al ensuciarse un campo, cada juego
+                 * tendría que acordarse de declarar todas esas variables, y
+                 * olvidar una deja la línea congelada sin dar ningún síntoma en
+                 * consola. Construir la cadena es concatenar; lo caro es tocar
+                 * el DOM, y eso lo sigue evitando la comparación. */
+                paintMobile();
                 return api;
             },
             add: function (name, delta) {
@@ -1416,25 +1425,57 @@
         var sound = spec.sound !== false;
         var over = spec.popup ? popup(spec.popup) : null;
 
+        function fire(handler, hidePopup) {
+            if (sound && global.GameAudio && global.GameAudio.click) global.GameAudio.click();
+            if (hidePopup && over) over.hide();
+            handler();
+        }
+
         function wire(id, handler, hidePopup) {
             if (!handler) return null;
             var node = el(id);
             if (!node) return null;
-            node.addEventListener('click', function () {
-                if (sound && global.GameAudio && global.GameAudio.click) global.GameAudio.click();
-                if (hidePopup && over) over.hide();
-                handler();
-            });
+            node.addEventListener('click', function () { fire(handler, hidePopup); });
             return node;
+        }
+
+        /* El botón del popup se cablea POR DELEGACIÓN en el propio popup, no
+         * sobre el botón.
+         *
+         * Varios juegos reescriben el innerHTML del contenido del popup al
+         * terminar la partida para rehacer el marcador final — typingspeed es
+         * el caso claro — y eso se lleva por delante el botón. Un listener
+         * puesto al cargar queda entonces apuntando a un nodo que ya no está en
+         * el documento, y "Jugar de nuevo" deja de responder a partir de la
+         * segunda partida. El popup, en cambio, no se sustituye nunca.
+         *
+         * Si el juego no declara popup no hay dónde delegar y se cae al
+         * cableado directo, que para un botón que nadie recrea vale igual. */
+        function wirePlayAgain(id, handler) {
+            if (!handler) return;
+            var host = over && over.el();
+            var node = el(id);
+            /* Sin popup no hay dónde delegar. Y si el botón existe pero cuelga
+             * de otro sitio —hangman lo tiene en un panel de resultado, no en
+             * un overlay— la delegación no lo vería nunca: ahí se cablea
+             * directo, o el botón quedaría mudo sin decir nada. */
+            if (!host || (node && !host.contains(node))) { wire(id, handler, true); return; }
+            host.addEventListener('click', function (e) {
+                var t = e.target;
+                if (!t || !t.closest) return;
+                var btn = t.closest('#' + id);
+                if (!btn || !host.contains(btn)) return;
+                fire(handler, true);
+            });
         }
 
         var startFn     = spec.start;
         var restartFn   = spec.restart   || startFn;
         var playAgainFn = spec.playAgain || restartFn;
 
-        var startBtn   = wire(spec.startId   || 'startBtn',   startFn,     false);
-        var restartBtn = wire(spec.restartId || 'restartBtn', restartFn,   false);
-        wire(spec.playAgainId || 'playAgainBtn', playAgainFn, true);
+        var startBtn   = wire(spec.startId   || 'startBtn',   startFn,   false);
+        var restartBtn = wire(spec.restartId || 'restartBtn', restartFn, false);
+        wirePlayAgain(spec.playAgainId || 'playAgainBtn', playAgainFn);
 
         function setDisabled(node, v) { if (node) node.disabled = v; }
 
@@ -1454,6 +1495,43 @@
             }
         };
         return api;
+    }
+
+    /* Un botón que aparece MÁS DE UNA VEZ en la página.
+     *
+     * chess, damas, reversi y hanoi repiten sus controles en dos sitios —el
+     * panel lateral de escritorio y la tira de encima del tablero en móvil—, así
+     * que no pueden llevar id: un id tiene que ser único. Van por clase, y los
+     * cuatro escribían el mismo bucle:
+     *
+     *   document.querySelectorAll('.btn-new').forEach(function (b) {
+     *       b.addEventListener('click', function () { GameAudio.click(); newGame(); });
+     *   });
+     *
+     * Aquí:
+     *
+     *   GU.buttons('.btn-new', newGame);
+     *
+     * Igual que controls(), el clic suena antes de llamar al handler. Devuelve
+     * los nodos encontrados, que es lo que estos juegos necesitan luego para
+     * reescribir la etiqueta de los dos a la vez (`vs IA` / `2 Jugadores`).
+     *
+     * Se resuelve UNA vez, al llamar: si un juego crea botones después tiene que
+     * volver a llamar, igual que gridKeyboard tras cada render. */
+    function buttons(selector, handler, opts) {
+        opts = opts || {};
+        var sound = opts.sound !== false;
+        if (!global.document) return [];
+        var nodes = global.document.querySelectorAll(selector);
+        var out = [];
+        for (var i = 0; i < nodes.length; i++) {
+            out.push(nodes[i]);
+            nodes[i].addEventListener('click', function () {
+                if (sound && global.GameAudio && global.GameAudio.click) global.GameAudio.click();
+                handler();
+            });
+        }
+        return out;
     }
 
     /* A persisted personal best.
@@ -1685,7 +1763,7 @@
         upgradeCanvas: upgradeCanvas, upgradeAllCanvases: upgradeAllCanvases,
         Store: Store, Particles: Particles, Shake: Shake,
         swipe: swipe, keys: keys,
-        hud: hud, popup: popup, controls: controls,
+        hud: hud, popup: popup, controls: controls, buttons: buttons,
         highScore: highScore, formatTime: formatTime,
         starPath: starPath, heartPath: heartPath, polygonPath: polygonPath,
         sprite: sprite, spriteSheet: spriteSheet

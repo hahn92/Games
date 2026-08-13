@@ -149,8 +149,8 @@ function resetGame() {
  * frame desde update(), que es lo correcto para un reloj — y sale gratis porque
  * GU.hud compara antes de escribir: el texto sólo cambia una vez por segundo.
  *
- * Por eso `secs` se sigue ya redondeado y no `timeLeft` en crudo, que cambiaría
- * en cada frame y dejaría el filtro sin efecto. */
+ * `secs` se declara ya redondeado y no `timeLeft` en crudo: es el valor que de
+ * verdad se ve, y así el campo cambia una vez por segundo en vez de 60. */
 var mineroHud = GU.hud({
     score: scoreEl,
     quota: null,

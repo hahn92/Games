@@ -23,7 +23,19 @@ function makeEl(id, tag) {
         addEventListener(type, fn) { (this._listeners[type] = this._listeners[type] || []).push(fn); },
         click() { (this._listeners.click || []).forEach(fn => fn()); },
         setAttribute() {}, getAttribute() { return null; }, removeAttribute() {},
-        querySelectorAll() { return []; }, focus() {}, contains() { return false; }
+        querySelectorAll() { return []; }, focus() {},
+        parent: null,
+        /* closest/contains de verdad: la delegación del popup depende de ellos. */
+        closest(sel) {
+            let n = this;
+            while (n) { if (sel === '#' + n.id) return n; n = n.parent; }
+            return null;
+        },
+        contains(other) {
+            let n = other;
+            while (n) { if (n === this) return true; n = n.parent; }
+            return false;
+        }
     };
 }
 
@@ -74,6 +86,7 @@ function check(name, cond) {
     let popupAtCall = null;
     sb.GameAudio = { click: () => log.push('click-sound') };
     dom.els.gameOverPopup.style.display = 'flex';
+    dom.els.playAgainBtn.parent = dom.els.gameOverPopup;   // como en el markup real
 
     const ctl = sb.GU.controls({
         start: () => log.push('start'),
@@ -89,7 +102,7 @@ function check(name, cond) {
     dom.els.restartBtn.click();
     check('restartBtn llama a restart', log.join(',') === 'click-sound,restart');
     log.length = 0;
-    dom.els.playAgainBtn.click();
+    dom.els.gameOverPopup._listeners.click.forEach(fn => fn({ target: dom.els.playAgainBtn }));
     check('playAgain llama a su handler', log.join(',') === 'click-sound,again');
     check('el popup ya estaba oculto CUANDO corre el handler', popupAtCall === 'none');
 
@@ -207,13 +220,16 @@ function check(name, cond) {
     writes = 0; score = 5; set();
     check('cambiar la puntuación escribe panel + móvil', writes === 2);
 
-    // Lo que motiva los campos sin elemento: una variable que SÓLO sale en móvil.
+    // Una variable que SOLO sale en la linea de movil.
     writes = 0; lives = 2; set();
     check('cambiar sólo las vidas repinta la línea de móvil', writes === 1);
     check('la línea de móvil trae el valor nuevo',
         dom.els.mobileScore.innerHTML === 'P:5 N:1 V:2');
 
-    // Y la prueba de que hacía falta declararlo: sin el campo, no se entera.
+    /* Y lo mismo SIN declararla como campo: la linea se recalcula en cada set()
+     * y se filtra por el texto que produce, asi que no depende de que el juego
+     * se acuerde de enumerar cada variable que use. Olvidarse de una es el error
+     * facil, y antes dejaba la linea congelada sin sintoma en consola. */
     const dom2 = makeDom(['score', 'mobileScore']);
     const sb2 = loadToolkit(dom2);
     let lives2 = 3;
@@ -223,9 +239,73 @@ function check(name, cond) {
     });
     hud2.set({ score: 1 });
     lives2 = 1;
-    hud2.set({ score: 1 });
-    check('sin declarar el campo, la línea de móvil se queda vieja (por eso van)',
-        dom2.els.mobileScore.innerHTML === 'V:3');
+    hud2.set({ score: 1 });          // ni un solo campo cambia
+    check('la línea de móvil sigue una variable no declarada',
+        dom2.els.mobileScore.innerHTML === 'V:1');
+
+    // Pero sigue sin tocar el DOM cuando el texto no cambia.
+    let domWrites = 0, val = '';
+    Object.defineProperty(dom2.els.mobileScore, 'innerHTML', {
+        get: () => val, set(nv) { if (nv !== val) domWrites++; val = nv; }
+    });
+    for (let i = 0; i < 60; i++) hud2.set({ score: 1 });
+    check('60 set() sin cambios reales no escriben en el DOM', domWrites === 0);
+}
+
+
+/* ── 8. El boton del popup sobrevive a que reescriban el popup ────────── */
+{
+    const dom = makeDom(['startBtn', 'restartBtn', 'playAgainBtn', 'gameOverPopup']);
+    const sb = loadToolkit(dom);
+    sb.GameAudio = { click: () => {} };
+    const log = [];
+
+    // El boton vive DENTRO del popup, como en el markup real.
+    const popupEl = dom.els.gameOverPopup;
+    dom.els.playAgainBtn.parent = popupEl;
+    popupEl._listeners = {};
+
+    sb.GU.controls({ start: () => log.push('start'), popup: 'gameOverPopup' });
+
+    console.log('\n8. el popup se reescribe entre partidas');
+
+    // Un clic normal: el evento nace en el boton y sube al popup.
+    popupEl._listeners.click.forEach(fn => fn({ target: dom.els.playAgainBtn }));
+    check('el boton original funciona', log.join(',') === 'start');
+
+    /* Ahora el juego rehace el contenido del popup, como hace typingspeed en
+     * endGame(): el boton de antes deja de estar en el documento y hay uno
+     * nuevo con el mismo id. Un listener atado al nodo viejo estaria muerto. */
+    log.length = 0;
+    const nuevoBoton = makeEl('playAgainBtn');
+    nuevoBoton.parent = popupEl;
+    dom.els.playAgainBtn = nuevoBoton;
+
+    popupEl._listeners.click.forEach(fn => fn({ target: nuevoBoton }));
+    check('y el boton NUEVO tambien, que es lo que rompia antes',
+        log.join(',') === 'start');
+
+    // Y no reacciona a cualquier clic dentro del popup.
+    log.length = 0;
+    const otro = makeEl('otroBoton');
+    otro.parent = popupEl;
+    popupEl._listeners.click.forEach(fn => fn({ target: otro }));
+    check('otro boton del popup no lo dispara', log.length === 0);
+}
+
+
+/* ── 9. Boton de reinicio fuera del popup (caso hangman) ──────────────── */
+{
+    const dom = makeDom(['startBtn', 'restartBtn', 'playAgainBtn', 'gameOverPopup']);
+    const sb = loadToolkit(dom);
+    sb.GameAudio = { click: () => {} };
+    const log = [];
+    /* No se le pone parent: el boton NO cuelga del popup, como en hangman,
+     * donde vive en un panel de resultado de la propia pagina. */
+    sb.GU.controls({ start: () => log.push('start'), popup: 'gameOverPopup' });
+    console.log('\n9. boton fuera del popup');
+    dom.els.playAgainBtn.click();
+    check('se cablea directo en vez de quedarse mudo', log.join(',') === 'start');
 }
 
 console.log('\n' + pass + ' pasan, ' + fail + ' fallan');

@@ -617,12 +617,14 @@ rafLoop(function () {
 
 /* ═══════════════ Botones ═══════════════ */
 
-document.getElementById('startBtn').addEventListener('click', function () {
-    GameAudio.click();
-    newGame(document.getElementById('diffSel').value);
+var gameControls = GU.controls({
+    start:     function () { newGame(document.getElementById('diffSel').value); },
+    restart:   restartSamePuzzle,
+    playAgain: function () { newGame(gs.diff); },
+    popup:     'winPopup'
 });
-document.getElementById('restartBtn').addEventListener('click', function () {
-    GameAudio.click();
+
+function restartSamePuzzle() {
     if (gs.status === 'idle') return newGame(gs.diff);
     /* Reiniciar vuelve al MISMO puzzle, no a uno nuevo: querer repetir el que
      * se te ha atragantado es lo normal, y para otro está Nueva partida. */
@@ -637,13 +639,10 @@ document.getElementById('restartBtn').addEventListener('click', function () {
     winPopup.hide();
     syncHud();
     GameAudio.start();
-});
+}
+
 document.getElementById('noteBtn').addEventListener('click', toggleNotes);
 document.getElementById('eraseBtn').addEventListener('click', function () { place(0); });
-document.getElementById('playAgainBtn').addEventListener('click', function () {
-    GameAudio.click();
-    newGame(gs.diff);
-});
 document.getElementById('diffSel').addEventListener('change', function () {
     hud.set({ best: bests[this.value].has() ? GU.formatTime(bests[this.value].value) : '—' });
 });

@@ -549,11 +549,17 @@ function endGame(result, winCells) {
     gameControls.idle();
 }
 
+var gameHud = GU.hud({
+    wins: document.getElementById('wins'),
+    losses: document.getElementById('losses'),
+    draws: document.getElementById('draws'),
+    mobile: { el: document.getElementById('mobileScore'), format: function () {
+        return 'W:' + wins + ' L:' + losses;
+    } }
+});
+
 function updateScores() {
-    document.getElementById('wins').textContent = wins;
-    document.getElementById('losses').textContent = losses;
-    document.getElementById('draws').textContent = draws;
-    document.getElementById('mobileScore').textContent = 'W:' + wins + ' L:' + losses;
+    gameHud.set({ wins: wins, losses: losses, draws: draws });
 }
 
 function startGame() {

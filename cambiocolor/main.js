@@ -99,11 +99,15 @@ function buildStars() {
 }
 buildStars();
 
+var gameHud = GU.hud({
+    score: scoreEl,
+    mobile: { el: mobileScoreEl, format: function () {
+        return 'Puntos: ' + score + ' · Récord: ' + Math.max(best, score);
+    } }
+});
+
 function updateHUD() {
-    scoreEl.textContent = score;
-    if (mobileScoreEl) {
-        mobileScoreEl.textContent = 'Puntos: ' + score + ' · Récord: ' + Math.max(best, score);
-    }
+    gameHud.set({ score: score });
 }
 
 function resetState() {

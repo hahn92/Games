@@ -438,10 +438,9 @@ function endGame() {
 // cambia: asignar textContent 60 veces por segundo fuerza recálculo de estilo.
 /* draw() llama a updateScore() en cada frame, así que sin filtro esto serían
  * tres escrituras de textContent 60 veces por segundo para decir lo mismo.
- * GU.hud ya compara antes de escribir — `level` y `lives` no salen en el panel
- * de escritorio pero sí en la línea de móvil, y por eso se declaran igual: si
- * no se siguieran, una vida perdida no ensuciaría nada y la línea se quedaría
- * con el número viejo. */
+ * GU.hud ya compara antes de escribir. `level` y `lives` no salen en el panel de
+ * escritorio, sólo en la línea de móvil; se declaran de todas formas porque
+ * documentan de qué depende esa línea y dejan usar hud.get(). */
 const invadersHud = GU.hud({
     score: 'score',
     best:  'highScore',

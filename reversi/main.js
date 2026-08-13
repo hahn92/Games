@@ -513,17 +513,14 @@ function updateModeLabel() {
 }
 
 function toggleMode() {
-    GameAudio.click();
     gs.mode = gs.mode === 'ai' ? '2p' : 'ai';
     newGame();
 }
 
-var newBtns = document.querySelectorAll('.btn-new');
-for (var i = 0; i < newBtns.length; i++) newBtns[i].addEventListener('click', function () {
-    GameAudio.click(); newGame();
-});
-var modeBtns = document.querySelectorAll('.btn-mode');
-for (var j = 0; j < modeBtns.length; j++) modeBtns[j].addEventListener('click', toggleMode);
+/* Los controles salen dos veces —panel de escritorio y tira de móvil— así que
+ * van por clase, no por id. GU.buttons cablea las dos copias de golpe. */
+GU.buttons('.btn-new', newGame);
+GU.buttons('.btn-mode', toggleMode);
 
 /* ── Popup de resultado ── */
 function showResultPopup() {

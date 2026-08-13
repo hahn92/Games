@@ -631,12 +631,15 @@ rafLoop(function () {
 
 /* ═══════════════ Botones ═══════════════ */
 
-document.getElementById('startBtn').addEventListener('click', function () {
-    GameAudio.click();
-    newGame(document.getElementById('diffSel').value);
+var gameControls = GU.controls({
+    start:     function () { newGame(document.getElementById('diffSel').value); },
+    restart:   restartSamePuzzle,
+    playAgain: function () { newGame(gs.diff); },
+    popup:     'winPopup'
 });
-document.getElementById('restartBtn').addEventListener('click', function () {
-    GameAudio.click();
+
+/* Reiniciar vuelve al MISMO patrón, no a uno nuevo: para otro está Nueva partida. */
+function restartSamePuzzle() {
     if (gs.status === 'idle') return newGame(gs.diff);
     gs.grid = new Uint8Array(gs.n * gs.n);
     gs.errors = 0;
@@ -646,16 +649,11 @@ document.getElementById('restartBtn').addEventListener('click', function () {
     winPopup.hide();
     syncHud();
     GameAudio.start();
-});
+}
 document.getElementById('markBtn').addEventListener('click', function () {
     setMarkMode(!markMode);
     GameAudio.click();
 });
-document.getElementById('playAgainBtn').addEventListener('click', function () {
-    GameAudio.click();
-    newGame(gs.diff);
-});
-
 layout();
 syncHud();
 

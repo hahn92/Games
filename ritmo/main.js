@@ -100,12 +100,16 @@ function buildStars() {
 }
 buildStars();
 
+var gameHud = GU.hud({
+    score: scoreEl,
+    combo: comboEl,
+    mobile: { el: mobileScoreEl, format: function () {
+        return 'Puntos: ' + score + ' · Combo: ' + combo + ' · Vidas: ' + lives;
+    } }
+});
+
 function updateHUD() {
-    scoreEl.textContent = score;
-    comboEl.textContent = combo;
-    if (mobileScoreEl) {
-        mobileScoreEl.textContent = 'Puntos: ' + score + ' · Combo: ' + combo + ' · Vidas: ' + lives;
-    }
+    gameHud.set({ score: score, combo: combo });
 }
 
 function resetState() {

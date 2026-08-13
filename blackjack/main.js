@@ -317,7 +317,7 @@ function nextRound() {
 }
 
 function restartBank() {
-    GameAudio.click();
+    /* El clic lo emite GU.controls antes de llamar aquí; repetirlo sonaría dos veces. */
     game.bank = STARTING_BANK;
     saveBank();
     game.bet = 0;
@@ -741,24 +741,24 @@ function loop(ts) {
 }
 
 // ---- Wire DOM ----
-document.getElementById('startBtn').addEventListener('click', () => {
-    resetSlots();
-    startGame();
+/* Reiniciar aquí repone la banca, no la mano, así que nunca se apaga: es la
+ * salida cuando te quedas sin fichas. Por eso este juego no usa running()/idle(). */
+var gameControls = GU.controls({
+    start: function () { resetSlots(); startGame(); },
+    restart: restartBank,
+    playAgain: function () {
+        game.phase = 'betting';
+        game.bet = 0;
+        game.player = [];
+        game.dealer = [];
+        resetSlots();
+        game.message = 'Haz tu apuesta';
+        game.messageColor = '#8fd3f4';
+        updateMobileScore();
+    },
+    popup: 'gameOverPopup'
 });
-document.getElementById('restartBtn').addEventListener('click', restartBank);
 document.getElementById('restartBtn').disabled = false;
-document.getElementById('playAgainBtn').addEventListener('click', () => {
-    hidePopup();
-    GameAudio.click();
-    game.phase = 'betting';
-    game.bet = 0;
-    game.player = [];
-    game.dealer = [];
-    resetSlots();
-    game.message = 'Haz tu apuesta';
-    game.messageColor = '#8fd3f4';
-    updateMobileScore();
-});
 
 // init
 loadBank();

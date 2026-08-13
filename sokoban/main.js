@@ -676,20 +676,26 @@
     }, { passive: false });
 
     // ── Button handlers ───────────────────────────────────────────────
-    startBtn.addEventListener('click', function () {
+    /* Iniciar y "Jugar de nuevo" hacen lo mismo: volver al primer nivel. El
+     * popup que declara es allDonePopup, el de haberlos terminado todos, que es
+     * donde vive ese botón — winPopup, el de nivel superado, lo cierra
+     * nextLevelBtn. */
+    function startFromZero() {
         currentLevel = 0;
         gameState = 'playing';
         loadLevel(0);
-        startBtn.disabled = true;
-        restartBtn.disabled = false;
+        gameControls.running();
         undoBtn.disabled = true;
         GameAudio.start();
-    });
+    }
 
-    restartBtn.addEventListener('click', function () {
-        loadLevel(currentLevel);
-        undoBtn.disabled = true;
-        GameAudio.click();
+    var gameControls = GU.controls({
+        start:   startFromZero,
+        restart: function () {
+            loadLevel(currentLevel);
+            undoBtn.disabled = true;
+        },
+        popup:   'allDonePopup'
     });
 
     undoBtn.addEventListener('click', function () {
@@ -709,17 +715,6 @@
             undoBtn.disabled = true;
             GameAudio.start();
         }
-    });
-
-    playAgainBtn.addEventListener('click', function () {
-        allDonePopup.style.display = 'none';
-        currentLevel = 0;
-        gameState = 'playing';
-        loadLevel(0);
-        startBtn.disabled = true;
-        restartBtn.disabled = false;
-        undoBtn.disabled = true;
-        GameAudio.start();
     });
 
     // ── Initial render ────────────────────────────────────────────────

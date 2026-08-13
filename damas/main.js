@@ -623,17 +623,14 @@ function updateModeLabel() {
     var lbl = document.getElementById('bottomLabel');
     if (lbl) lbl.textContent = gs.mode === 'ai' ? 'Azules: IA' : 'Azules: Humano';
 }
-document.querySelectorAll('.btn-new').forEach(function (b) {
-    b.addEventListener('click', function () { GameAudio.click(); newGame(); });
-});
-document.querySelectorAll('.btn-mode').forEach(function (b) {
-    b.addEventListener('click', function () {
-        GameAudio.click();
-        gs.mode = gs.mode === 'ai' ? '2p' : 'ai';
-        gs.aiColor = 'b';
-        updateModeLabel();
-        newGame();
-    });
+/* Los controles salen dos veces —panel de escritorio y tira de móvil— así que
+ * van por clase, no por id. GU.buttons cablea las dos copias de golpe. */
+GU.buttons('.btn-new', newGame);
+GU.buttons('.btn-mode', function () {
+    gs.mode = gs.mode === 'ai' ? '2p' : 'ai';
+    gs.aiColor = 'b';
+    updateModeLabel();
+    newGame();
 });
 
 /* ── Init ── */

@@ -302,10 +302,10 @@ function harvest(plotIdx) {
  * de cada sesenta: sin filtro son dos textContent y un innerHTML por frame para
  * repetir lo mismo. GU.hud compara antes de tocar el DOM.
  *
- * `coins` y el segundo que se muestra sólo viven en la línea de móvil, así que
- * van como campos sin elemento — es lo que hace que la línea se repinte cuando
- * cambian ellos y no `earned`. El segundo se sigue ya redondeado: seguir
- * `timeLeft` en crudo cambiaría 60 veces por segundo y anularía el filtro. */
+ * `coins` y el segundo que se muestra sólo viven en la línea de móvil y van como
+ * campos sin elemento, que documentan de qué depende. El segundo se declara ya
+ * redondeado a propósito: es el valor que de verdad se ve, y así el campo cambia
+ * una vez por segundo en vez de en cada frame. */
 var cosechaHud = GU.hud({
     earned: scoreEl,
     best:   highScoreEl,
