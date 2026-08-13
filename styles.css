@@ -246,6 +246,111 @@ h1 {
     }
 }
 
+/* ── Shared game-page chrome ───────────────────────────────────────────────────
+ * The end-of-game overlay and the three control buttons were copied into every
+ * game's stylesheet: 2364 duplicated declarations across the set, byte for byte
+ * identical in 29–47 games depending on the rule. They live here now.
+ *
+ * A game that genuinely wants a different look still declares its own rule and
+ * wins on source order — the per-game `@import url('../styles.css')` is the
+ * first thing in the file, so anything local comes after. That is how pacman,
+ * platformer, 2048, memorama, bubbleshooter and typingspeed keep their variants.
+ * Do NOT copy these blocks back into a game to change one property; override
+ * just that property locally. */
+
+.popup {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    background: rgba(24,24,24,0.95);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+}
+
+.popup-content {
+    background: #242424;
+    padding: 2.5rem 3rem;
+    border-radius: 20px;
+    box-shadow: 0 4px 24px rgba(0,0,0,0.4);
+    text-align: center;
+    min-width: 280px;
+    max-width: 90vw;
+}
+
+.popup-content h2 {
+    margin-top: 0;
+    color: #8fd3f4;
+    font-size: 2rem;
+}
+
+.popup-content p {
+    font-size: 1.4rem;
+    margin: 1rem 0;
+}
+
+/* Los tres botones van envueltos en :where(), que aporta especificidad CERO.
+ * Un id normal (1-0-0) es casi imposible de sobrescribir: le ganaría a la regla
+ * `.btn-primary` con la que hangman viste los suyos, y a cualquier `.clase` que
+ * un juego quiera usar. Como :where() no suma nada, esto es un DEFECTO puro —
+ * lo pisa cualquier regla que el juego declare, por floja que sea, y sólo se ve
+ * en los juegos que no dicen nada. Que es justo lo que queremos de una base
+ * compartida.
+ *
+ * Ojo con lo que :where() NO arregla: una propiedad que el juego no declara
+ * sigue viniendo de aquí. Por eso los que quieren su propio espaciado escriben
+ * `margin: 0` explícito en vez de callarse. */
+:where(#playAgainBtn) {
+    background: #8fd3f4;
+    color: #222;
+    border: none;
+    border-radius: 8px;
+    padding: 1rem 2.2rem;
+    font-size: 1.2rem;
+    font-weight: bold;
+    cursor: pointer;
+    margin-top: 1rem;
+    transition: background 0.2s;
+}
+
+:where(#playAgainBtn):hover {
+    background: #5ec2e6;
+}
+
+:where(#startBtn, #restartBtn) {
+    background: var(--grad-primary);
+    color: #222;
+    border: none;
+    border-radius: 8px;
+    padding: 0.9rem 2rem;
+    font-size: 1.1rem;
+    font-weight: bold;
+    cursor: pointer;
+    margin: 0 0.5rem;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+    transition: background 0.2s, transform 0.2s;
+}
+
+:where(#startBtn, #restartBtn):hover {
+    opacity: 0.9;
+    transform: scale(1.05);
+}
+
+.info-side p {
+    color: var(--text-muted);
+    font-size: 1.1rem;
+    margin-bottom: 1.5rem;
+}
+
+.buttons-panel {
+    display: flex;
+    gap: 1rem;
+    margin-top: 1.5rem;
+}
+
 /* Mobile score overlay */
 .mobile-score {
     display: none;

@@ -8,7 +8,6 @@
     -webkit-text-fill-color: transparent;
     background-clip: text;
 }
-.info-side p { font-size: 1.1rem; margin-bottom: 1.5rem; color: var(--text-muted); }
 .info-side .hint { font-size: 0.95rem; color: #b7c6d6; margin-top: 1rem; }
 .buttons-panel { display: flex; gap: 1rem; margin-top: 1rem; flex-wrap: wrap; }
 .score-panel { display: flex; gap: 1.2rem; font-size: 1.1rem; margin-bottom: 1rem; color: var(--text-muted); flex-wrap: wrap; }
@@ -44,15 +43,3 @@ body { background: var(--grad-bg); color: #fff; min-height: 100vh; margin: 0; }
     display: block; width: 100%;
 }
 #nextLevelBtn:hover, #playAgainBtn:hover { background: #5ec2e6; }
-.popup {
-    position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
-    background: rgba(24,24,24,0.95); display: flex;
-    align-items: center; justify-content: center; z-index: 1000;
-}
-.popup-content {
-    background: #242424; padding: 2.5rem 3rem; border-radius: 20px;
-    box-shadow: 0 4px 24px rgba(0,0,0,0.4); text-align: center;
-    min-width: 280px; max-width: 90vw;
-}
-.popup-content h2 { margin-top: 0; color: #8fd3f4; font-size: 2rem; }
-.popup-content p { font-size: 1.4rem; margin: 1rem 0; }

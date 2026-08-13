@@ -10,8 +10,6 @@ body { background: var(--grad-bg); color: #fff; min-height: 100vh; margin: 0; }
     -webkit-text-fill-color: transparent;
     background-clip: text;
 }
-.info-side p { font-size: 1.1rem; margin-bottom: 1.5rem; color: var(--text-muted); }
-.buttons-panel { display: flex; gap: 1rem; margin-top: 1.5rem; }
 .score-panel { display: flex; gap: 1.5rem; font-size: 1.1rem; margin-bottom: 1.5rem; color: var(--text-muted); flex-wrap: wrap; }
 
 .buttons-panel button, .chess-mobile-btns button {

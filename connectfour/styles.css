@@ -14,11 +14,6 @@
     color: var(--text-muted);
     text-shadow: 0 2px 8px #222;
 }
-.buttons-panel {
-    display: flex;
-    gap: 1rem;
-    margin-top: 1.5rem;
-}
 body {
     background: var(--grad-bg);
     color: #fff;
@@ -61,52 +56,4 @@ body {
     transition: opacity 0.15s, transform 0.15s;
 }
 .col-btn:active { opacity: 0.8; transform: scale(1.1); }
-
-#startBtn, #restartBtn {
-    background: var(--grad-primary);
-    color: #222;
-    border: none;
-    border-radius: 8px;
-    padding: 0.9rem 2rem;
-    font-size: 1.1rem;
-    font-weight: bold;
-    cursor: pointer;
-    margin: 0 0.5rem;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.15);
-    transition: background 0.2s, transform 0.2s;
-}
-#startBtn:hover, #restartBtn:hover { opacity: 0.9; transform: scale(1.05); }
-#playAgainBtn {
-    background: #8fd3f4;
-    color: #222;
-    border: none;
-    border-radius: 8px;
-    padding: 1rem 2.2rem;
-    font-size: 1.2rem;
-    font-weight: bold;
-    cursor: pointer;
-    transition: background 0.2s;
-    margin-top: 1rem;
-}
-#playAgainBtn:hover { background: #5ec2e6; }
-.popup {
-    position: fixed;
-    top: 0; left: 0;
-    width: 100vw; height: 100vh;
-    background: rgba(24,24,24,0.95);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    z-index: 1000;
-}
-.popup-content {
-    background: #242424;
-    padding: 2.5rem 3rem;
-    border-radius: 20px;
-    box-shadow: 0 4px 24px rgba(0,0,0,0.4);
-    text-align: center;
-    min-width: 280px;
-    max-width: 90vw;
-}
-.popup-content h2 { margin-top: 0; color: #8fd3f4; font-size: 2rem; }
 .popup-content p { font-size: 1.5rem; margin: 1.5rem 0; }

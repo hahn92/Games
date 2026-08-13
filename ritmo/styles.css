@@ -8,8 +8,6 @@
     -webkit-text-fill-color: transparent;
     background-clip: text;
 }
-.info-side p { font-size: 1.1rem; margin-bottom: 1.5rem; color: var(--text-muted); }
-.buttons-panel { display: flex; gap: 1rem; margin-top: 1.5rem; }
 .score-panel { display: flex; gap: 1.5rem; font-size: 1.2rem; margin-bottom: 1.5rem; color: var(--text-muted); flex-wrap: wrap; }
 
 body { background: var(--grad-bg); color: #fff; min-height: 100vh; margin: 0; }
@@ -27,31 +25,4 @@ body { background: var(--grad-bg); color: #fff; min-height: 100vh; margin: 0; }
     user-select: none;
     -webkit-user-select: none;
 }
-
-#startBtn, #restartBtn {
-    background: var(--grad-primary);
-    color: #222; border: none; border-radius: 8px;
-    padding: 0.9rem 2rem; font-size: 1.1rem; font-weight: bold;
-    cursor: pointer; margin: 0 0.5rem;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.15);
-    transition: background 0.2s, transform 0.2s;
-}
-#startBtn:hover, #restartBtn:hover { opacity: 0.9; transform: scale(1.05); }
-#playAgainBtn {
-    background: #8fd3f4; color: #222; border: none; border-radius: 8px;
-    padding: 1rem 2.2rem; font-size: 1.2rem; font-weight: bold;
-    cursor: pointer; transition: background 0.2s; margin-top: 1rem;
-}
-#playAgainBtn:hover { background: #5ec2e6; }
-.popup {
-    position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
-    background: rgba(24,24,24,0.95); display: flex;
-    align-items: center; justify-content: center; z-index: 1000;
-}
-.popup-content {
-    background: #242424; padding: 2.5rem 3rem; border-radius: 20px;
-    box-shadow: 0 4px 24px rgba(0,0,0,0.4); text-align: center;
-    min-width: 280px; max-width: 90vw;
-}
 .popup-content h2 { margin-top: 0; color: #ff512f; font-size: 2rem; }
-.popup-content p { font-size: 1.4rem; margin: 1rem 0; }

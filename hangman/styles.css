@@ -268,6 +268,7 @@ body {
     gap: 0.75rem;
     flex-wrap: wrap;
     width: 100%;
+    margin-top: 0;   /* la base compartida separa 1.5rem; aquí va pegado al teclado */
 }
 
 .btn-primary {
@@ -282,6 +283,10 @@ body {
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.18);
     transition: opacity 0.18s, transform 0.15s;
     flex: 1;
+    /* Estos botones se reparten el ancho con `flex: 1` y los separa el `gap`
+     * del .buttons-panel. La base compartida da `margin: 0 0.5rem`, que aquí
+     * sobra: hay que decirlo, porque no declararlo la deja pasar. */
+    margin: 0;
 }
 
 .btn-primary:hover:not(:disabled) {
