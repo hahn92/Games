@@ -20,7 +20,14 @@ var invincible = 0;
 var shipGlowPhase = 0;
 var nextExtraLife = EXTRA_LIFE_STEP;
 // Screen shake / flash al perder una vida (offsets precomputados en update)
-var screenShake = 0, shakeOffX = 0, shakeOffY = 0, deathFlash = 0;
+/* La sacudida y el destello al morir estaban a medio hacer: `screenShake`,
+ * `shakeOffX`, `shakeOffY` y `deathFlash` se asignaban al chocar contra un
+ * asteroide y no los leía nadie, así que el efecto que describe la documentación
+ * no llegaba a verse. Ahora van de verdad, sobre el Shake del toolkit — con
+ * decaimiento independiente del framerate y desplazamientos elegidos en update(),
+ * no en el dibujado. */
+var shake = new Shake({ max: 14 });
+var deathFlash = 0;
 
 highScore = GameStore.getNum('asteroidsHigh', 0);
 
@@ -294,6 +301,11 @@ function wrap(obj) {
 }
 
 function update() {
+    /* Los offsets se eligen aquí, no en draw(): un frame repintado dos veces
+     * tiene que salir igual las dos veces. */
+    shake.update();
+    if (deathFlash > 0) deathFlash = Math.max(0, deathFlash - 0.05);
+
     ship.update();
     if (keys[' '] || keys['fire']) ship.shoot();
 
@@ -351,7 +363,7 @@ function update() {
         if (invincible <= 0 && Math.hypot(ship.x - a.x, ship.y - a.y) < a.radius + ship.radius) {
             spawnParticles(ship.x, ship.y, '#8fd3f4', 15);
             spawnFragments(ship.x, ship.y, 2);
-            screenShake = 14;
+            shake.hit(14);
             deathFlash = 1;
             lives--;
             updateHUD();
@@ -380,9 +392,14 @@ function update() {
 }
 
 function draw() {
-    // Fondo azul espacio oscuro
+    // Fondo azul espacio oscuro. Se pinta ANTES de aplicar la sacudida: si se
+    // desplazara con el resto, por el borde contrario asomaría una franja sin
+    // pintar del frame anterior.
     ctx.fillStyle = bgGrad;
     ctx.fillRect(0, 0, W, H);
+
+    var shaking = shake.active();
+    if (shaking) { ctx.save(); shake.translate(ctx); }
 
     // Estrellas — cuadraditos blancos con parpadeo opcional
     for (var i = 0; i < starField.length; i++) {
@@ -477,6 +494,18 @@ function draw() {
 
     ship.draw();
 
+    if (shaking) ctx.restore();
+
+    // Destello rojo al perder una vida. Va fuera de la sacudida y cubre el
+    // canvas entero, así que tiene que ir después del restore o quedaría
+    // desplazado y dejaría una banda sin cubrir.
+    if (deathFlash > 0) {
+        ctx.globalAlpha = deathFlash * 0.35;
+        ctx.fillStyle = '#ff512f';
+        ctx.fillRect(0, 0, W, H);
+        ctx.globalAlpha = 1;
+    }
+
     // Touch zone overlay (solo visible con opacidad muy baja)
     if (isPlaying) {
         var W = canvas.width, H = canvas.height;
@@ -527,10 +556,10 @@ function startGame() {
     ship = new Ship(W/2, H/2);
     bullets = []; asteroids = []; particles = []; thrustParticles = [];
     score = 0; lives = 3; level = 1; invincible = 0; shipGlowPhase = 0;
+    shake.stop(); deathFlash = 0;   // una partida nueva no hereda la muerte anterior
     isPlaying = true;
     document.getElementById('gameOverPopup').style.display = 'none';
-    document.getElementById('startBtn').disabled = true;
-    document.getElementById('restartBtn').disabled = false;
+    gameControls.running();
     spawnLevel();
     updateHUD();
     cancelAnimationFrame(animFrameId);
@@ -544,8 +573,7 @@ function gameOver() {
     draw();
     document.getElementById('finalScore').textContent = 'Puntaje: ' + score;
     document.getElementById('gameOverPopup').style.display = 'flex';
-    document.getElementById('startBtn').disabled = false;
-    document.getElementById('restartBtn').disabled = true;
+    gameControls.idle();
 }
 
 // Keyboard
@@ -574,13 +602,7 @@ addHold(btnRotRight, 'ArrowRight');
 addHold(btnThrust, 'thrust');
 addHold(btnFire, 'fire');
 
-document.getElementById('startBtn').addEventListener('click', function() { GameAudio.click(); startGame(); });
-document.getElementById('restartBtn').addEventListener('click', function() { GameAudio.click(); startGame(); });
-document.getElementById('playAgainBtn').addEventListener('click', function() {
-    GameAudio.click();
-    document.getElementById('gameOverPopup').style.display = 'none';
-    startGame();
-});
+var gameControls = GU.controls({ start: startGame, popup: 'gameOverPopup' });
 
 // Canvas touch zone controls (virtual joystick by zones)
 (function() {
