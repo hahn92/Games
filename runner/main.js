@@ -22,7 +22,11 @@ var milestoneMsg = null;   // { text, alpha, y }
 var SPEED = 4;
 var frame = 0;
 var score = 0;
-var highScore = GameStore.getNum('runnerHighScore', 0);
+/* El récord va por GU.highScore: comparar, guardar y el valor por defecto
+ * en un solo sitio. `highScore` se mantiene porque el resto del fichero la lee. */
+var gameBest = GU.highScore('runnerHighScore');
+
+var highScore = gameBest.display(0);
 var isPlaying = false;
 var isDying   = false;
 var isCrouching = false;
@@ -995,9 +999,8 @@ function drawScore() {
  * tres textContent por frame para un marcador que cambia a otro ritmo; GU.hud
  * compara antes de escribir. */
 function updateScore() {
-    if (score > highScore) {
-        highScore = score;
-        GameStore.set('runnerHighScore', highScore);
+    if (gameBest.submit(score)) {
+        highScore = gameBest.value;
     }
     hud.set({ score: score, best: highScore });
 }

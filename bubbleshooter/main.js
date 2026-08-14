@@ -42,7 +42,11 @@ let shootAngle = -Math.PI / 2;  // radians, -π/2 = straight up
 let canShoot   = true;
 
 let score     = 0;
-let highScore = GameStore.getNum('bubbleHighScore', 0);
+/* El récord va por GU.highScore: comparar, guardar y el valor por defecto
+ * en un solo sitio. `highScore` se mantiene porque el resto del fichero la lee. */
+var gameBest = GU.highScore('bubbleHighScore');
+
+let highScore = gameBest.display(0);
 let level     = 1;
 let shots     = 0;          // shots fired this level cycle
 let gameState = 'idle';     // 'idle' | 'playing' | 'over' | 'win'
@@ -560,9 +564,8 @@ function triggerGameOver() {
     gameState = 'over';
     canShoot  = false;
     GameAudio.gameOver();
-    if (score > highScore) {
-        highScore = score;
-        GameStore.set('bubbleHighScore', highScore);
+    if (gameBest.submit(score)) {
+        highScore = gameBest.value;
     }
 
     setTimeout(() => {
@@ -578,10 +581,7 @@ function triggerWin() {
     gameState = 'win';
     canShoot  = false;
     GameAudio.win();
-    if (score > highScore) {
-        highScore = score;
-        GameStore.set('bubbleHighScore', highScore);
-    }
+    if (gameBest.submit(score)) highScore = gameBest.value;
 
     setTimeout(() => {
         document.getElementById('popupTitle').textContent  = '¡Tablero despejado!';

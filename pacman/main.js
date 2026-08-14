@@ -87,7 +87,11 @@
 
     // ── Estado ───────────────────────────────────────────────
     var maze = [], pellets = [], totalPellets = 0;
-    var score = 0, highScore = GameStore.getNum('pacmanHighScore', 0), lives = 3, level = 1;
+/* El récord va por GU.highScore: comparar, guardar y el valor por defecto
+ * en un solo sitio. `highScore` se mantiene porque el resto del fichero la lee. */
+var gameBest = GU.highScore('pacmanHighScore');
+
+    var score = 0, highScore = gameBest.display(0), lives = 3, level = 1;
     var gameState = 'idle';  // idle | playing | dying | levelclear | gameover
     var pulseT = 0, rafId = null, lastTime = 0;
     var scorePopups = [];
@@ -452,9 +456,8 @@
     // ── Fin ──────────────────────────────────────────────────
     function endGame() {
         gameState='gameover';
-        if (score>highScore) {
-            highScore=score;
-            GameStore.set('pacmanHighScore', highScore);
+        if (gameBest.submit(score)) {
+            highScore = gameBest.value;
         }
         popupTitle.textContent = 'Game Over';
         finalScoreEl.textContent = 'Puntaje: '+score;

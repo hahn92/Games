@@ -47,7 +47,11 @@
 
     let gameActive = false;
     let score = 0;
-    let highScore = GameStore.getNum('dardos_hs', 0);
+/* El récord va por GU.highScore: comparar, guardar y el valor por defecto
+ * en un solo sitio. `highScore` se mantiene porque el resto del fichero la lee. */
+var gameBest = GU.highScore('dardos_hs');
+
+    let highScore = gameBest.display(0);
     let level = 1;
     let quota = 6;
     let landed = 0;
@@ -175,9 +179,8 @@ function updateHUD() {
     function triggerGameOver() {
         gameActive = false;
         cancelAnimationFrame(raf);
-        if (score > highScore) {
-            highScore = score;
-            GameStore.set('dardos_hs', highScore);
+        if (gameBest.submit(score)) {
+            highScore = gameBest.value;
         }
         finalScoreEl.textContent = `Puntos: ${score}`;
         finalBestEl.textContent = score >= highScore && score > 0 ? '¡Nuevo récord!' : `Récord: ${highScore}`;

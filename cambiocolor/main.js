@@ -59,7 +59,11 @@ var obstacles = [];
 var particles = [];
 var stars     = [];
 var score     = 0;
-var best      = GameStore.getNum('cambiocolorHighScore', 0);
+/* El récord va por GU.highScore: comparar, guardar y el valor por defecto
+ * en un solo sitio. `best` se mantiene porque el resto del fichero la lee. */
+var gameBest = GU.highScore('cambiocolorHighScore');
+
+var best      = gameBest.display(0);
 var scrollSpeed  = START_SCROLL;
 var isPlaying    = false;
 var isOver       = false;
@@ -633,9 +637,8 @@ function endGame(reason) {
     isPlaying = false;
     screenShake = 14;
     spawnDeathParticles(BALL_X, ball.y);
-    if (score > best) {
-        best = score;
-        GameStore.set('cambiocolorHighScore', best);
+    if (gameBest.submit(score)) {
+        best = gameBest.value;
     }
     highScoreEl.textContent  = best;
     finalScoreEl.textContent = 'Puntos: ' + score;

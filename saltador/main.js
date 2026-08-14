@@ -103,12 +103,15 @@ const finalScore = document.getElementById('finalScore');
 const finalBest = document.getElementById('finalBest');
 const mobileScore = document.getElementById('mobileScore');
 
+/* El récord va por GU.highScore. `state.highScore` se mantiene porque el popup
+ * final y el HUD la leen. */
+var gameBest = GU.highScore('saltadorHighScore');
 function loadHigh() {
-    state.highScore = GameStore.getNum('saltadorHighScore', 0);
+    state.highScore = gameBest.display(0);
     updateHUD();
 }
 function saveHigh() {
-    GameStore.set('saltadorHighScore', state.highScore);
+    gameBest.submit(state.highScore);
 }
 loadHigh();
 

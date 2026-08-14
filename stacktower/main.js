@@ -24,7 +24,11 @@ var perfectPops = [];          // texto flotante "¡Perfecto!"
 var cameraY = 0;               // desplazamiento de la cámara (world y → screen y = world_y + cameraY)
 var targetCameraY = 0;
 var score = 0;
-var bestScore = GameStore.getNum('stackTowerBest', 0);
+/* El récord va por GU.highScore: comparar, guardar y el valor por defecto
+ * en un solo sitio. `bestScore` se mantiene porque el resto del fichero la lee. */
+var gameBest = GU.highScore('stackTowerBest');
+
+var bestScore = gameBest.display(0);
 var isPlaying = false;
 var isGameOver = false;
 var shake = 0;
@@ -168,9 +172,8 @@ function endGame() {
     isGameOver = true;
     shake = 16;
     flashAlpha = 0.6;
-    if (score > bestScore) {
-        bestScore = score;
-        GameStore.set('stackTowerBest', bestScore);
+    if (gameBest.submit(score)) {
+        bestScore = gameBest.value;
         highScoreEl.textContent = bestScore;
     }
     // popup diferido para mostrar el colapso

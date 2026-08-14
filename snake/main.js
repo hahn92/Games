@@ -84,7 +84,11 @@ let pendingDirs = [];
 const OPPOSITE = { LEFT: 'RIGHT', RIGHT: 'LEFT', UP: 'DOWN', DOWN: 'UP' };
 let fruit = randomPosition();
 let score = 0;
-let highScore = GameStore.getNum('snakeHighScore', 0) || 0;
+/* El récord va por GU.highScore: comparar, guardar y el valor por defecto
+ * en un solo sitio. `highScore` se mantiene porque el resto del fichero la lee. */
+var gameBest = GU.highScore('snakeHighScore');
+
+let highScore = gameBest.display(0) || 0;
 let gameInterval = null;
 let speed = 250;
 
@@ -733,9 +737,8 @@ function restartGame() {
 
 function gameOver() {
     rafClear(gameInterval);
-    if (score > highScore) {
-        highScore = score;
-        GameStore.set('snakeHighScore', highScore);
+    if (gameBest.submit(score)) {
+        highScore = gameBest.value;
         GameAudio.scoreHigh();
     }
     GameAudio.gameOver();

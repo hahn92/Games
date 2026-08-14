@@ -72,7 +72,11 @@ var COL = {
 var plots = [];         // 9 plots; cada uno: { seedId, plantedAt, matureAt } o null
 var coins = START_COINS;
 var earned = START_COINS;  // monedas totales ganadas (score)
-var best = GameStore.getNum('cosechaHighScore', 0);
+/* El récord va por GU.highScore: comparar, guardar y el valor por defecto
+ * en un solo sitio. `best` se mantiene porque el resto del fichero la lee. */
+var gameBest = GU.highScore('cosechaHighScore');
+
+var best = gameBest.display(0);
 
 /* Cache de gradientes: el cielo ocupa la pantalla entera y las parcelas
    tienen una `y` de rejilla, así que la clave queda acotada. */
@@ -262,9 +266,8 @@ function endGame() {
     isPlaying = false;
     isOver = true;
     startBtn.disabled = false;
-    if (earned > best) {
-        best = earned;
-        GameStore.set('cosechaHighScore', best);
+    if (gameBest.submit(earned)) {
+        best = gameBest.value;
     }
     GameAudio.gameOver();
     showPopup();

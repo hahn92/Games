@@ -33,7 +33,11 @@ var timeLeft = TIME_LIMIT;
 var wordCount = 0;
 var currentWordIndex = 0;
 var wordQueue = [];
-var highScore = GameStore.getNum('typingHigh', 0);
+/* El récord va por GU.highScore: comparar, guardar y el valor por defecto
+ * en un solo sitio. `highScore` se mantiene porque el resto del fichero la lee. */
+var gameBest = GU.highScore('typingHigh');
+
+var highScore = gameBest.display(0);
 var prevWpm = 0;
 var currentStreak = 0;
 var bestStreak = 0;
@@ -297,9 +301,8 @@ function endGame() {
 
     var wpm = Math.round(wordCount / (TIME_LIMIT / 60));
     var accuracy = totalAttempts > 0 ? Math.round((correctAttempts / totalAttempts) * 100) : 100;
-    if (wpm > highScore) {
-        highScore = wpm;
-        GameStore.set('typingHigh', highScore);
+    if (gameBest.submit(wpm)) {
+        highScore = gameBest.value;
     }
     document.getElementById('highScore').textContent = highScore;
 

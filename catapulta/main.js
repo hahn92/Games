@@ -41,7 +41,11 @@ var shotsLeft  = SHOTS_PER_LVL;
 var level      = 1;
 var combo      = 0;
 var wind       = 0;
-var bestScore  = GameStore.getNum('catapultaBest', 0);
+/* El récord va por GU.highScore: comparar, guardar y el valor por defecto en
+ * un solo sitio. La variable del juego se mantiene porque el resto la lee. */
+var gameBest = GU.highScore('catapultaBest');
+
+var bestScore  = gameBest.display(0);
 var shake      = 0;
 var levelIntro = 0;       // seconds remaining to show the level banner
 var animFrameId = null;
@@ -92,9 +96,7 @@ function updateHUD() {
 // Persistir el récord en cuanto se supera, no sólo al terminar la partida:
 // si el jugador cierra la pestaña a mitad de nivel el récord ya está guardado.
 function saveBest() {
-    if (score <= bestScore) return;
-    bestScore = score;
-    GameStore.set('catapultaBest', bestScore);
+    if (gameBest.submit(score)) bestScore = gameBest.value;
 }
 
 // Origen del disparo = la cazoleta del brazo, no el eje del pivote.

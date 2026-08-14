@@ -63,7 +63,11 @@ var screenShake   = 0;
 var shakeOffX     = 0;
 var shakeOffY     = 0;
 var elapsed       = 0;
-var best          = GameStore.getNum('ritmoHighScore', 0);
+/* El récord va por GU.highScore: comparar, guardar y el valor por defecto
+ * en un solo sitio. `best` se mantiene porque el resto del fichero la lee. */
+var gameBest = GU.highScore('ritmoHighScore');
+
+var best          = gameBest.display(0);
 var isPlaying     = false;
 var isOver        = false;
 var lastT         = 0;
@@ -513,9 +517,8 @@ function endGame() {
     if (isOver) return;
     isOver = true;
     isPlaying = false;
-    if (score > best) {
-        best = score;
-        GameStore.set('ritmoHighScore', best);
+    if (gameBest.submit(score)) {
+        best = gameBest.value;
     }
     highScoreEl.textContent = best;
     finalScoreEl.textContent = 'Puntos: ' + score + ' · Mejor combo: x' + bestCombo;

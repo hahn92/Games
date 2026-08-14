@@ -47,7 +47,11 @@ var quota = 700;
 var timeLeft = 60;
 var timeTotal = 60;
 var lastTickWarn = -1;
-var bestScore = GameStore.getNum('mineroBest', 0);
+/* El récord va por GU.highScore: comparar, guardar y el valor por defecto
+ * en un solo sitio. `bestScore` se mantiene porque el resto del fichero la lee. */
+var gameBest = GU.highScore('mineroBest');
+
+var bestScore = gameBest.display(0);
 var isPlaying = false;
 var isGameOver = false;
 var isLevelTransition = false;
@@ -335,9 +339,8 @@ function spawnParticles(cx, cy, color, n) {
 }
 
 function bestCheck() {
-    if (score > bestScore) {
-        bestScore = score;
-        GameStore.set('mineroBest', bestScore);
+    if (gameBest.submit(score)) {
+        bestScore = gameBest.value;
         highScoreEl.textContent = bestScore;
     }
 }

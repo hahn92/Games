@@ -3,7 +3,11 @@ const SIZE = 4;
 // al cargar la página, antes de que startGame() llame a createBoard(), y con
 // `board` sin definir lanzaba un TypeError en cada carga.
 let board = Array.from({ length: SIZE }, () => Array(SIZE).fill(0));
-let score = 0, highScore = GameStore.getNum('2048HighScore', 0);
+/* El récord va por GU.highScore: comparar, guardar y el valor por defecto
+ * en un solo sitio. `highScore` se mantiene porque el resto del fichero la lee. */
+var gameBest = GU.highScore('2048HighScore');
+
+let score = 0, highScore = gameBest.display(0);
 let isPlaying = false;
 let winPlayed = false;
 
@@ -196,9 +200,8 @@ function move(dir) {
         } else {
             GameAudio.slide();
         }
-        if (score > highScore) {
-            highScore = score;
-            GameStore.set('2048HighScore', highScore);
+        if (gameBest.submit(score)) {
+            highScore = gameBest.value;
         }
         // Check for 2048 tile win
         let has2048 = false;

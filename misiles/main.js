@@ -48,7 +48,11 @@
         flash: 0
     };
 
-    var highScore = GameStore.getNum('misilesHighScore', 0);
+/* El récord va por GU.highScore: comparar, guardar y el valor por defecto
+ * en un solo sitio. `highScore` se mantiene porque el resto del fichero la lee. */
+var gameBest = GU.highScore('misilesHighScore');
+
+    var highScore = gameBest.display(0);
 
     // Posiciones de las ciudades (3 a cada lado de la base)
     var cityXs = [];
@@ -363,9 +367,8 @@
     function gameOver() {
         state.over = true;
         state.running = false;
-        if (state.score > highScore) {
-            highScore = state.score;
-            GameStore.set('misilesHighScore', highScore);
+        if (gameBest.submit(state.score)) {
+            highScore = gameBest.value;
         }
         GameAudio.gameOver();
         showPopup();

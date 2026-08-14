@@ -79,7 +79,11 @@
     let gameOver      = false;
     let score         = 0;
     let scoreFloat    = 0;   // fractional distance-score accumulator
-    let highScore     = GameStore.getNum('carrace_hs', 0);
+/* El récord va por GU.highScore: comparar, guardar y el valor por defecto
+ * en un solo sitio. `highScore` se mantiene porque el resto del fichero la lee. */
+var gameBest = GU.highScore('carrace_hs');
+
+    let highScore     = gameBest.display(0);
     let level         = 1;
     let lives         = 3;
     let roadOffset    = 0;
@@ -1207,9 +1211,8 @@
     function triggerGameOver() {
         gameRunning = false;
         gameOver = true;
-        if (score > highScore) {
-            highScore = score;
-            GameStore.set('carrace_hs', highScore);
+        if (gameBest.submit(score)) {
+            highScore = gameBest.value;
         }
         highScoreEl.textContent = highScore;
         finalScore.textContent = 'Puntaje: ' + score;

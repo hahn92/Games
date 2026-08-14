@@ -55,7 +55,11 @@ var targetCameraY   = 0;
 var discs           = [];        // {id, y, segments: [8 strings], passed: bool, breakT: num}
 var nextDiscId      = 0;
 var score           = 0;
-var best            = GameStore.getNum('helicoidalHighScore', 0);
+/* El récord va por GU.highScore: comparar, guardar y el valor por defecto
+ * en un solo sitio. `best` se mantiene porque el resto del fichero la lee. */
+var gameBest = GU.highScore('helicoidalHighScore');
+
+var best            = gameBest.display(0);
 var combo           = 0;
 var bestCombo       = 0;
 var isPlaying       = false;
@@ -252,9 +256,8 @@ function endGame() {
     flashAlpha = 0.55;
     spawnExplosion(POLE_X, ballY - cameraY, 38);
     if (typeof GameAudio !== 'undefined') GameAudio.gameOver();
-    if (score > best) {
-        best = score;
-        GameStore.set('helicoidalHighScore', best);
+    if (gameBest.submit(score)) {
+        best = gameBest.value;
         highScoreEl.textContent = best;
     }
     // popup con breve delay para mostrar shake y explosión

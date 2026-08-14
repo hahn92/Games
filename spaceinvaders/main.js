@@ -120,7 +120,11 @@ function resetGame() {
     fireTimer = 0;
     screenShake = 0;
     isPlaying = false;
-    highScore = GameStore.getNum('invadersHighScore', 0);
+/* El récord va por GU.highScore: comparar, guardar y el valor por defecto
+ * en un solo sitio. `highScore` se mantiene porque el resto del fichero la lee. */
+var gameBest = GU.highScore('invadersHighScore');
+
+    highScore = gameBest.display(0);
     playerGrad = null;
     playerGradX = -1;
 
@@ -423,9 +427,8 @@ function endGame() {
     isPlaying = false;
     stopAutoShoot();
     GameAudio.gameOver();
-    if (score > highScore) {
-        highScore = score;
-        GameStore.set('invadersHighScore', highScore);
+    if (gameBest.submit(score)) {
+        highScore = gameBest.value;
     }
     updateScore();
     document.getElementById('gameOverPopup').style.display = 'flex';

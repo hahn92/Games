@@ -31,6 +31,10 @@ const MAX_WRONG = 6;
 const PTS_CORRECT = 10;
 const PTS_BONUS = 50;
 
+/* El récord va por GU.highScore: comparar, guardar y el valor por defecto
+ * en un solo sitio. `state.highScore` se mantiene porque el resto del fichero la lee. */
+var gameBest = GU.highScore('hangman_highscore');
+
 // ─── STATE ────────────────────────────────────────────
 let state = {
     word: '',
@@ -39,7 +43,7 @@ let state = {
     wrong: 0,
     wrongLetters: [],
     score: 0,
-    highScore: GameStore.getNum('hangman_highscore', 0),
+    highScore: gameBest.display(0),
     gameActive: false,
     gameOver: false
 };
@@ -252,9 +256,8 @@ function updateScoreDisplay() {
 
 function bumpScore(delta) {
     state.score += delta;
-    if (state.score > state.highScore) {
-        state.highScore = state.score;
-        GameStore.set('hangman_highscore', state.highScore);
+    if (gameBest.submit(state.score)) {
+        state.highScore = gameBest.value;
     }
     scoreEl.classList.remove('bump');
     void scoreEl.offsetWidth; // reflow to restart animation

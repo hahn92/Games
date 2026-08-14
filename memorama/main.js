@@ -15,7 +15,11 @@ const DIFFICULTY_CONFIG = {
 
 let currentDifficulty = 'normal';
 let board = [], flipped = [], matchedCount = 0;
-let score = 500, highScore = GameStore.getNum('memoramaHighScore', 0);
+/* El récord va por GU.highScore: comparar, guardar y el valor por defecto
+ * en un solo sitio. `highScore` se mantiene porque el resto del fichero la lee. */
+var gameBest = GU.highScore('memoramaHighScore');
+
+let score = 500, highScore = gameBest.display(0);
 let isPlaying = false;
 let timerInterval = null, elapsedSeconds = 0, timerStarted = false;
 
@@ -284,9 +288,8 @@ function showVictory() {
     stopTimer();
 
     // Update high score (score-based)
-    if (score > highScore) {
-        highScore = score;
-        GameStore.set('memoramaHighScore', highScore);
+    if (gameBest.submit(score)) {
+        highScore = gameBest.value;
     }
 
     // Best time for this difficulty
@@ -339,10 +342,7 @@ function gameOver(won) {
     isPlaying = false;
     stopTimer();
 
-    if (won && score > highScore) {
-        highScore = score;
-        GameStore.set('memoramaHighScore', highScore);
-    }
+    if (won && gameBest.submit(score)) highScore = gameBest.value;
     /* Losing was the one outcome with no audio feedback. */
     if (!won) GameAudio.gameOver();
 

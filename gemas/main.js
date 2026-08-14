@@ -73,8 +73,11 @@
     function loadHigh() {
         highScore = GameStore.getNum('gemasHighScore', 0);
     }
+    /* El récord va por GU.highScore. `highScore` se mantiene porque el HUD y el
+     * popup la leen. */
+    var gameBest = GU.highScore('gemasHighScore');
     function saveHigh() {
-        GameStore.set('gemasHighScore', highScore);
+        gameBest.submit(highScore);
     }
 
     /* ── HUD ───────────────────────────────────────────────────── */

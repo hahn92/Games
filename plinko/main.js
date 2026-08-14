@@ -83,8 +83,11 @@
     function loadHigh() {
         highScore = GameStore.getNum('plinkoHighScore', 0);
     }
+    /* El récord va por GU.highScore. `highScore` se mantiene porque el HUD y el
+     * popup la leen. */
+    var gameBest = GU.highScore('plinkoHighScore');
     function saveHigh() {
-        GameStore.set('plinkoHighScore', highScore);
+        gameBest.submit(highScore);
     }
 
     /* ── utilidades UI ─────────────────────────────────────────── */

@@ -21,7 +21,11 @@ let sequence = [];
 let playerSeq = [];
 let round = 0;
 let score = 0;
-let highScore = GameStore.getNum('simonHighScore', 0);
+/* El récord va por GU.highScore: comparar, guardar y el valor por defecto
+ * en un solo sitio. `highScore` se mantiene porque el resto del fichero la lee. */
+var gameBest = GU.highScore('simonHighScore');
+
+let highScore = gameBest.display(0);
 let isPlaying = false;
 let isFlashing = false;
 let playerTurn = false;
@@ -105,9 +109,8 @@ function updateScore() {
 
     gameHud.set({ round: round, score: score });
 
-    if (score > highScore) {
-        highScore = score;
-        GameStore.set('simonHighScore', highScore);
+    if (gameBest.submit(score)) {
+        highScore = gameBest.value;
     }
     document.getElementById('highScore').textContent = highScore;
 
