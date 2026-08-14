@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <title>Mancala</title>
+    <meta name="description" content="Kalah de seis hoyos contra una IA con poda alfa-beta que sí entiende las cadenas de turno extra. Siembra, captura y vacía tu lado.">
+    <meta name="theme-color" content="#181818">
+    <link rel="canonical" href="https://games.hahndev.com/mancala/">
+    <link rel="icon" type="image/svg+xml" href="../favicon.svg">
+    <meta property="og:type" content="website">
+    <meta property="og:site_name" content="Juegos Web JS/CSS">
+    <meta property="og:title" content="Mancala — Mesa">
+    <meta property="og:description" content="Kalah contra una IA que entiende las cadenas de turno extra.">
+    <meta property="og:url" content="https://games.hahndev.com/mancala/">
+    <meta property="og:image" content="https://games.hahndev.com/favicon.svg">
+    <meta name="twitter:card" content="summary">
+    <meta name="twitter:title" content="Mancala — Mesa">
+    <meta name="twitter:description" content="Kalah contra una IA que entiende las cadenas de turno extra.">
+    <link rel="stylesheet" href="./styles.css">
+</head>
+<body>
+    <main>
+        <div class="responsive-layout">
+            <div class="game-side" id="gameSide">
+                <canvas id="mancalaCanvas" class="mancala-canvas" width="620" height="320" tabindex="0"></canvas>
+                <div id="mobileScore" class="mobile-score"></div>
+            </div>
+            <div class="info-side" id="infoSide">
+                <h1>Mancala</h1>
+                <p>Coge todas las semillas de uno de <strong>tus</strong> hoyos y ve dejando una en cada hueco en sentido antihorario, incluido tu granero pero <strong>saltando el del rival</strong>.</p>
+                <p>Si la última cae en <strong>tu granero</strong>, repites turno — y encadenar varios seguidos es donde se gana la partida. Si cae en un hoyo tuyo que estaba <strong>vacío</strong> y el de enfrente tiene semillas, te llevas las dos cosas.</p>
+                <p>Cuando un lado se queda sin semillas, el otro recoge todo lo que le quede y gana quien tenga más en su granero. La IA busca con poda alfa-beta y trata el turno extra como lo que es: el mismo jugador sigue moviendo.</p>
+                <div class="score-panel">
+                    <span>Tu granero: <b id="youLabel">0</b></span>
+                    <span>Granero IA: <b id="cpuLabel">0</b></span>
+                    <span>Ganadas: <b id="winsLabel">0</b></span>
+                </div>
+                <div class="buttons-panel">
+                    <button id="startBtn" type="button">Iniciar</button>
+                    <button id="restartBtn" type="button" disabled>Reiniciar</button>
+                </div>
+                <div class="hint">
+                    <strong style="color:#aaa;">Consejos:</strong><br>
+                    Toca uno de los hoyos de tu fila (la de abajo) para sembrar.<br>
+                    Con teclado: tabula al tablero, flechas y Enter — sólo se ofrecen los hoyos jugables.<br>
+                    Contar bien es todo: el hoyo con las semillas justas para acabar en tu granero te da otro turno.<br>
+                    Guardar semillas en el hoyo pegado al granero es tener un turno extra en la recámara.<br>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <div class="popup" id="overPopup" style="display:none;">
+        <div class="popup-content">
+            <h2 id="overTitle">Fin de la partida</h2>
+            <p id="overScore"></p>
+            <p id="overRecord"></p>
+            <button id="playAgainBtn" type="button">Jugar de nuevo</button>
+        </div>
+    </div>
+
+    <script src="../mobile-layout.js"></script>
+    <script>
+    MobileLayout({
+        show: { mobileScore: 'block' },
+        fit: function (vHeight) {
+            var canvas = document.getElementById('mancalaCanvas');
+            var ratio  = 620 / 320;
+            /* -8: el canvas lleva borde de 3px por lado con content-box, así que
+               innerWidth pelado desborda el viewport en móvil. */
+            var availW = window.innerWidth - 8;
+            var availH = vHeight - (isMobile() ? 40 : 0);
+            var newH = Math.min(availH, availW / ratio);
+            var newW = newH * ratio;
+            if (newW > availW) { newW = availW; newH = newW / ratio; }
+            canvas.style.width  = newW + 'px';
+            canvas.style.height = newH + 'px';
+        },
+        reset: function () {
+            var canvas = document.getElementById('mancalaCanvas');
+            canvas.style.width  = '';
+            canvas.style.height = '';
+        },
+    });
+    </script>
+    <script src="../audio.js"></script>
+    <script src="../game-utils.js"></script>
+    <script src="./main.js"></script>
+    <script src="../fullscreen-btn.js"></script>
+</body>
+</html>

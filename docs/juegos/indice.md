@@ -1,6 +1,6 @@
 # Índice de juegos
 
-Los 67 juegos y dónde está documentado cada uno. **67 tienen nota**; el resto no
+Los 69 juegos y dónde está documentado cada uno. **69 tienen nota**; el resto no
 tiene ninguna trampa registrada — se juegan y se editan como aparentan.
 
 - **propia** — sección dedicada a ese juego.
@@ -29,6 +29,8 @@ tiene ninguna trampa registrada — se juegan y se editan como aparentan.
 | [`lightsout/`](../../lightsout/) | Apaga las Luces | Lógica | [tanda-3](./tanda-3.md) |
 | [`tuberias/`](../../tuberias/) | Tuberías | Lógica | [tanda-3](./tanda-3.md) |
 | [`gomoku/`](../../gomoku/) | Cinco en Raya | Estrategia | [tanda-3](./tanda-3.md) |
+| [`futoshiki/`](../../futoshiki/) | Futoshiki | Lógica | [tanda-3](./tanda-3.md) |
+| [`mancala/`](../../mancala/) | Mancala | Mesa | [tanda-3](./tanda-3.md) |
 | [`breakout/`](../../breakout/) | Breakout | Arcade | [compartida](./transversales.md#games-on-the-shared-particle-pool) |
 | [`bubbleshooter/`](../../bubbleshooter/) | Bubble Shooter | Arcade | [propia](./arcade.md#bubbleshooter-bubbleshooter) |
 | [`cambiocolor/`](../../cambiocolor/) | Cambio de Color | Reflejos | [propia](./reflejos.md#cambio-de-color-cambiocolor) |

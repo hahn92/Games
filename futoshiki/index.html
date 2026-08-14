@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <title>Futoshiki</title>
+    <meta name="description" content="Cuadrado latino con signos de mayor y menor entre casillas. Cada puzzle se genera quitando pistas mientras la solución siga siendo única.">
+    <meta name="theme-color" content="#181818">
+    <link rel="canonical" href="https://games.hahndev.com/futoshiki/">
+    <link rel="icon" type="image/svg+xml" href="../favicon.svg">
+    <meta property="og:type" content="website">
+    <meta property="og:site_name" content="Juegos Web JS/CSS">
+    <meta property="og:title" content="Futoshiki — Lógica">
+    <meta property="og:description" content="Cuadrado latino con signos < y >, y solución única garantizada.">
+    <meta property="og:url" content="https://games.hahndev.com/futoshiki/">
+    <meta property="og:image" content="https://games.hahndev.com/favicon.svg">
+    <meta name="twitter:card" content="summary">
+    <meta name="twitter:title" content="Futoshiki — Lógica">
+    <meta name="twitter:description" content="Cuadrado latino con signos < y >, y solución única garantizada.">
+    <link rel="stylesheet" href="./styles.css">
+</head>
+<body>
+    <main>
+        <div class="responsive-layout">
+            <div class="game-side" id="gameSide">
+                <canvas id="futCanvas" class="fut-canvas" width="440" height="520" tabindex="0"></canvas>
+                <div id="mobileScore" class="mobile-score"></div>
+            </div>
+            <div class="info-side" id="infoSide">
+                <h1>Futoshiki</h1>
+                <p>Rellena la rejilla con los números del <strong>1 al tamaño del tablero</strong>, sin repetir en ninguna fila ni columna — un cuadrado latino.</p>
+                <p>Además hay que respetar los <strong>signos</strong> entre casillas contiguas: la punta señala siempre al número menor.</p>
+                <p>Cada puzzle se genera desde un cuadrado latino completo y se le van quitando pistas <strong>mientras la solución siga siendo única</strong>. Sin esa comprobación saldrían tableros con varias soluciones: rellenas algo válido, el juego te lo da por malo y no hay forma de saber por qué.</p>
+                <div class="score-panel">
+                    <span>Por poner: <b id="leftLabel">0</b></span>
+                    <span>Fallos: <b id="errorsLabel">0</b></span>
+                    <span>Tiempo: <b id="timeLabel">0:00</b></span>
+                    <span>Récord: <b id="highScore">—</b></span>
+                </div>
+                <div class="buttons-panel">
+                    <button id="startBtn" type="button">Iniciar</button>
+                    <button id="restartBtn" type="button" disabled>Reiniciar</button>
+                    <label class="diff-wrap">Tamaño:
+                        <select id="diffSel">
+                            <option value="facil">4 × 4</option>
+                            <option value="medio" selected>5 × 5</option>
+                            <option value="dificil">6 × 6</option>
+                        </select>
+                    </label>
+                </div>
+                <div class="hint">
+                    <strong style="color:#aaa;">Consejos:</strong><br>
+                    Toca una casilla y luego una cifra del teclado de abajo; la × borra.<br>
+                    Con teclado físico: los números escriben y Retroceso borra.<br>
+                    Empieza por los signos encadenados: tres seguidos fijan casi todo.<br>
+                    La punta del signo apunta siempre al número más pequeño.<br>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <div class="popup" id="overPopup" style="display:none;">
+        <div class="popup-content">
+            <h2 id="overTitle">Fin de la partida</h2>
+            <p id="overScore"></p>
+            <p id="overBest"></p>
+            <button id="playAgainBtn" type="button">Jugar de nuevo</button>
+        </div>
+    </div>
+
+    <script src="../mobile-layout.js"></script>
+    <script>
+    MobileLayout({
+        show: { mobileScore: 'block' },
+        fit: function (vHeight) {
+            var canvas = document.getElementById('futCanvas');
+            var ratio  = 440 / 520;
+            /* -8: el canvas lleva borde de 3px por lado con content-box, así que
+               innerWidth pelado desborda el viewport en móvil. */
+            var availW = window.innerWidth - 8;
+            var availH = vHeight - (isMobile() ? 40 : 0);
+            var newH = Math.min(availH, availW / ratio);
+            var newW = newH * ratio;
+            if (newW > availW) { newW = availW; newH = newW / ratio; }
+            canvas.style.width  = newW + 'px';
+            canvas.style.height = newH + 'px';
+        },
+        reset: function () {
+            var canvas = document.getElementById('futCanvas');
+            canvas.style.width  = '';
+            canvas.style.height = '';
+        },
+    });
+    </script>
+    <script src="../audio.js"></script>
+    <script src="../game-utils.js"></script>
+    <script src="./main.js"></script>
+    <script src="../fullscreen-btn.js"></script>
+</body>
+</html>

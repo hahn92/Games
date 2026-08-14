@@ -52,3 +52,52 @@ código.
   tablero vacío no hay ninguna, así que la primera jugada se fuerza al centro.
 - Comprobado contra los cuatro casos canónicos: bloquea un cuatro, remata el
   suyo propio, tapa un tres abierto y abre en el centro.
+
+## Futoshiki (`futoshiki/`)
+
+- **Solución única garantizada.** Se parte de un cuadrado latino completo, se le
+  cuelgan las desigualdades *derivadas de él* —así son ciertas por definición y
+  nunca se contradicen— y se van quitando pistas mientras `countSolutions`
+  siga devolviendo 1. Sin esa comprobación salen puzzles con varias soluciones:
+  el jugador rellena algo válido, el juego se lo da por malo y no hay forma de
+  saber por qué.
+- `countSolutions` **para en cuanto encuentra dos**. Contarlas todas sobre una
+  rejilla casi vacía es exponencial; sólo hace falta saber si hay más de una.
+  Y elige la casilla con menos candidatos (MRV), abandonando la rama en cuanto
+  una se queda sin ninguno. Medido: 20/20 con solución única en cada dificultad,
+  ~5 ms el 4×4, ~30 ms el 5×5, ~210 ms el 6×6.
+- El cuadrado latino se construye por desplazamiento cíclico y luego barajando
+  filas, columnas y símbolos. Las tres operaciones **conservan** la propiedad,
+  así que sale válido sin backtracking. Verificado sobre 200.
+- **`fits` sólo comprueba las desigualdades contra vecinas ya rellenas.** Con la
+  vecina vacía no se puede decidir nada todavía, y exigirlo cortaría ramas
+  válidas — es el fallo típico al escribir esa comprobación.
+- **La punta del signo señala al MENOR.** Estuvo invertida y el tablero mostraba
+  cosas como `5 < 2`; se vio mirando una captura, no leyendo el código. Ahora hay
+  una comprobación que valida los 12 000 signos de 300 tableros contra su
+  solución.
+
+## Mancala (`mancala/`)
+
+- Tablero de 14 posiciones: 0-5 hoyos del humano, 6 su granero, 7-12 los de la
+  máquina, 13 el suyo. Con esa numeración **sembrar es avanzar el índice módulo
+  14** y «el hoyo de enfrente» es `12 - i`, sin tablas de correspondencia.
+- Las tres reglas que se implementan mal, y que aquí tienen prueba:
+  - **Se salta el granero del rival** al sembrar. Sin eso el contador de semillas
+    deja de cuadrar y el rival gana puntos que nadie le ha dado.
+  - **Turno extra** si la última cae en tu granero. Es de donde salen las cadenas
+    que deciden la partida.
+  - **Captura** sólo si la última cae en un hoyo *tuyo* que estaba *vacío* y el de
+    enfrente tiene semillas. Olvidar cualquiera de las dos condiciones convierte
+    la captura en algo que pasa todo el rato.
+- Al vaciarse un lado, el otro **recoge todo lo suyo**. Sin esa recogida el
+  marcador final no suma las 48 semillas.
+- El minimax lleva **de quién es el turno** en vez de alternar a ciegas: tras una
+  jugada que repite, el que mueve no cambia. Ignorarlo es lo que hace que una IA
+  de mancala no vea las cadenas, que es justo donde está el juego.
+- Comprobado: 200 partidas aleatorias conservan las 48 semillas, y la IA a
+  profundidad 6 gana 59 de 60 contra rival aleatorio alternando salida, con cero
+  jugadas ilegales y unos pocos ms por turno.
+- Las semillas se colocan en **espiral de ángulo áureo a partir del índice**,
+  nunca con `Math.random()`: un frame repintado dos veces —como pasa en un
+  resize— las movería de sitio.

@@ -5215,6 +5215,106 @@
             ctx.fillText('CINCO EN RAYA', W / 2, H - 8);
             ctx.textAlign = 'left';
         },
+
+        futoshiki: function (ctx) {
+            var bg = ctx.createLinearGradient(0, 0, 0, H);
+            bg.addColorStop(0, '#1b1f30'); bg.addColorStop(1, '#0e1120');
+            ctx.fillStyle = bg; ctx.fillRect(0, 0, W, H);
+            var n = 4, gap = 18, pad = 24;
+            var cs = Math.floor((W - pad * 2 - gap * (n - 1)) / n);
+            function cl(c) { return pad + c * (cs + gap); }
+            function ct(r) { return pad + 6 + r * (cs + gap); }
+            var vals = [3,0,0,1, 0,4,0,0, 0,0,2,0, 1,0,0,4];
+            var given = [1,0,0,1, 0,1,0,0, 0,0,1,0, 1,0,0,1];
+            for (var r = 0; r < n; r++) {
+                for (var c = 0; c < n; c++) {
+                    var i = r * n + c;
+                    ctx.fillStyle = given[i] ? '#232a42' : '#1a1f33';
+                    ctx.beginPath();
+                    if (ctx.roundRect) ctx.roundRect(cl(c), ct(r), cs, cs, 8);
+                    else ctx.rect(cl(c), ct(r), cs, cs);
+                    ctx.fill();
+                    ctx.strokeStyle = '#39415c'; ctx.lineWidth = 1; ctx.stroke();
+                    if (!vals[i]) continue;
+                    ctx.fillStyle = '#8fd3f4';
+                    ctx.font = 'bold ' + Math.floor(cs * 0.55) + 'px Arial';
+                    ctx.textAlign = 'center';
+                    ctx.fillText(String(vals[i]), cl(c) + cs / 2, ct(r) + cs * 0.71);
+                }
+            }
+            /* signos: la punta al menor */
+            ctx.strokeStyle = '#ffd54a'; ctx.lineWidth = 3; ctx.lineCap = 'round';
+            var arm = 6;
+            ctx.beginPath();
+            var hs = [[0,0,-1],[1,1,1],[2,2,-1],[3,0,1]];
+            for (var k = 0; k < hs.length; k++) {
+                var mx = cl(hs[k][1]) + cs + gap / 2, my = ct(hs[k][0]) + cs / 2, d = hs[k][2];
+                ctx.moveTo(mx - arm * d * 0.6, my - arm);
+                ctx.lineTo(mx + arm * d * 0.6, my);
+                ctx.lineTo(mx - arm * d * 0.6, my + arm);
+            }
+            var vsg = [[0,1,-1],[1,3,1],[2,0,1]];
+            for (var j = 0; j < vsg.length; j++) {
+                var vx = cl(vsg[j][1]) + cs / 2, vy = ct(vsg[j][0]) + cs + gap / 2, d2 = vsg[j][2];
+                ctx.moveTo(vx - arm, vy - arm * d2 * 0.6);
+                ctx.lineTo(vx, vy + arm * d2 * 0.6);
+                ctx.lineTo(vx + arm, vy - arm * d2 * 0.6);
+            }
+            ctx.stroke();
+            ctx.fillStyle = '#ffd54a';
+            ctx.font = 'bold 12px monospace';
+            ctx.textAlign = 'center'; ctx.textBaseline = 'alphabetic';
+            ctx.fillText('FUTOSHIKI', W / 2, H - 8);
+            ctx.textAlign = 'left';
+        },
+
+        mancala: function (ctx) {
+            var bg = ctx.createLinearGradient(0, 0, 0, H);
+            bg.addColorStop(0, '#5a3a1c'); bg.addColorStop(1, '#3a2411');
+            ctx.fillStyle = bg; ctx.fillRect(0, 0, W, H);
+            ctx.fillStyle = '#6b4522';
+            ctx.beginPath();
+            if (ctx.roundRect) ctx.roundRect(10, 44, W - 20, H - 88, 16);
+            else ctx.rect(10, 44, W - 20, H - 88);
+            ctx.fill();
+            ctx.strokeStyle = '#8a5c2e'; ctx.lineWidth = 3; ctx.stroke();
+
+            function seeds(cx, cy, n, rad, warm) {
+                for (var k = 0; k < Math.min(n, 10); k++) {
+                    var ang = k * 2.399963;
+                    var rr = rad * Math.sqrt((k + 0.5) / Math.min(n, 10));
+                    ctx.fillStyle = warm ? '#f0b23c' : '#c8d6e8';
+                    ctx.beginPath();
+                    ctx.arc(cx + Math.cos(ang) * rr, cy + Math.sin(ang) * rr, 2.6, 0, Math.PI * 2);
+                    ctx.fill();
+                }
+            }
+            /* graneros */
+            [[28, false], [W - 28, true]].forEach(function (s) {
+                ctx.fillStyle = '#452a13';
+                ctx.beginPath();
+                if (ctx.roundRect) ctx.roundRect(s[0] - 16, 58, 32, H - 116, 16);
+                else ctx.rect(s[0] - 16, 58, 32, H - 116);
+                ctx.fill();
+                seeds(s[0], H / 2, s[1] ? 5 : 3, 11, s[1]);
+            });
+            var pr = 17, n = 6;
+            for (var i = 0; i < n; i++) {
+                var x = 58 + i * ((W - 116) / (n - 1));
+                [[H * 0.36, false, 4], [H * 0.64, true, 4]].forEach(function (row) {
+                    ctx.fillStyle = '#452a13';
+                    ctx.beginPath(); ctx.arc(x, row[0], pr, 0, Math.PI * 2); ctx.fill();
+                    ctx.strokeStyle = row[1] ? '#8fff6a' : '#2e1c0d';
+                    ctx.lineWidth = row[1] ? 2 : 1.5; ctx.stroke();
+                    seeds(x, row[0], row[2], pr * 0.6, row[1]);
+                });
+            }
+            ctx.fillStyle = '#ffd54a';
+            ctx.font = 'bold 12px monospace';
+            ctx.textAlign = 'center'; ctx.textBaseline = 'alphabetic';
+            ctx.fillText('MANCALA', W / 2, 26);
+            ctx.textAlign = 'left';
+        },
     };
 
     function paint(canvas) {
