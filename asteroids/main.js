@@ -8,7 +8,16 @@ var EXTRA_LIFE_STEP = 5000;   // puntos entre vidas extra
 var LEVEL_SPEED_STEP = 0.3;   // velocidad extra por nivel
 var LEVEL_SPEED_CAP = 8;      // niveles a partir de los que ya no acelera
 
-var keys = {};
+/* GU.keys ata por ACCIÓN y suelta todo al perder el foco: antes, alt-tab con el
+ * empuje pulsado devolvía una nave acelerando sola contra un asteroide. Los
+ * controles táctiles inyectan las mismas acciones con keys.set(), así que la
+ * lógica consulta un solo sitio. */
+var keys = GU.keys({
+    left:   ['ArrowLeft', 'a'],
+    right:  ['ArrowRight', 'd'],
+    thrust: ['ArrowUp', 'w'],
+    fire:   [' ']
+}, { preventDefault: true });
 var ship, bullets, asteroids, particles;
 var thrustParticles = [];
 // Valores iniciales reales: updateHUD() corre al cargar la página y sin esto
@@ -90,9 +99,9 @@ function Ship(x, y) {
 }
 
 Ship.prototype.update = function() {
-    if (keys['ArrowLeft'] || keys['a'] || keys['A']) this.angle -= 0.06;
-    if (keys['ArrowRight'] || keys['d'] || keys['D']) this.angle += 0.06;
-    var thrusting = keys['ArrowUp'] || keys['w'] || keys['W'] || keys['thrust'];
+    if (keys.down('left')) this.angle -= 0.06;
+    if (keys.down('right')) this.angle += 0.06;
+    var thrusting = keys.down('thrust');
     if (thrusting) {
         this.vx += Math.cos(this.angle) * 0.25;
         this.vy += Math.sin(this.angle) * 0.25;
@@ -312,7 +321,7 @@ function update() {
     if (deathFlash > 0) deathFlash = Math.max(0, deathFlash - 0.05);
 
     ship.update();
-    if (keys[' '] || keys['fire']) ship.shoot();
+    if (keys.down('fire')) ship.shoot();
 
     // Update thrust particles
     for (var i = thrustParticles.length - 1; i >= 0; i--) {
@@ -589,11 +598,7 @@ function gameOver() {
 }
 
 // Keyboard
-document.addEventListener('keydown', function(e) {
-    keys[e.key] = true;
-    if (e.key === ' ') e.preventDefault();
-});
-document.addEventListener('keyup', function(e) { keys[e.key] = false; });
+
 
 // Touch controls
 var btnRotLeft = document.getElementById('btnRotLeft');
@@ -601,16 +606,19 @@ var btnRotRight = document.getElementById('btnRotRight');
 var btnThrust = document.getElementById('btnThrust');
 var btnFire = document.getElementById('btnFire');
 
-function addHold(btn, key) {
-    btn.addEventListener('mousedown', function() { keys[key] = true; });
-    btn.addEventListener('touchstart', function(e) { e.preventDefault(); keys[key] = true; }, { passive: false });
-    btn.addEventListener('mouseup', function() { keys[key] = false; });
-    btn.addEventListener('touchend', function() { keys[key] = false; });
-    btn.addEventListener('touchcancel', function() { keys[key] = false; });
-    btn.addEventListener('mouseleave', function() { keys[key] = false; });
+function addHold(btn, action) {
+    if (!btn) return;
+    var down = function (e) { if (e && e.cancelable) e.preventDefault(); keys.set(action, true); };
+    var up   = function () { keys.set(action, false); };
+    btn.addEventListener('mousedown', down);
+    btn.addEventListener('touchstart', down, { passive: false });
+    btn.addEventListener('mouseup', up);
+    btn.addEventListener('touchend', up);
+    btn.addEventListener('touchcancel', up);
+    btn.addEventListener('mouseleave', up);
 }
-addHold(btnRotLeft, 'ArrowLeft');
-addHold(btnRotRight, 'ArrowRight');
+addHold(btnRotLeft, 'left');
+addHold(btnRotRight, 'right');
 addHold(btnThrust, 'thrust');
 addHold(btnFire, 'fire');
 
@@ -642,9 +650,9 @@ var gameControls = GU.controls({ start: startGame, popup: 'gameOverPopup' });
             touchZones[t.identifier] = zone;
             touchStartTime[t.identifier] = Date.now();
             touchStartPos[t.identifier] = { x: cx, y: cy };
-            if (zone === 'left')   keys['ArrowLeft'] = true;
-            if (zone === 'right')  keys['ArrowRight'] = true;
-            if (zone === 'center') keys['thrust'] = true;
+            if (zone === 'left')   keys.set('left', true);
+            if (zone === 'right')  keys.set('right', true);
+            if (zone === 'center') keys.set('thrust', true);
         }
     }, { passive: false });
 
@@ -662,13 +670,13 @@ var gameControls = GU.controls({ start: startGame, popup: 'gameOverPopup' });
 
             // Tap rápido (< 250ms, sin mucho movimiento) = disparar
             if (dt < 250 && moved < 30) {
-                keys['fire'] = true;
-                setTimeout(function() { keys['fire'] = false; }, 80);
+                keys.set('fire', true);
+                setTimeout(function() { keys.set('fire', false); }, 80);
             }
 
-            if (zone === 'left')   keys['ArrowLeft'] = false;
-            if (zone === 'right')  keys['ArrowRight'] = false;
-            if (zone === 'center') keys['thrust'] = false;
+            if (zone === 'left')   keys.set('left', false);
+            if (zone === 'right')  keys.set('right', false);
+            if (zone === 'center') keys.set('thrust', false);
 
             delete touchZones[t.identifier];
             delete touchStartTime[t.identifier];
@@ -680,9 +688,9 @@ var gameControls = GU.controls({ start: startGame, popup: 'gameOverPopup' });
         for (var i = 0; i < e.changedTouches.length; i++) {
             var t = e.changedTouches[i];
             var zone = touchZones[t.identifier];
-            if (zone === 'left')   keys['ArrowLeft'] = false;
-            if (zone === 'right')  keys['ArrowRight'] = false;
-            if (zone === 'center') keys['thrust'] = false;
+            if (zone === 'left')   keys.set('left', false);
+            if (zone === 'right')  keys.set('right', false);
+            if (zone === 'center') keys.set('thrust', false);
             delete touchZones[t.identifier];
         }
     }, { passive: false });

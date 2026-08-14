@@ -181,6 +181,28 @@ because games already called them unqualified.
   fuentes de verdad —el mapa de teclas y un objeto de toques aparte— y la lógica
   tiene que consultar las dos. Dispara `onPress`/`onRelease` igual que una tecla.
 
+- **`keys` y la tecla encallada** — siete juegos llevaban un mapa de mantener
+  pulsado (`keys[e.key] = true` en keydown, `false` en keyup) y **ninguno de los
+  siete soltaba nada al perder el foco**. Alt-tab con una flecha pulsada devolvía
+  la nave acelerando sola, la pala corriendo o al dino contra un cactus: el
+  keyup se lo lleva la otra ventana y la tecla se queda pulsada para siempre.
+  `GU.keys` suelta todo en `blur` y en `visibilitychange`. Migrados: asteroids,
+  breakout, fruitcatcher, platformer, pong, runner y spaceinvaders.
+
+  Los controles táctiles de esos juegos escribían en el MISMO mapa con teclas
+  inventadas (`keys['thrust']`, `keys['left']`), lo que era la única forma de que
+  la lógica leyera un solo sitio. Ahora hacen lo mismo con `keys.set(accion, …)`,
+  que es para lo que existe.
+
+  Los otros juegos con teclado usan keydown de flanco, sin estado retenido: ahí
+  no hay tecla que encallar y migrarlos es dedup sin más.
+
+- **`swipe`, lo que había realmente** — los diez gestos migrados no estaban en
+  desacuerdo por decisión, sino por accidente: 2048 medía con `screenX` y el
+  resto con `clientX`; el umbral iba de 10 px a 30 pasando por 15 y 18; sólo
+  laberinto descartaba un arrastre lento; y todos resolvían al levantar el dedo,
+  incluidos pacman y snake, que se conducen en continuo y ahora usan `live: true`.
+
 - **`hud`** — 47 games write their score twice, to the side panel and to `#mobileScore`.
   Writing `textContent` invalidates layout even when the string is identical, so a
   score that changes once a second was costing 60 layout invalidations a second to say

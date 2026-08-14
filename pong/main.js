@@ -52,7 +52,6 @@ let rallyMessage = null; // { text, life, y }
 let impactFlashes = []; // { x, y, life, radius }
 
 // Teclas presionadas para movimiento continuo
-const keys = {};
 
 // Ball trail
 const ballTrail = [];
@@ -322,8 +321,8 @@ function limitBallSpeed() {
 
 function update() {
     // Movimiento jugador
-    if (keys['ArrowUp'] || keys['up']) playerY -= PADDLE_SPEED;
-    if (keys['ArrowDown'] || keys['down']) playerY += PADDLE_SPEED;
+    if (keys.down('up')) playerY -= PADDLE_SPEED;
+    if (keys.down('down')) playerY += PADDLE_SPEED;
     playerY = Math.max(0, Math.min(HEIGHT - PADDLE_HEIGHT, playerY));
 
     // Trail
@@ -483,14 +482,32 @@ function gameOver(winner) {
 var gameControls = GU.controls({ start: startGame, restart: restartGame, playAgain: startGame, popup: 'gameOverPopup' });
 
 // Teclado - movimiento continuo + dificultad
+/* GU.keys ata por ACCIÓN y suelta todo al perder el foco: antes, alt-tab con
+ * una flecha pulsada dejaba la pala subiendo sola al volver. */
+var keys = GU.keys({
+    up:   ['ArrowUp', 'w'],
+    down: ['ArrowDown', 's']
+}, { preventDefault: true });
+
+/* Los botones táctiles inyectan la MISMA acción que el teclado con keys.set(),
+ * en vez de escribir en un mapa aparte: así la lógica consulta un solo sitio. */
+function holdButton(btn, action) {
+    if (!btn) return;
+    var down = function (e) { if (e.cancelable) e.preventDefault(); keys.set(action, true); };
+    var up   = function () { keys.set(action, false); };
+    btn.addEventListener('mousedown', down);
+    btn.addEventListener('mouseup', up);
+    btn.addEventListener('mouseleave', up);
+    btn.addEventListener('touchstart', down, { passive: false });
+    btn.addEventListener('touchend', up);
+    btn.addEventListener('touchcancel', up);
+}
+
 window.addEventListener('keydown', e => {
-    if (["ArrowUp", "ArrowDown"].includes(e.key)) e.preventDefault();
-    keys[e.key] = true;
     if (e.key === '1') { aiDifficulty = 0; if (!isPlaying) draw(); }
     if (e.key === '2') { aiDifficulty = 1; if (!isPlaying) draw(); }
     if (e.key === '3') { aiDifficulty = 2; if (!isPlaying) draw(); }
 });
-window.addEventListener('keyup', e => { keys[e.key] = false; });
 
 // Click en botones de dificultad (pantalla de inicio)
 canvas.addEventListener('click', e => {
@@ -516,19 +533,9 @@ canvas.addEventListener('click', e => {
 const btnUp = document.getElementById('btnUp');
 const btnDown = document.getElementById('btnDown');
 
-btnUp.addEventListener('mousedown', () => { keys['up'] = true; });
-btnUp.addEventListener('mouseup', () => { keys['up'] = false; });
-btnUp.addEventListener('mouseleave', () => { keys['up'] = false; });
-btnUp.addEventListener('touchstart', (e) => { e.preventDefault(); keys['up'] = true; });
-btnUp.addEventListener('touchend', (e) => { e.preventDefault(); keys['up'] = false; });
-btnUp.addEventListener('touchcancel', () => { keys['up'] = false; });
+holdButton(btnUp, 'up');
 
-btnDown.addEventListener('mousedown', () => { keys['down'] = true; });
-btnDown.addEventListener('mouseup', () => { keys['down'] = false; });
-btnDown.addEventListener('mouseleave', () => { keys['down'] = false; });
-btnDown.addEventListener('touchstart', (e) => { e.preventDefault(); keys['down'] = true; });
-btnDown.addEventListener('touchend', (e) => { e.preventDefault(); keys['down'] = false; });
-btnDown.addEventListener('touchcancel', () => { keys['down'] = false; });
+holdButton(btnDown, 'down');
 
 document.getElementById('score').textContent = `${playerScore} – ${aiScore}`;
 document.getElementById('highScore').textContent = highScore;

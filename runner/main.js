@@ -32,7 +32,6 @@ var isDying   = false;
 var isCrouching = false;
 var animFrameId = null;
 var nextObstacle = 90;
-var keys = {};
 
 // Animation state
 var animTick    = 0;
@@ -160,11 +159,11 @@ function jump() {
 }
 
 function checkJumpKeys() {
-    if (keys[' '] || keys['ArrowUp'] || keys['w'] || keys['W']) jump();
+    if (keys.down('jump')) jump();
 }
 
 function checkCrouchKeys() {
-    isCrouching = !!(keys['ArrowDown'] || keys['s'] || keys['S']) && player.onGround;
+    isCrouching = keys.down('crouch') && player.onGround;
 }
 
 // ─── PLAYER UPDATE ─────────────────────────────────────────
@@ -172,13 +171,13 @@ function updatePlayer() {
     // Movimiento lateral: control total en el suelo, inercia en el aire
     if (player.onGround) {
         player.vx = 0;
-        if (keys['ArrowLeft']  || keys['a'] || keys['A']) player.vx = -PLAYER_SPEED;
-        if (keys['ArrowRight'] || keys['d'] || keys['D']) player.vx =  PLAYER_SPEED;
+        if (keys.down('left')) player.vx = -PLAYER_SPEED;
+        if (keys.down('right')) player.vx =  PLAYER_SPEED;
         player.x = Math.max(PLAYER_MIN_X, Math.min(PLAYER_MAX_X, player.x + player.vx));
     } else {
         // En el aire: mantiene inercia, pequeña corrección permitida
-        if (keys['ArrowLeft']  || keys['a'] || keys['A']) player.vx = Math.max(-PLAYER_SPEED, player.vx - 0.4);
-        if (keys['ArrowRight'] || keys['d'] || keys['D']) player.vx = Math.min( PLAYER_SPEED, player.vx + 0.4);
+        if (keys.down('left')) player.vx = Math.max(-PLAYER_SPEED, player.vx - 0.4);
+        if (keys.down('right')) player.vx = Math.min( PLAYER_SPEED, player.vx + 0.4);
         player.x = Math.max(PLAYER_MIN_X, Math.min(PLAYER_MAX_X, player.x + player.vx));
     }
 
@@ -1142,12 +1141,16 @@ function gameOver() {
 }
 
 // ─── CONTROLS ──────────────────────────────────────────────
-document.addEventListener('keydown', function(e) {
-    keys[e.key] = true;
-    if ([' ','ArrowUp','ArrowDown','ArrowLeft','ArrowRight'].indexOf(e.key) >= 0)
-        e.preventDefault();
-});
-document.addEventListener('keyup', function(e) { keys[e.key] = false; });
+/* GU.keys ata por ACCIÓN y suelta todo al perder el foco: antes, alt-tab con
+ * una flecha pulsada devolvía al dino corriendo solo contra un cactus. Las zonas
+ * táctiles inyectan las mismas acciones con keys.set(), así que la lógica del
+ * juego consulta un solo sitio en vez de dos. */
+var keys = GU.keys({
+    jump:   [' ', 'ArrowUp', 'w'],
+    crouch: ['ArrowDown', 's'],
+    left:   ['ArrowLeft', 'a'],
+    right:  ['ArrowRight', 'd']
+}, { preventDefault: true });
 
 canvas.addEventListener('click', function() { jump(); });
 
@@ -1170,7 +1173,7 @@ canvas.addEventListener('click', function() { jump(); });
         var relX = e.touches[0].clientX - rect.left;
         if (relX < rect.width * 0.38) {
             leftZoneTimer = setTimeout(function() {
-                keys['ArrowLeft'] = true;
+                keys.set('left', true);
             }, 130);
         }
     }, { passive: false });
@@ -1181,14 +1184,14 @@ canvas.addEventListener('click', function() { jump(); });
         var dy = e.touches[0].clientY - swipeStartY;
         if (dy > MIN_SWIPE && !isCrouchTouch) {
             isCrouchTouch = true;
-            keys['ArrowDown'] = true;
+            keys.set('crouch', true);
         }
     }, { passive: false });
 
     canvas.addEventListener('touchend', function(e) {
         e.preventDefault();
         clearTimeout(leftZoneTimer);
-        keys['ArrowLeft'] = false;
+        keys.set('left', false);
 
         var dx = e.changedTouches[0].clientX - swipeStartX;
         var dy = e.changedTouches[0].clientY - swipeStartY;
@@ -1197,7 +1200,7 @@ canvas.addEventListener('click', function() { jump(); });
 
         if (isCrouchTouch) {
             isCrouchTouch = false;
-            keys['ArrowDown'] = false;
+            keys.set('crouch', false);
         }
 
         // Quick tap (no significant movement) = jump or start
@@ -1212,25 +1215,27 @@ canvas.addEventListener('click', function() { jump(); });
 
     canvas.addEventListener('touchcancel', function() {
         clearTimeout(leftZoneTimer);
-        keys['ArrowLeft'] = false;
+        keys.set('left', false);
         isCrouchTouch = false;
-        keys['ArrowDown'] = false;
+        keys.set('crouch', false);
     }, { passive: false });
 })();
 
-function addHold(id, key) {
+function addHold(id, action) {
     var btn = document.getElementById(id);
     if (!btn) return;
-    btn.addEventListener('mousedown',   function()  { keys[key] = true; });
-    btn.addEventListener('touchstart',  function(e) { e.preventDefault(); keys[key] = true; }, { passive: false });
-    btn.addEventListener('mouseup',     function()  { keys[key] = false; });
-    btn.addEventListener('touchend',    function()  { keys[key] = false; });
-    btn.addEventListener('touchcancel', function()  { keys[key] = false; });
-    btn.addEventListener('mouseleave',  function()  { keys[key] = false; });
+    var down = function (e) { if (e && e.cancelable) e.preventDefault(); keys.set(action, true); };
+    var up   = function () { keys.set(action, false); };
+    btn.addEventListener('mousedown', down);
+    btn.addEventListener('touchstart', down, { passive: false });
+    btn.addEventListener('mouseup', up);
+    btn.addEventListener('touchend', up);
+    btn.addEventListener('touchcancel', up);
+    btn.addEventListener('mouseleave', up);
 }
-addHold('btnLeft',  'ArrowLeft');
+addHold('btnLeft',  'left');
 // Reasignar btnRight a agacharse en móvil
-addHold('btnRight', 'ArrowDown');
+addHold('btnRight', 'crouch');
 
 var btnJump = document.getElementById('btnJump');
 if (btnJump) {

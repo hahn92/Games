@@ -6,7 +6,6 @@ var H = canvas.height;  // 500
 
 var BASKET_W = 80, BASKET_H = 30;
 var BASKET_SPEED = 7;
-var keys = {};
 
 // Fruit kinds: 0-9 fruits, 10 bomb, 11 star
 var FRUIT_COUNT = 10;
@@ -448,9 +447,9 @@ function update() {
     if (frame % spawnRate === 0) spawnItem();
 
     // Basket movement
-    if (keys['ArrowLeft'] || keys['a'] || keys['left'])
+    if (keys.down('left'))
         basket.x = Math.max(0, basket.x - BASKET_SPEED);
-    if (keys['ArrowRight'] || keys['d'] || keys['right'])
+    if (keys.down('right'))
         basket.x = Math.min(W - BASKET_W, basket.x + BASKET_SPEED);
 
     // Basket squish recovery
@@ -740,13 +739,16 @@ function startGame() {
 }
 
 // ─── CONTROLS ──────────────────────────────────────────────
-document.addEventListener('keydown', function(e) {
-    keys[e.key] = true;
-    if (e.key === 'p' || e.key === 'P') {
-        if (isPlaying) isPaused = !isPaused;
-    }
+/* GU.keys ata por ACCIÓN y suelta todo al perder el foco: antes, alt-tab con
+ * una flecha pulsada dejaba la cesta corriendo sola al volver. */
+var keys = GU.keys({
+    left:  ['ArrowLeft', 'a'],
+    right: ['ArrowRight', 'd'],
+    pause: ['p']
+}, {
+    preventDefault: true,
+    onPress: function (a) { if (a === 'pause' && isPlaying) isPaused = !isPaused; }
 });
-document.addEventListener('keyup',   function(e) { keys[e.key] = false; });
 
 canvas.addEventListener('mousemove', function(e) {
     if (!isPlaying || isPaused) return;
@@ -764,13 +766,18 @@ canvas.addEventListener('touchmove', function(e) {
 
 var btnLeft  = document.getElementById('btnLeft');
 var btnRight = document.getElementById('btnRight');
-function addHold(btn, key) {
-    btn.addEventListener('mousedown',   function()  { keys[key] = true; });
-    btn.addEventListener('touchstart',  function(e) { e.preventDefault(); keys[key] = true; }, { passive: false });
-    btn.addEventListener('mouseup',     function()  { keys[key] = false; });
-    btn.addEventListener('touchend',    function()  { keys[key] = false; });
-    btn.addEventListener('touchcancel', function()  { keys[key] = false; });
-    btn.addEventListener('mouseleave',  function()  { keys[key] = false; });
+/* Los botones táctiles inyectan la MISMA acción que el teclado con keys.set(),
+ * en vez de escribir en un mapa aparte: la lógica consulta un solo sitio. */
+function addHold(btn, action) {
+    if (!btn) return;
+    var down = function (e) { if (e && e.cancelable) e.preventDefault(); keys.set(action, true); };
+    var up   = function () { keys.set(action, false); };
+    btn.addEventListener('mousedown', down);
+    btn.addEventListener('touchstart', down, { passive: false });
+    btn.addEventListener('mouseup', up);
+    btn.addEventListener('touchend', up);
+    btn.addEventListener('touchcancel', up);
+    btn.addEventListener('mouseleave', up);
 }
 addHold(btnLeft,  'left');
 addHold(btnRight, 'right');

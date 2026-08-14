@@ -217,8 +217,8 @@ function update() {
 
     // Move player
     if (!touchActive) {
-        if (keys['ArrowLeft']) playerX -= PLAYER_SPEED;
-        if (keys['ArrowRight']) playerX += PLAYER_SPEED;
+        if (keys.down('left')) playerX -= PLAYER_SPEED;
+        if (keys.down('right')) playerX += PLAYER_SPEED;
     }
     playerX = Math.max(0, Math.min(canvas.width - PLAYER_WIDTH, playerX));
 
@@ -898,16 +898,19 @@ function drawLives() {
     }
 }
 
-const keys = {};
+var keys = GU.keys({
+    left:  ['ArrowLeft', 'a'],
+    right: ['ArrowRight', 'd']
+}, { preventDefault: true });
 document.addEventListener('keydown', e => {
-    keys[e.code] = true;
     if (!isPlaying) return;
     if (e.code === 'Space') {
         e.preventDefault();
         firePlayerBullet();
     }
 });
-document.addEventListener('keyup', e => { keys[e.code] = false; });
+/* GU.keys ata por ACCIÓN y suelta todo al perder el foco: antes, alt-tab con
+ * una flecha pulsada dejaba la nave desplazándose sola al volver. */
 
 var gameControls = GU.controls({ start: startGame, restart: restartGame, playAgain: startGame, popup: 'gameOverPopup' });
 
@@ -920,15 +923,20 @@ document.getElementById('btnShoot').addEventListener('click', () => {
     GameAudio.shoot();
 });
 
+/* Los botones táctiles inyectan la MISMA acción que el teclado con keys.set(),
+ * en vez de escribir en un mapa aparte: la lógica consulta un solo sitio. */
 ['btnLeft', 'btnRight'].forEach(id => {
-    const key = id === 'btnLeft' ? 'ArrowLeft' : 'ArrowRight';
+    const action = id === 'btnLeft' ? 'left' : 'right';
     const btn = document.getElementById(id);
-    btn.addEventListener('mousedown', () => { keys[key] = true; });
-    btn.addEventListener('mouseup', () => { keys[key] = false; });
-    btn.addEventListener('mouseleave', () => { keys[key] = false; });
-    btn.addEventListener('touchstart', e => { e.preventDefault(); keys[key] = true; });
-    btn.addEventListener('touchend', e => { e.preventDefault(); keys[key] = false; });
-    btn.addEventListener('touchcancel', () => { keys[key] = false; });
+    if (!btn) return;
+    const down = e => { if (e && e.cancelable) e.preventDefault(); keys.set(action, true); };
+    const up = () => keys.set(action, false);
+    btn.addEventListener('mousedown', down);
+    btn.addEventListener('mouseup', up);
+    btn.addEventListener('mouseleave', up);
+    btn.addEventListener('touchstart', down, { passive: false });
+    btn.addEventListener('touchend', up);
+    btn.addEventListener('touchcancel', up);
 });
 
 resetGame();

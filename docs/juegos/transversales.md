@@ -64,3 +64,17 @@ y no `timeLeft`, así que sólo toca el DOM al cambiar de segundo.
 Vale como aviso general: si una línea de móvil enseña algo que cambia solo — un
 reloj, una cuenta atrás — refrescarla únicamente en los eventos del juego la deja
 congelada. Con el HUD compartido refrescar por frame ya no cuesta nada.
+
+## Adopción del toolkit, juego a juego
+
+| Pieza | Juegos | Los que faltan y por qué |
+|-------|--------|--------------------------|
+| `GU.controls` / `GU.buttons` | 64/64 | — |
+| `GU.hud` | 62/64 | memorama no tiene superposición de móvil; hangman escribe dos `<span>` dentro de la suya |
+| `GU.highScore` | 45/64 | el resto no guarda una marca única: estadísticas de victorias, récords por nivel o por tamaño, la banca de blackjack y los contadores de racha de wordle |
+| `Shake` | 22/64 | los demás no tienen sacudida |
+| `GU.swipe` | 21/64 | pong arrastra la pala en continuo y runner tiene zona de mantener pulsado con temporizador: no son gestos |
+| `GU.keys` | 16/64 | los demás usan keydown de flanco, sin estado retenido — ahí no hay tecla que encallar |
+
+Las cifras de esta tabla salen de un `grep -l`, así que se pueden rehacer en
+cualquier momento y no hace falta fiarse de que estén al día.

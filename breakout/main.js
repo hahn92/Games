@@ -45,7 +45,6 @@ let speed = 1000/60;
 
 
 // Teclas presionadas para movimiento continuo
-const keys = {};
 
 // Ball trail (para la primera bola)
 const ballTrail = [];
@@ -450,8 +449,8 @@ function update() {
     }
 
     // Movimiento paleta
-    if (keys['ArrowLeft'] || keys['left']) paddleX -= PADDLE_SPEED;
-    if (keys['ArrowRight'] || keys['right']) paddleX += PADDLE_SPEED;
+    if (keys.down('left')) paddleX -= PADDLE_SPEED;
+    if (keys.down('right')) paddleX += PADDLE_SPEED;
     paddleX = Math.max(0, Math.min(WIDTH - paddleWidth, paddleX));
 
     // Trail de la primera bola
@@ -623,29 +622,34 @@ function gameOver() {
 var gameControls = GU.controls({ start: startGame, restart: restartGame, playAgain: startGame, popup: 'gameOverPopup' });
 
 // Teclado - movimiento continuo
-window.addEventListener('keydown', e => {
-    if (["ArrowLeft", "ArrowRight"].includes(e.key)) e.preventDefault();
-    keys[e.key] = true;
-});
-window.addEventListener('keyup', e => { keys[e.key] = false; });
+/* GU.keys ata por ACCIÓN y suelta todo al perder el foco: antes, alt-tab con
+ * una flecha pulsada dejaba la pala corriendo sola al volver. */
+var keys = GU.keys({
+    left:  ['ArrowLeft', 'a'],
+    right: ['ArrowRight', 'd']
+}, { preventDefault: true });
+
+/* Los botones táctiles inyectan la MISMA acción que el teclado con keys.set(),
+ * en vez de escribir en un mapa aparte: así la lógica consulta un solo sitio. */
+function holdButton(btn, action) {
+    if (!btn) return;
+    var down = function (e) { if (e.cancelable) e.preventDefault(); keys.set(action, true); };
+    var up   = function () { keys.set(action, false); };
+    btn.addEventListener('mousedown', down);
+    btn.addEventListener('mouseup', up);
+    btn.addEventListener('mouseleave', up);
+    btn.addEventListener('touchstart', down, { passive: false });
+    btn.addEventListener('touchend', up);
+    btn.addEventListener('touchcancel', up);
+}
 
 // Controles táctiles
 const btnLeft = document.getElementById('btnLeft');
 const btnRight = document.getElementById('btnRight');
 
-btnLeft.addEventListener('mousedown', () => { keys['left'] = true; });
-btnLeft.addEventListener('mouseup', () => { keys['left'] = false; });
-btnLeft.addEventListener('mouseleave', () => { keys['left'] = false; });
-btnLeft.addEventListener('touchstart', (e) => { e.preventDefault(); keys['left'] = true; });
-btnLeft.addEventListener('touchend', (e) => { e.preventDefault(); keys['left'] = false; });
-btnLeft.addEventListener('touchcancel', () => { keys['left'] = false; });
+holdButton(btnLeft, 'left');
 
-btnRight.addEventListener('mousedown', () => { keys['right'] = true; });
-btnRight.addEventListener('mouseup', () => { keys['right'] = false; });
-btnRight.addEventListener('mouseleave', () => { keys['right'] = false; });
-btnRight.addEventListener('touchstart', (e) => { e.preventDefault(); keys['right'] = true; });
-btnRight.addEventListener('touchend', (e) => { e.preventDefault(); keys['right'] = false; });
-btnRight.addEventListener('touchcancel', () => { keys['right'] = false; });
+holdButton(btnRight, 'right');
 
 document.getElementById('score').textContent = score;
 document.getElementById('highScore').textContent = highScore;

@@ -57,14 +57,14 @@
     let deathCooldown = 0;
 
     // ── Input ────────────────────────────────────────────────
-    const keys = {};
-    document.addEventListener('keydown', e => {
-        keys[e.code] = true;
-        if (['Space','ArrowUp','ArrowDown','ArrowLeft','ArrowRight'].includes(e.code)) {
-            e.preventDefault();
-        }
-    });
-    document.addEventListener('keyup', e => { keys[e.code] = false; });
+    /* GU.keys ata por ACCIÓN y suelta todo al perder el foco: antes, alt-tab
+     * con una flecha pulsada devolvía al personaje corriendo solo. */
+    var keys = GU.keys({
+        left:  ['ArrowLeft', 'a'],
+        right: ['ArrowRight', 'd'],
+        jump:  [' ', 'ArrowUp', 'w'],
+        down:  ['ArrowDown', 's']
+    }, { preventDefault: true });
 
     // Touch state for on-canvas D-pad
     const touch = { left: false, right: false, jump: false };
@@ -494,8 +494,8 @@
         if (player.isDead) return;
 
         // Horizontal input (reduced control while airborne)
-        const leftPressed  = keys['ArrowLeft']  || keys['KeyA'] || touch.left;
-        const rightPressed = keys['ArrowRight'] || keys['KeyD'] || touch.right;
+        const leftPressed  = keys.down('left')  || touch.left;
+        const rightPressed = keys.down('right') || touch.right;
         const accel = MOVE_ACCEL * (player.onGround ? 1 : AIR_CONTROL);
 
         if (leftPressed)  { player.vx -= accel; player.facingRight = false; }
@@ -504,7 +504,7 @@
         player.vx = Math.max(-MAX_SPEED, Math.min(MAX_SPEED, player.vx));
 
         // Jump with buffer + coyote time
-        const jumpPressed = keys['Space'] || keys['ArrowUp'] || keys['KeyW'] || touch.jump;
+        const jumpPressed = keys.down('jump') || touch.jump;
         if (jumpPressed && !player._prevJump) player.jumpBuffer = BUFFER_FRAMES;
         else if (player.jumpBuffer > 0) player.jumpBuffer--;
         player._prevJump = jumpPressed;
