@@ -208,11 +208,17 @@ function animateScoreEl(id) {
     el.classList.add('score-bump');
 }
 
+var gameHud = GU.hud({
+    wins:   'wins',
+    losses: 'losses',
+    draws:  'draws',
+    mobile: { el: 'mobileScore', format: function () {
+        return 'W:' + wins + ' L:' + losses + ' E:' + draws;
+    } }
+});
+
 function updateScores(changedId) {
-    document.getElementById('wins').textContent   = wins;
-    document.getElementById('losses').textContent = losses;
-    document.getElementById('draws').textContent  = draws;
-    document.getElementById('mobileScore').textContent = 'W:' + wins + ' L:' + losses + ' E:' + draws;
+    gameHud.set({ wins: wins, losses: losses, draws: draws });
     if (changedId) animateScoreEl(changedId);
 }
 

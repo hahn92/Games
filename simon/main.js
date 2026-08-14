@@ -87,6 +87,14 @@ function setStatus(msg, isError) {
 }
 
 /* ---- Score update with bump ---- */
+var gameHud = GU.hud({
+    score: 'score',
+    round: 'level',
+    mobile: { el: 'mobileScore', format: function () {
+        return 'Ronda: ' + round + ' | Puntaje: ' + score;
+    } }
+});
+
 function updateScore() {
     const scoreEl = document.getElementById('score');
     scoreEl.textContent = score;
@@ -95,8 +103,7 @@ function updateScore() {
     scoreEl.classList.add('bump');
     setTimeout(function() { scoreEl.classList.remove('bump'); }, 200);
 
-    document.getElementById('level').textContent = round;
-    document.getElementById('mobileScore').textContent = 'Ronda: ' + round + ' | Puntaje: ' + score;
+    gameHud.set({ round: round, score: score });
 
     if (score > highScore) {
         highScore = score;
@@ -321,8 +328,7 @@ function init() {
     const scoreEl = document.getElementById('score');
     if (scoreEl) scoreEl.classList.add('score-animated');
 
-    document.getElementById('score').textContent = '0';
-    document.getElementById('level').textContent = '0';
+    gameHud.set({ score: 0, round: 0 });
     document.getElementById('highScore').textContent = highScore;
     setBtnsEnabled(false);
     updateSpeedMode();

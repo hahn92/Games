@@ -204,14 +204,26 @@
         draw();
     }
 
+    /* `best` se sigue ya formateado (el texto que se ve, con su guión cuando no
+     * hay marca) y no el número crudo: así el campo cambia cuando cambia lo que
+     * se lee, que es lo que el filtro compara. */
+    var gameHud = GU.hud({
+        level: levelDisplay,
+        moves: movesDisplay,
+        best:  bestDisplay,
+        mobile: { el: mobileScore, format: function () {
+            var b = getBest(currentLevel);
+            return 'Nivel ' + (currentLevel + 1) + '  |  Mov: ' + moves + '  |  Mejor: ' + (b !== null ? b : '—');
+        } }
+    });
+
     function updateUI() {
-        levelDisplay.textContent = currentLevel + 1;
-        movesDisplay.textContent = moves;
         var b = getBest(currentLevel);
-        bestDisplay.textContent = b !== null ? b : '—';
-        if (mobileScore) {
-            mobileScore.textContent = 'Nivel ' + (currentLevel + 1) + '  |  Mov: ' + moves + '  |  Mejor: ' + (b !== null ? b : '—');
-        }
+        gameHud.set({
+            level: currentLevel + 1,
+            moves: moves,
+            best:  b !== null ? b : '—'
+        });
     }
 
     // ── Win check ────────────────────────────────────────────────────

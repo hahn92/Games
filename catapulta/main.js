@@ -65,10 +65,18 @@ highScoreEl.textContent = bestScore;
 /* ───────── Utilities ───────── */
 function rand(a, b) { return a + Math.random() * (b - a); }
 
+var gameHud = GU.hud({
+    level: null,
+    score: null,
+    shots: null,
+    best:  null,
+    mobile: { el: mobileScoreEl, format: function () {
+        return 'Nivel: ' + level + '   Pts: ' + score + '   Tiros: ' + shotsLeft + '   Récord: ' + bestScore;
+    } }
+});
+
 function updateMobileScore() {
-    if (!mobileScoreEl) return;
-    mobileScoreEl.textContent =
-        'Nivel: ' + level + '   Pts: ' + score + '   Tiros: ' + shotsLeft + '   Récord: ' + bestScore;
+    gameHud.set({ level: level, score: score, shots: shotsLeft, best: bestScore });
 }
 
 function updateHUD() {

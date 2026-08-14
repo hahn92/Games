@@ -543,12 +543,18 @@
     }
 
     /* ---------- HUD DOM / popup ---------- */
+    var gameHud = GU.hud({
+        score: 'score',
+        wave:  'level',
+        best:  'highScore',
+        ammo:  null,
+        mobile: { el: 'mobileScore', format: function () {
+            return 'Pts ' + state.score + '  ·  Oleada ' + state.wave + '  ·  Mun ' + state.ammo;
+        } }
+    });
+
     function updateHud() {
-        document.getElementById('score').textContent = state.score;
-        document.getElementById('level').textContent = state.wave;
-        document.getElementById('highScore').textContent = highScore;
-        var ms = document.getElementById('mobileScore');
-        if (ms) ms.textContent = 'Pts ' + state.score + '  ·  Oleada ' + state.wave + '  ·  Mun ' + state.ammo;
+        gameHud.set({ score: state.score, wave: state.wave, best: highScore, ammo: state.ammo });
     }
 
     function showPopup() {

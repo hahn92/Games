@@ -53,14 +53,25 @@ var stats = (function () {
     return GameStore.getJSON('chessStats', { w: 0, l: 0, d: 0 });
 }());
 function saveStats() { GameStore.setJSON('chessStats', stats); }
+var gameHud = GU.hud({
+    status: null,
+    turn:   null,
+    record: null,
+    mobile: { el: mobileScoreEl, format: function () {
+        var st = gs.status==='checkmate' ? (gs.turn==='w'?'Ganan Negras':'Ganan Blancas')
+               : gs.status==='stalemate' ? 'Tablas'
+               : gs.status==='check'     ? (gs.turn==='w'?'Jaque a Blancas':'Jaque a Negras')
+               : gs.status==='idle'      ? 'Pulsa Nueva Partida'
+               : (gs.turn==='w'?'Turno: Blancas':'Turno: Negras');
+        return st + ' · G:' + stats.w + ' P:' + stats.l + ' E:' + stats.d;
+    } }
+});
+
 function updateMobileScore() {
-    if (!mobileScoreEl) return;
-    var st = gs.status==='checkmate' ? (gs.turn==='w'?'Ganan Negras':'Ganan Blancas')
-           : gs.status==='stalemate' ? 'Tablas'
-           : gs.status==='check'     ? (gs.turn==='w'?'Jaque a Blancas':'Jaque a Negras')
-           : gs.status==='idle'      ? 'Pulsa Nueva Partida'
-           : (gs.turn==='w'?'Turno: Blancas':'Turno: Negras');
-    mobileScoreEl.textContent = st + ' · G:' + stats.w + ' P:' + stats.l + ' E:' + stats.d;
+    gameHud.set({
+        status: gs.status, turn: gs.turn,
+        record: stats.w + '-' + stats.l + '-' + stats.d
+    });
 }
 
 /* ── Board init ── */

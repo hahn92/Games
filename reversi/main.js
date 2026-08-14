@@ -56,17 +56,31 @@ function countDiscs(b) {
     return { b: bl, w: wh };
 }
 
+var gameHud = GU.hud({
+    status: null,
+    turn:   null,
+    think:  null,
+    discs:  null,
+    record: null,
+    mobile: { el: mobileScoreEl, format: function () {
+        var cnt = gs.board ? countDiscs(gs.board) : { b: 2, w: 2 };
+        var st;
+        if (gs.status === 'win-b') st = '¡Ganan Negras!';
+        else if (gs.status === 'win-w') st = '¡Ganan Blancas!';
+        else if (gs.status === 'draw') st = '¡Empate!';
+        else if (gs.status === 'idle') st = 'Pulsa Nueva Partida';
+        else if (gs.aiThinking) st = 'IA pensando...';
+        else st = (gs.turn === BLACK ? 'Turno: Negras' : 'Turno: Blancas');
+        return st + ' · ⚫' + cnt.b + ' ⚪' + cnt.w + ' · G:' + stats.w + ' P:' + stats.l;
+    } }
+});
+
 function updateMobileScore() {
-    if (!mobileScoreEl) return;
     var cnt = gs.board ? countDiscs(gs.board) : { b: 2, w: 2 };
-    var st;
-    if (gs.status === 'win-b') st = '¡Ganan Negras!';
-    else if (gs.status === 'win-w') st = '¡Ganan Blancas!';
-    else if (gs.status === 'draw') st = '¡Empate!';
-    else if (gs.status === 'idle') st = 'Pulsa Nueva Partida';
-    else if (gs.aiThinking) st = 'IA pensando...';
-    else st = (gs.turn === BLACK ? 'Turno: Negras' : 'Turno: Blancas');
-    mobileScoreEl.textContent = st + ' · ⚫' + cnt.b + ' ⚪' + cnt.w + ' · G:' + stats.w + ' P:' + stats.l;
+    gameHud.set({
+        status: gs.status, turn: gs.turn, think: gs.aiThinking,
+        discs: cnt.b + '-' + cnt.w, record: stats.w + '-' + stats.l
+    });
 }
 
 /* ── Inicialización ── */

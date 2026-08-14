@@ -441,6 +441,6 @@ function updateHUD() {
         }
     });
 
-    highScoreEl.textContent = highScore;
+    updateHUD();
     drawIdle();
 }());

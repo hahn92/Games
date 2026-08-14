@@ -346,13 +346,20 @@ function endGame(playerWon) {
 }
 
 // ---- Mobile score overlay ----
+const gameHud = GU.hud({
+    record: null,
+    state:  null,
+    turn:   null,
+    mobile: { el: 'mobileScore', format: function () {
+        let txt = 'V:' + stats.wins + ' D:' + stats.losses;
+        if (state === 'placing') txt += '  Coloca tu flota';
+        else if (state === 'playing') txt += (turn === 'player' ? '  Tu turno' : '  Turno IA');
+        return txt;
+    } }
+});
+
 function updateMobileScore() {
-    const el = document.getElementById('mobileScore');
-    if (!el) return;
-    let txt = 'V:' + stats.wins + ' D:' + stats.losses;
-    if (state === 'placing') txt += '  Coloca tu flota';
-    else if (state === 'playing') txt += (turn === 'player' ? '  Tu turno' : '  Turno IA');
-    el.textContent = txt;
+    gameHud.set({ record: stats.wins + '-' + stats.losses, state: state, turn: turn });
 }
 
 // ===== Render =====

@@ -182,8 +182,16 @@ function endGame() {
     }, 900);
 }
 
+var gameHud = GU.hud({
+    score: null,
+    best:  null,
+    mobile: { el: mobileScoreEl, format: function () {
+        return 'Altura: ' + score + '  ·  Récord: ' + bestScore;
+    } }
+});
+
 function updateMobileScore() {
-    if (mobileScoreEl) mobileScoreEl.textContent = 'Altura: ' + score + '  ·  Récord: ' + bestScore;
+    gameHud.set({ score: score, best: bestScore });
 }
 
 /* ──────────────────────── Update ───────────────────────────────── */

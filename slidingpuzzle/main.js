@@ -154,14 +154,24 @@ function formatTime(s) {
 }
 
 // ===================== HUD =====================
+/* El reloj se sigue ya formateado: `elapsed` en crudo cambia en cada frame y
+ * dejaría el filtro sin efecto. */
+var gameHud = GU.hud({
+    moves: 'moves',
+    timer: 'timer',
+    best:  'highScore',
+    mobile: { el: 'mobileScore', format: function () {
+        return moves + ' mov | ' + formatTime(elapsed);
+    } }
+});
+
 function updateHUD() {
-    document.getElementById('moves').textContent = moves;
-    document.getElementById('timer').textContent = formatTime(elapsed);
     var rec = getRecord(SIZE);
-    document.getElementById('highScore').textContent = rec
-        ? formatTime(rec.time) + ' / ' + rec.moves + ' mov'
-        : '--';
-    document.getElementById('mobileScore').textContent = moves + ' mov | ' + formatTime(elapsed);
+    gameHud.set({
+        moves: moves,
+        timer: formatTime(elapsed),
+        best:  rec ? formatTime(rec.time) + ' / ' + rec.moves + ' mov' : '--'
+    });
     updateRecordsPanel();
     // Hints
     var hintBtn = document.getElementById('hintBtn');

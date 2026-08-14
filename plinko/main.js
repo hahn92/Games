@@ -88,12 +88,17 @@
     }
 
     /* ── utilidades UI ─────────────────────────────────────────── */
+    var gameHud = GU.hud({
+        score: scoreEl,
+        balls: ballsEl,
+        best:  highEl,
+        mobile: { el: mobileScore, format: function () {
+            return 'Puntos: ' + score + '  •  Bolas: ' + ballsLeft + '  •  Récord: ' + highScore;
+        } }
+    });
+
     function updateHUD() {
-        if (scoreEl) scoreEl.textContent = score;
-        if (ballsEl) ballsEl.textContent = ballsLeft;
-        if (highEl)  highEl.textContent  = highScore;
-        if (mobileScore) mobileScore.textContent =
-            'Puntos: ' + score + '  •  Bolas: ' + ballsLeft + '  •  Récord: ' + highScore;
+        gameHud.set({ score: score, balls: ballsLeft, best: highScore });
     }
 
     /* ── gradientes cacheados ──────────────────────────────────── */

@@ -463,10 +463,18 @@
         restartBtn.disabled=false; updateUI();
     }
 
+    var gameHud = GU.hud({
+        score: scoreEl,
+        best:  highScoreEl,
+        level: levelEl,
+        lives: livesEl,
+        mobile: { el: mobileScoreEl, format: function () {
+            return 'Pts:' + score + '  Niv:' + level + '  Vidas:' + lives;
+        } }
+    });
+
     function updateUI() {
-        scoreEl.textContent=score; highScoreEl.textContent=highScore;
-        levelEl.textContent=level; livesEl.textContent=lives;
-        if(mobileScoreEl) mobileScoreEl.textContent='Pts:'+score+'  Niv:'+level+'  Vidas:'+lives;
+        gameHud.set({ score: score, best: highScore, level: level, lives: lives });
     }
 
     // ────────────────────────────────────────────────────────

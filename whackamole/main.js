@@ -265,6 +265,15 @@ function whack(i) {
 }
 
 /* ---- Score with bump animation ---- */
+var gameHud = GU.hud({
+    score: 'score',
+    time:  'timer',
+    best:  'highScore',
+    mobile: { el: 'mobileScore', format: function () {
+        return 'Puntaje: ' + score + ' | Tiempo: ' + timeLeft + 's';
+    } }
+});
+
 function updateScore() {
     const scoreEl = document.getElementById('score');
     scoreEl.textContent = score;
@@ -275,17 +284,14 @@ function updateScore() {
     scoreEl.classList.add('bump');
     setTimeout(function() { scoreEl.classList.remove('bump'); }, 200);
 
-    document.getElementById('mobileScore').textContent = 'Puntaje: ' + score + ' | Tiempo: ' + timeLeft + 's';
-
     // El récord se muestra en vivo pero se persiste UNA vez al terminar la
     // partida: escribir en localStorage en cada golpe es E/S síncrona inútil.
     if (score > highScore) highScore = score;
-    document.getElementById('highScore').textContent = highScore;
+    gameHud.set({ score: score, time: timeLeft, best: highScore });
 }
 
 function updateTimer() {
-    document.getElementById('timer').textContent = timeLeft;
-    document.getElementById('mobileScore').textContent = 'Puntaje: ' + score + ' | Tiempo: ' + timeLeft + 's';
+    gameHud.set({ score: score, time: timeLeft, best: highScore });
     updateTimeBar();
     updateSpeedLabel();
 }
@@ -373,9 +379,7 @@ function init() {
     buildTimerBar();
     initGrid();
     wrapScoreSpan();
-    document.getElementById('score').textContent = '0';
-    document.getElementById('highScore').textContent = highScore;
-    document.getElementById('timer').textContent = GAME_DURATION;
+    gameHud.set({ score: 0, best: highScore, time: GAME_DURATION });
     updateTimeBar();
     const lbl = document.getElementById('speedLabel');
     if (lbl) lbl.textContent = '';

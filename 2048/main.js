@@ -34,6 +34,11 @@ function addTile() {
     }
 }
 
+var gameHud = GU.hud({
+    score: 'score',
+    mobile: { el: 'mobileScore', format: function () { return 'Puntaje: ' + score; } }
+});
+
 function render() {
     const container = document.getElementById('game2048');
     container.innerHTML = '';
@@ -73,10 +78,7 @@ function render() {
         }
     }
 
-    document.getElementById('score').textContent = score;
-    if (document.getElementById('mobileScore')) {
-        document.getElementById('mobileScore').textContent = 'Puntaje: ' + score;
-    }
+    gameHud.set({ score: score });
 
     // Highlight high score if new record
     const highScoreEl = document.getElementById('highScore');
@@ -312,6 +314,6 @@ window.addEventListener('keydown', e => {
 });
 
 // Initial display
-document.getElementById('score').textContent = score;
-document.getElementById('highScore').textContent = highScore;
+gameHud.set({ score: score });
+highScoreEl.textContent = highScore;
 render();

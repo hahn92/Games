@@ -45,9 +45,16 @@ function saveBank() {
     if (el) el.textContent = game.bank;
     updateMobileScore();
 }
+const gameHud = GU.hud({
+    bank: null,
+    bet:  null,
+    mobile: { el: 'mobileScore', format: function () {
+        return 'Saldo: ' + game.bank + '   Apuesta: ' + game.bet;
+    } }
+});
+
 function updateMobileScore() {
-    const el = document.getElementById('mobileScore');
-    if (el) el.textContent = 'Saldo: ' + game.bank + '   Apuesta: ' + game.bet;
+    gameHud.set({ bank: game.bank, bet: game.bet });
 }
 
 // ---- Deck ----

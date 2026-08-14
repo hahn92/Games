@@ -1541,17 +1541,27 @@
     }
 
     // ── HUD updates ───────────────────────────────────────────
+    /* El récord va por GU.highScore; `highScore` se mantiene porque el popup
+     * final y el marcador la usan. */
+    var gameBest = GU.highScore('platformerHigh');
+    var gameHud = GU.hud({
+        score: scoreEl,
+        best:  highScoreEl,
+        lives: livesEl,
+        level: levelEl,
+        stars: starsEl,
+        mobile: { el: mobileScoreEl, format: function () {
+            return `Pts: ${score} | Vidas: ${lives} | Lvl: ${currentLevel + 1}`;
+        } }
+    });
+
     function updateHUD() {
-        if (score > highScore) {
-            highScore = score;
-            GameStore.set('platformerHigh', highScore);
-        }
-        if (scoreEl) scoreEl.textContent = score;
-        if (highScoreEl) highScoreEl.textContent = highScore;
-        if (livesEl) livesEl.textContent = lives;
-        if (levelEl) levelEl.textContent = currentLevel + 1;
-        if (starsEl) starsEl.textContent = `${starsCollected}/10`;
-        if (mobileScoreEl) mobileScoreEl.textContent = `Pts: ${score} | Vidas: ${lives} | Lvl: ${currentLevel + 1}`;
+        gameBest.submit(score);
+        highScore = gameBest.display(0);
+        gameHud.set({
+            score: score, best: highScore, lives: lives,
+            level: currentLevel + 1, stars: `${starsCollected}/10`
+        });
     }
 
     // ── Start / End / Restart ─────────────────────────────────
@@ -1600,7 +1610,7 @@
     var gameControls = GU.controls({ start: startGame, popup: 'gameOverPopup' });
 
     // Show high score on load
-    if (highScoreEl) highScoreEl.textContent = highScore;
+    updateHUD();
 
     // Draw a still welcome screen
     (function drawWelcome() {

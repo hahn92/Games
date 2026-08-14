@@ -359,33 +359,34 @@ function startTimer() {
     clearInterval(timerInterval);
     timerInterval = setInterval(function() {
         elapsedTime++;
-        document.getElementById('timer').textContent = elapsedTime;
+        gameHud.set({ timer: elapsedTime });
         updateHUD();
     }, 1000);
 }
 
+/* La mejor marca se sigue ya con su sufijo, que es el texto que se ve; en crudo
+ * un null y un '--' serían dos valores distintos para la misma pantalla. */
+var gameHud = GU.hud({
+    mines:  'mineCount',
+    timer:  'timer',
+    flags:  'flagCount',
+    total:  'totalMines',
+    best:   'highScore',
+    mobile: { el: 'mobileScore', format: function (v) {
+        return 'Minas: ' + v.mines + ' | 🚩 ' + flaggedCount + '/' + TOTAL_MINES +
+               ' | T: ' + elapsedTime + 's';
+    } }
+});
+
 function updateHUD() {
-    var remaining = TOTAL_MINES - flaggedCount;
-    document.getElementById('mineCount').textContent = remaining;
-    document.getElementById('timer').textContent = elapsedTime;
-
-    var flagCountEl = document.getElementById('flagCount');
-    var totalMinesEl = document.getElementById('totalMines');
-    if (flagCountEl) flagCountEl.textContent = flaggedCount;
-    if (totalMinesEl) totalMinesEl.textContent = TOTAL_MINES;
-
     var bestTime = getBestTime();
-    var hsEl = document.getElementById('highScore');
-    if (hsEl) {
-        if (bestTime) {
-            hsEl.textContent = bestTime + 's';
-        } else {
-            hsEl.textContent = '--';
-        }
-    }
-
-    document.getElementById('mobileScore').textContent =
-        'Minas: ' + remaining + ' | 🚩 ' + flaggedCount + '/' + TOTAL_MINES + ' | T: ' + elapsedTime + 's';
+    gameHud.set({
+        mines: TOTAL_MINES - flaggedCount,
+        timer: elapsedTime,
+        flags: flaggedCount,
+        total: TOTAL_MINES,
+        best:  bestTime ? bestTime + 's' : '--'
+    });
 }
 
 function applyWinAnimation() {

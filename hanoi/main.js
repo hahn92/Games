@@ -48,12 +48,27 @@ var best = (function () {
 function saveBest() { GameStore.setJSON('hanoiBest', best); }
 function optimalMoves(n) { return Math.pow(2, n) - 1; }
 
+/* Se siguen las piezas que componen el texto, no un objeto: `best` es un mapa y
+ * comparar su identidad no detectaría nunca un récord nuevo. */
+var gameHud = GU.hud({
+    n:        null,
+    moves:    null,
+    status:   null,
+    selected: null,
+    best:     null,
+    mobile: { el: mobileScoreEl, format: function () {
+        var opt = optimalMoves(gs.n);
+        var b = best[gs.n] ? (' · Mejor:' + best[gs.n]) : '';
+        var st = gs.status === 'won' ? '¡Resuelto!' : (gs.selected >= 0 ? 'Elige destino' : 'Discos:' + gs.n);
+        return st + ' · Mov:' + gs.moves + '/' + opt + b;
+    } }
+});
+
 function updateMobileScore() {
-    if (!mobileScoreEl) return;
-    var opt = optimalMoves(gs.n);
-    var b = best[gs.n] ? (' · Mejor:' + best[gs.n]) : '';
-    var st = gs.status === 'won' ? '¡Resuelto!' : (gs.selected >= 0 ? 'Elige destino' : 'Discos:' + gs.n);
-    mobileScoreEl.textContent = st + ' · Mov:' + gs.moves + '/' + opt + b;
+    gameHud.set({
+        n: gs.n, moves: gs.moves, status: gs.status,
+        selected: gs.selected, best: best[gs.n] || 0
+    });
 }
 
 function updateLabels() {

@@ -96,7 +96,7 @@ const mobileScore = document.getElementById('mobileScore');
 function loadStats() {
     const s = GameStore.getJSON('airhockeyStats', null);
     if (s) state.wins = s.wins || 0;
-    winsEl.textContent = state.wins;
+    updateHUD();
 }
 function saveStats() {
     GameStore.setJSON('airhockeyStats', { wins: state.wins });

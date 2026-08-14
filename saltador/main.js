@@ -105,7 +105,7 @@ const mobileScore = document.getElementById('mobileScore');
 
 function loadHigh() {
     state.highScore = GameStore.getNum('saltadorHighScore', 0);
-    highScoreEl.textContent = state.highScore;
+    updateHUD();
 }
 function saveHigh() {
     GameStore.set('saltadorHighScore', state.highScore);

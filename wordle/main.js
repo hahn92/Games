@@ -276,11 +276,17 @@ function showPopup() {
 }
 
 // ===================== SCORES + DISTRIBUTION =====================
+var gameHud = GU.hud({
+    wins:   'wins',
+    streak: 'streak',
+    best:   'bestStreak',
+    mobile: { el: 'mobileScore', format: function () {
+        return 'Ganad:' + wins + ' Racha:' + streak;
+    } }
+});
+
 function updateScores() {
-    document.getElementById('wins').textContent = wins;
-    document.getElementById('streak').textContent = streak;
-    document.getElementById('bestStreak').textContent = bestStreak;
-    document.getElementById('mobileScore').textContent = 'Ganad:' + wins + ' Racha:' + streak;
+    gameHud.set({ wins: wins, streak: streak, best: bestStreak });
     updateDistribution();
 }
 

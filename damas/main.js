@@ -36,14 +36,26 @@ var stats = (function () {
 }());
 function saveStats() { GameStore.setJSON('damasStats', stats); }
 
+var gameHud = GU.hud({
+    status: null,
+    turn:   null,
+    think:  null,
+    record: null,
+    mobile: { el: mobileScoreEl, format: function () {
+        var st = gs.status === 'win-r' ? '¡Ganan Rojas!'
+               : gs.status === 'win-b' ? '¡Ganan Azules!'
+               : gs.status === 'idle'  ? 'Pulsa Nueva Partida'
+               : gs.aiThinking         ? 'IA pensando...'
+               : (gs.turn === 'r' ? 'Turno: Rojas' : 'Turno: Azules');
+        return st + ' · G:' + stats.w + ' P:' + stats.l;
+    } }
+});
+
 function updateMobileScore() {
-    if (!mobileScoreEl) return;
-    var st = gs.status === 'win-r' ? '¡Ganan Rojas!'
-           : gs.status === 'win-b' ? '¡Ganan Azules!'
-           : gs.status === 'idle'  ? 'Pulsa Nueva Partida'
-           : gs.aiThinking         ? 'IA pensando...'
-           : (gs.turn === 'r' ? 'Turno: Rojas' : 'Turno: Azules');
-    mobileScoreEl.textContent = st + ' · G:' + stats.w + ' P:' + stats.l;
+    gameHud.set({
+        status: gs.status, turn: gs.turn, think: gs.aiThinking,
+        record: stats.w + '-' + stats.l
+    });
 }
 
 /* ── Inicialización del tablero ── */

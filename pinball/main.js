@@ -35,6 +35,19 @@ var finalScoreEl= document.getElementById('finalScore');
 var newRecordEl = document.getElementById('newRecord');
 var mobileScore = document.getElementById('mobileScore');
 
+var gameHud = GU.hud({
+    score: null,
+    lives: null,
+    mobile: { el: mobileScore, format: function () {
+        return 'Puntaje: ' + score + '  Vidas: ' + lives;
+    } }
+});
+
+function syncMobileScore() {
+    gameHud.set({ score: score, lives: lives });
+}
+
+
 /* ── Persistence ────────────────────────────────────────── */
 var HS_KEY    = 'pinball_highscore';
 var highScore = GameStore.getNum(HS_KEY, 0);
@@ -538,7 +551,7 @@ function updateBall(dt) {
         ball.trail.length = 0;
         lives--;
         livesEl.textContent = lives;
-        if (mobileScore) mobileScore.textContent = 'Puntaje: ' + score + '  Vidas: ' + lives;
+        syncMobileScore();
         if (lives <= 0) {
             GameAudio.gameOver();
             setTimeout(endGame, 400);
@@ -582,7 +595,7 @@ function updateParticles() {
 function addScore(pts) {
     score += pts;
     scoreEl.textContent = score;
-    if (mobileScore) mobileScore.textContent = 'Puntaje: ' + score + '  Vidas: ' + lives;
+    syncMobileScore();
     var nl = Math.floor(score / 5000) + 1;
     if (nl > level) {
         level = nl;
@@ -608,7 +621,7 @@ function resetBall() {
 function startGame() {
     score = 0; lives = 3; level = 1;
     scoreEl.textContent = 0; livesEl.textContent = 3; levelEl.textContent = 1;
-    if (mobileScore) mobileScore.textContent = 'Puntaje: 0  Vidas: 3';
+    syncMobileScore();
     bumpers.forEach(function (b) { b.lit = 0; });
     popups = [];
     particles = [];

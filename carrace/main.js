@@ -147,6 +147,16 @@
     const finalLevel  = document.getElementById('finalLevel');
     const mobileScore = document.getElementById('mobileScore');
 
+    var gameHud = GU.hud({
+        score: null,
+        level: null,
+        lives: null,
+        mobile: { el: mobileScore, format: function () {
+            return 'Puntaje: ' + score + '  |  Nivel: ' + level + '  |  Vidas: ' + lives;
+        } }
+    });
+
+
     // ── Utility ───────────────────────────────────────────────────────────────
     function rand(min, max) { return Math.random() * (max - min) + min; }
     function randInt(min, max) { return Math.floor(rand(min, max + 1)); }
@@ -1258,10 +1268,9 @@
 
         ctx.restore();
 
-        // Mobile HUD
-        if (mobileScore) {
-            mobileScore.textContent = 'Puntaje: ' + score + '  |  Nivel: ' + level + '  |  Vidas: ' + lives;
-        }
+        /* Esto corre en CADA frame. Sin el filtro de GU.hud eran 60 escrituras
+         * de textContent por segundo para repetir el mismo texto. */
+        gameHud.set({ score: score, level: level, lives: lives });
 
         rafId = requestAnimationFrame(loop);
     }

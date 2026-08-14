@@ -950,16 +950,18 @@ function draw(now) {
 }
 
 // ─── UI helpers ──────────────────────────────────────────────────────────────
-function updateUI() {
-    document.getElementById('score').textContent     = score;
-    document.getElementById('highScore').textContent = highScore;
-    document.getElementById('level').textContent     = level;
-    document.getElementById('shots').textContent     = shots;
+const gameHud = GU.hud({
+    score: 'score',
+    best:  'highScore',
+    level: 'level',
+    shots: 'shots',
+    mobile: { el: 'mobileScore', format: function () {
+        return 'Puntos: ' + score + '  |  Nivel: ' + level;
+    } }
+});
 
-    const mobileScore = document.getElementById('mobileScore');
-    if (mobileScore) {
-        mobileScore.textContent = 'Puntos: ' + score + '  |  Nivel: ' + level;
-    }
+function updateUI() {
+    gameHud.set({ score: score, best: highScore, level: level, shots: shots });
 }
 
 // ─── Game init ───────────────────────────────────────────────────────────────

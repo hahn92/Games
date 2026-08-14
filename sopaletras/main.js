@@ -261,17 +261,27 @@ function updateWordList() {
     }
 }
 
+/* El tiempo se sigue ya en segundos enteros, que es lo que se enseña: con
+ * `state.elapsed` en crudo el campo cambiaría en cada frame y el filtro no
+ * filtraría nada. */
+var gameHud = GU.hud({
+    score: 'score',
+    found: 'found',
+    secs:  'time',
+    best:  'highScore',
+    mobile: { el: 'mobileScore', format: function () {
+        return 'Puntos: ' + state.score + '  ·  ' + state.foundCount + '/' + solutions.length +
+               '  ·  ' + Math.floor(state.elapsed) + 's';
+    } }
+});
+
 function updateHUD() {
-    const sc = document.getElementById('score');
-    const fd = document.getElementById('found');
-    const tm = document.getElementById('time');
-    const hs = document.getElementById('highScore');
-    if (sc) sc.textContent = state.score;
-    if (fd) fd.textContent = state.foundCount + '/' + solutions.length;
-    if (tm) tm.textContent = Math.floor(state.elapsed);
-    if (hs) hs.textContent = state.highScore;
-    const ms = document.getElementById('mobileScore');
-    if (ms) ms.textContent = 'Puntos: ' + state.score + '  ·  ' + state.foundCount + '/' + solutions.length + '  ·  ' + Math.floor(state.elapsed) + 's';
+    gameHud.set({
+        score: state.score,
+        found: state.foundCount + '/' + solutions.length,
+        secs:  Math.floor(state.elapsed),
+        best:  state.highScore
+    });
 }
 
 // ===== Ciclo de juego =====

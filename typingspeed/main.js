@@ -145,6 +145,16 @@ function updateTimerBarColor() {
 }
 
 // ===================== HUD =====================
+var gameHud = GU.hud({
+    words: null,
+    wpm:   null,
+    /* El WPM se calcula en una variable local de updateHUD(), así que aquí no
+     * se puede leer por cierre: se toma de los valores que el propio hud sigue. */
+    mobile: { el: 'mobileScore', format: function (v) {
+        return v.words + ' palabras | ' + v.wpm + ' WPM';
+    } }
+});
+
 function updateHUD() {
     var elapsed = TIME_LIMIT - timeLeft;
     var wpm = elapsed > 0 ? Math.round(wordCount / (elapsed / 60)) : 0;
@@ -171,7 +181,7 @@ function updateHUD() {
     bar.style.width = (timeLeft / TIME_LIMIT * 100) + '%';
     updateTimerBarColor();
 
-    document.getElementById('mobileScore').textContent = wordCount + ' palabras | ' + wpm + ' WPM';
+    gameHud.set({ words: wordCount, wpm: wpm });
 }
 
 // ===================== CHECK FLASH =====================

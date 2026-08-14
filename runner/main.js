@@ -1243,7 +1243,6 @@ if (btnJump) {
 var gameControls = GU.controls({ start: startGame, popup: 'gameOverPopup' });
 
 // Init
-document.getElementById('score').textContent = '0';
-document.getElementById('highScore').textContent = highScore;
+hud.set({ score: 0, best: highScore });
 initBgStars();
 drawIdle();

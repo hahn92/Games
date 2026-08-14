@@ -78,12 +78,17 @@
     }
 
     /* ── HUD ───────────────────────────────────────────────────── */
+    var gameHud = GU.hud({
+        score: scoreEl,
+        moves: movesEl,
+        best:  highEl,
+        mobile: { el: mobileScore, format: function () {
+            return 'Puntos: ' + score + '  •  Movs: ' + moves + '  •  Récord: ' + highScore;
+        } }
+    });
+
     function updateHUD() {
-        if (scoreEl) scoreEl.textContent = score;
-        if (movesEl) movesEl.textContent = moves;
-        if (highEl)  highEl.textContent  = highScore;
-        if (mobileScore) mobileScore.textContent =
-            'Puntos: ' + score + '  •  Movs: ' + moves + '  •  Récord: ' + highScore;
+        gameHud.set({ score: score, moves: moves, best: highScore });
     }
 
     /* ── gradientes cacheados ──────────────────────────────────── */

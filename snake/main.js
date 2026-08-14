@@ -27,11 +27,20 @@ function setupMobileUI() {
 document.addEventListener('DOMContentLoaded', setupMobileUI);
 
 // Actualizar puntaje flotante en móvil
+/* La guarda `isMobile()` se conserva dentro del callback: en escritorio esta
+ * superposición está oculta y su contenido no se lee, así que no hace falta
+ * mantenerlo al día. */
+const gameHud = GU.hud({
+    score: null,
+    best:  null,
+    mobile: { el: 'mobileScore', html: function () {
+        if (!isMobile()) return '';
+        return `Puntaje: <b>${score}</b><br>Mejor: <b>${highScore}</b>`;
+    } }
+});
+
 function updateMobileScore() {
-    const mobileScore = document.getElementById('mobileScore');
-    if (isMobile() && mobileScore) {
-        mobileScore.innerHTML = `Puntaje: <b>${score}</b><br>Mejor: <b>${highScore}</b>`;
-    }
+    gameHud.set({ score: score, best: highScore });
 }
 const canvas = document.getElementById('gameCanvas');
 const ctx = canvas.getContext('2d');

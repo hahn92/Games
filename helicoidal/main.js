@@ -449,11 +449,18 @@ function updatePhysics(dt) {
     }
 }
 
-function updateMobileScore() {
-    if (mobileScoreEl) {
-        mobileScoreEl.textContent = 'Puntos: ' + score + '   ·   Récord: ' + best +
+var gameHud = GU.hud({
+    score: null,
+    best:  null,
+    combo: null,
+    mobile: { el: mobileScoreEl, format: function () {
+        return 'Puntos: ' + score + '   ·   Récord: ' + best +
             (combo > 1 ? '   ·   Combo x' + combo : '');
-    }
+    } }
+});
+
+function updateMobileScore() {
+    gameHud.set({ score: score, best: best, combo: combo });
 }
 
 /* ─────────────────────── Render ─────────────────────── */

@@ -100,7 +100,31 @@ var popup        = document.getElementById('gameOverPopup');
 var finalScoreEl = document.getElementById('finalScore');
 var finalBestEl  = document.getElementById('finalBest');
 
-highScoreEl.textContent = best;
+/* loop() cierra cada frame llamando aquí, y el reloj cambia de segundo una vez
+ * de cada sesenta: sin filtro son dos textContent y un innerHTML por frame para
+ * repetir lo mismo. GU.hud compara antes de tocar el DOM.
+ *
+ * `coins` y el segundo que se muestra sólo viven en la línea de móvil y van como
+ * campos sin elemento, que documentan de qué depende. El segundo se declara ya
+ * redondeado a propósito: es el valor que de verdad se ve, y así el campo cambia
+ * una vez por segundo en vez de en cada frame. */
+var cosechaHud = GU.hud({
+    earned: scoreEl,
+    best:   highScoreEl,
+    coins:  null,
+    secs:   null,
+    mobile: { el: mobileScoreEl, html: function () {
+        return '<span style="color:#ffd54a">Monedas: ' + coins + '</span> · ' +
+            '<span style="color:#8fd3f4">Ganadas: ' + earned + '</span> · ' +
+            '<span style="color:#ff8a5a">' + Math.ceil(timeLeft) + 's</span>';
+    } }
+});
+
+function updateHUD() {
+    cosechaHud.set({ earned: earned, best: best, coins: coins, secs: Math.ceil(timeLeft) });
+}
+
+updateHUD();
 
 /* ─────────────────────── Utilidades ─────────────────────── */
 function now() { return performance.now() / 1000; }
@@ -241,7 +265,6 @@ function endGame() {
     if (earned > best) {
         best = earned;
         GameStore.set('cosechaHighScore', best);
-        highScoreEl.textContent = best;
     }
     GameAudio.gameOver();
     showPopup();
@@ -298,29 +321,6 @@ function harvest(plotIdx) {
 }
 
 /* ─────────────────────── HUD ─────────────────────── */
-/* loop() cierra cada frame llamando aquí, y el reloj cambia de segundo una vez
- * de cada sesenta: sin filtro son dos textContent y un innerHTML por frame para
- * repetir lo mismo. GU.hud compara antes de tocar el DOM.
- *
- * `coins` y el segundo que se muestra sólo viven en la línea de móvil y van como
- * campos sin elemento, que documentan de qué depende. El segundo se declara ya
- * redondeado a propósito: es el valor que de verdad se ve, y así el campo cambia
- * una vez por segundo en vez de en cada frame. */
-var cosechaHud = GU.hud({
-    earned: scoreEl,
-    best:   highScoreEl,
-    coins:  null,
-    secs:   null,
-    mobile: { el: mobileScoreEl, html: function () {
-        return '<span style="color:#ffd54a">Monedas: ' + coins + '</span> · ' +
-            '<span style="color:#8fd3f4">Ganadas: ' + earned + '</span> · ' +
-            '<span style="color:#ff8a5a">' + Math.ceil(timeLeft) + 's</span>';
-    } }
-});
-
-function updateHUD() {
-    cosechaHud.set({ earned: earned, best: best, coins: coins, secs: Math.ceil(timeLeft) });
-}
 
 function showPopup() {
     popup.style.display = 'flex';
