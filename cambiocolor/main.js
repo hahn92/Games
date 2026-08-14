@@ -67,9 +67,10 @@ var best      = gameBest.display(0);
 var scrollSpeed  = START_SCROLL;
 var isPlaying    = false;
 var isOver       = false;
-var screenShake  = 0;
-var shakeOffX    = 0;
-var shakeOffY    = 0;
+/* decay 0.790 reproduce la duración del decremento lineal anterior
+ * (14 → 0 restando 40 por segundo, unos 21 frames). La amplitud usaba la mitad
+ * del valor, así que hit() recibe la mitad. */
+var shake = new Shake({ decay: 0.790 });
 var flashT       = 0;
 var colorFlashT  = 0;
 var lastT        = 0;
@@ -121,7 +122,7 @@ function resetState() {
     particles.length = 0;
     score = 0;
     scrollSpeed = START_SCROLL;
-    screenShake = 0; shakeOffX = 0; shakeOffY = 0;
+    shake.stop();
     flashT = 0; colorFlashT = 0;
     isPlaying = false; isOver = false;
     seedInitialObstacles();
@@ -313,11 +314,7 @@ function update(dt) {
     // Efectos
     flashT      = Math.max(0, flashT - dt * 2.0);
     colorFlashT = Math.max(0, colorFlashT - dt * 1.8);
-    screenShake = Math.max(0, screenShake - dt * 40);
-    if (screenShake > 0) {
-        shakeOffX = (Math.random() - 0.5) * screenShake * 0.5;
-        shakeOffY = (Math.random() - 0.5) * screenShake * 0.5;
-    } else { shakeOffX = 0; shakeOffY = 0; }
+    shake.update(dt);
 
     maybeSpawn();
 
@@ -581,7 +578,7 @@ function drawInitialOverlay() {
 
 function render() {
     ctx.save();
-    if (screenShake > 0) ctx.translate(shakeOffX, shakeOffY);
+    shake.translate(ctx);   /* no hace nada si no hay sacudida activa */
 
     drawBackground();
 
@@ -635,7 +632,7 @@ function endGame(reason) {
     if (isOver) return;
     isOver    = true;
     isPlaying = false;
-    screenShake = 14;
+    shake.hit(7);
     spawnDeathParticles(BALL_X, ball.y);
     if (gameBest.submit(score)) {
         best = gameBest.value;

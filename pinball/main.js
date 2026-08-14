@@ -61,7 +61,9 @@ var lives = 3;
 var level = 1;
 var lastTime = 0;
 var rafId = null;
-var screenShake = 0;
+/* decay 0.731 reproduce la duración del decremento lineal anterior
+ * (5 → 0 restando 0.4 por frame, unos 12 frames). */
+var shake = new Shake({ decay: 0.731 });
 
 /* ── Layout constants ───────────────────────────────────── */
 var TOP_Y    = 45;          // top of play area
@@ -496,7 +498,7 @@ function updateBall(dt) {
         hitCooldown = 0.06;
     }
     if (slingData) {
-        screenShake = Math.max(screenShake, 4);
+        shake.hit(4);
         addScore(50 * level);
         popups.push({ x: slingData.mx, y: slingData.my - 14, text: '+' + (50 * level), life: 40 });
         spawnParticles(slingData.mx, slingData.my, '#ffaa44', 10, 200);
@@ -508,7 +510,7 @@ function updateBall(dt) {
         bmp.lit = 18;
         popups.push({ x: bmp.x, y: bmp.y - bmp.r - 8, text: '+' + pts, life: 45 });
         spawnParticles(bmp.x, bmp.y, bmp.glow, 14, 240);
-        screenShake = Math.max(screenShake, 5);
+        shake.hit(5);
         GameAudio.score();
     }
     if (flipHit) GameAudio.paddle();
@@ -541,7 +543,7 @@ function updateBall(dt) {
         } else {
             ball.vy = -260;
             ball.vx += (ball.x < TABLE_MID ? 1 : -1) * 130;
-            screenShake = Math.max(screenShake, 3);
+            shake.hit(3);
         }
     }
 
@@ -625,7 +627,7 @@ function startGame() {
     bumpers.forEach(function (b) { b.lit = 0; });
     popups = [];
     particles = [];
-    screenShake = 0;
+    shake.stop();
     resetBall();
     startBtn.disabled = true; restartBtn.disabled = false;
     popup.style.display = 'none';
@@ -988,17 +990,14 @@ function loop(ts) {
     }
     updateParticles();
 
-    /* Draw with screen shake offset */
-    var sx = 0, sy = 0;
-    if (screenShake > 0) {
-        sx = (Math.random() - 0.5) * screenShake;
-        sy = (Math.random() - 0.5) * screenShake;
-        screenShake -= 0.4;
-        if (screenShake < 0) screenShake = 0;
-    }
-    if (sx !== 0 || sy !== 0) {
+    /* La sacudida se avanza con el resto del estado y sólo se COMPONE al
+     * dibujar: antes el decremento vivía en el mismo bloque que el translate,
+     * lo que ataba su duración al número de repintados. */
+    shake.update(1 / 60);
+    var shaking = shake.active();
+    if (shaking) {
         ctx.save();
-        ctx.translate(sx, sy);
+        shake.translate(ctx);
     }
 
     drawBackground();
@@ -1014,7 +1013,7 @@ function loop(ts) {
     drawScorePopups();
     drawUI();
 
-    if (sx !== 0 || sy !== 0) ctx.restore();
+    if (shaking) ctx.restore();
 
     rafId = requestAnimationFrame(loop);
 }

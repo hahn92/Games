@@ -87,7 +87,12 @@ var isPlaying = false;
 var isOver = false;
 var particles = [];
 var flashTimer = 0;
-var shakeTimer = 0;
+/* La amplitud salía de shakeTimer*10 (2.5 → 0 en 0.25 s, unos 15 frames), de
+ * ahí decay 0.807. Y sobre todo: los desplazamientos se elegían con
+ * Math.random() DENTRO del dibujado, que es lo que prohíbe la regla 5 — un
+ * mismo frame repintado dos veces temblaba distinto. Ahora son estado, elegido
+ * en el tick. */
+var shake = new Shake({ decay: 0.807 });
 var lastT = 0;
 var animId = null;
 var tickSoundTimer = 0;
@@ -221,7 +226,7 @@ function spawnDenyShake(cx, cy) {
             size: 3
         });
     }
-    shakeTimer = 0.25;
+    shake.hit(2.5);
 }
 
 function updateParticles(dt) {
@@ -245,7 +250,7 @@ function resetGame() {
     timeLeft = GAME_LEN;
     particles.length = 0;
     flashTimer = 0;
-    shakeTimer = 0;
+    shake.stop();
     lastTickSecond = -1;
     isOver = false;
     updateHUD();
@@ -763,18 +768,11 @@ function loop(tsMs) {
 
     updateParticles(dt);
     flashTimer = Math.max(0, flashTimer - dt);
-    shakeTimer = Math.max(0, shakeTimer - dt);
+    shake.update(dt);
 
     // Shake offset
-    var sx = 0, sy = 0;
-    if (shakeTimer > 0) {
-        var amp = shakeTimer * 10;
-        sx = (Math.random() - 0.5) * amp;
-        sy = (Math.random() - 0.5) * amp;
-    }
-
     ctx.save();
-    ctx.translate(sx, sy);
+    shake.translate(ctx);
 
     drawBackground();
     drawGrid(timeAcc);

@@ -72,8 +72,11 @@
     var lastDropTs = 0;
     var previewX = W / 2;   // x de la bola fantasma en el top
     var previewActive = false;
-    var screenShake = 0;
-    var shakeOx = 0, shakeOy = 0; // pre-computado en update, leído en render
+    /* decay 0.720 reproduce la duración del decremento lineal anterior
+     * (8 → 0 restando 0.6 por frame, unos 13 frames). Los desplazamientos se
+     * leen crudos con .ox/.oy porque este juego compone la sacudida con
+     * setTransform, no con translate. */
+    var shake = new Shake({ decay: 0.720 });
     var slotFlash = new Array(SLOTS).fill(0); // glow timing por slot
 
     // Audio de colisión: throttle para no saturar
@@ -164,7 +167,7 @@
         // sonidos (fuera del render loop)
         if (mult >= 10) {
             GameAudio.scoreHigh();
-            screenShake = 8;
+            shake.hit(8);
         } else if (mult >= 1) {
             GameAudio.score();
         } else {
@@ -306,13 +309,7 @@
         }
 
         // screen shake decay + offsets pre-computados (para no llamar a Math.random en render)
-        if (screenShake > 0) {
-            screenShake = Math.max(0, screenShake - 0.6 * step);
-            shakeOx = (Math.random() - 0.5) * screenShake;
-            shakeOy = (Math.random() - 0.5) * screenShake;
-        } else {
-            shakeOx = 0; shakeOy = 0;
-        }
+        shake.update(step / 60);   /* step va en frames; Shake pide segundos */
 
         // ¿ronda terminada?
         if (ballsLeft <= 0 && balls.length === 0 && running) {
@@ -323,7 +320,7 @@
     /* ── render ────────────────────────────────────────────────── */
     function render() {
         // shake: usamos offsets pre-computados en update (no Math.random en render)
-        ctx.setTransform(1, 0, 0, 1, shakeOx, shakeOy);
+        ctx.setTransform(1, 0, 0, 1, shake.ox, shake.oy);
 
         // fondo
         ctx.fillStyle = bgGrad;
@@ -360,14 +357,14 @@
             ctx.setLineDash([]);
 
             // bola fantasma en la cima (siempre se suelta desde arriba)
-            ctx.setTransform(1, 0, 0, 1, shakeOx + previewX, shakeOy + 40);
+            ctx.setTransform(1, 0, 0, 1, shake.ox + previewX, shake.oy + 40);
             ctx.globalAlpha = 0.45;
             ctx.fillStyle = ballGrad;
             ctx.beginPath();
             ctx.arc(0, 0, BALL_R, 0, Math.PI * 2);
             ctx.fill();
             ctx.globalAlpha = 1;
-            ctx.setTransform(1, 0, 0, 1, shakeOx, shakeOy);
+            ctx.setTransform(1, 0, 0, 1, shake.ox, shake.oy);
         }
 
         // pegs (batch fillStyle único)
@@ -399,7 +396,7 @@
                 ctx.fillRect(t[k] - 1.5, t[k+1] - 1.5, 3, 3);
             }
             // bola con gradient trasladado, sin ctx.save/restore
-            ctx.setTransform(1, 0, 0, 1, shakeOx + b.x, shakeOy + b.y);
+            ctx.setTransform(1, 0, 0, 1, shake.ox + b.x, shake.oy + b.y);
             ctx.fillStyle = ballGrad;
             ctx.beginPath();
             ctx.arc(0, 0, BALL_R, 0, Math.PI * 2);
@@ -411,7 +408,7 @@
             ctx.fill();
         }
         // restaurar transform base (solo shake)
-        ctx.setTransform(1, 0, 0, 1, shakeOx, shakeOy);
+        ctx.setTransform(1, 0, 0, 1, shake.ox, shake.oy);
 
         // ranuras inferiores
         for (var s = 0; s < SLOTS; s++) {
@@ -498,7 +495,7 @@
         balls.length = 0;
         particles.length = 0;
         for (var k = 0; k < SLOTS; k++) slotFlash[k] = 0;
-        screenShake = 0;
+        shake.stop();
         gameOverPop.style.display = 'none';
         if (startBtn)   startBtn.disabled = true;
         if (restartBtn) restartBtn.disabled = false;

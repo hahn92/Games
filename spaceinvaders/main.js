@@ -33,7 +33,12 @@ const FIRE_COOLDOWN = 9;      // frames between shots (blocks keydown auto-repea
 const MAX_BULLETS = 3;        // bullets allowed on screen at once
 
 let playerX, bullets, invaders, invaderDir, invaderBullets, score, highScore, isPlaying;
-let lives, level, invulnTimer, fireTimer, screenShake;
+let lives, level, invulnTimer, fireTimer;
+/* decay 0.771 reproduce los 16 frames que duraba el contador anterior; la
+ * amplitud era screenShake*0.4 en X y la mitad en Y, de ahí hit(6.4) y ratio 0.5.
+ * Los desplazamientos ya no se derivan del número de frame, pero se siguen
+ * eligiendo en update() y no en draw(), que es lo que pide la regla. */
+const shake = new Shake({ decay: 0.771, ratio: 0.5 });
 let explosions = [];
 let frame = 0;
 let animFrameId = null;
@@ -118,7 +123,7 @@ function resetGame() {
     level = 1;
     invulnTimer = 0;
     fireTimer = 0;
-    screenShake = 0;
+    shake.stop();
     isPlaying = false;
 /* El récord va por GU.highScore: comparar, guardar y el valor por defecto
  * en un solo sitio. `highScore` se mantiene porque el resto del fichero la lee. */
@@ -198,7 +203,7 @@ function update() {
     frame++;
     if (fireTimer > 0) fireTimer--;
     if (invulnTimer > 0) invulnTimer--;
-    if (screenShake > 0) screenShake--;
+    shake.update(1 / 60);
 
     // Move stars (batched, no per-element save/restore)
     for (let i = 0; i < starsA.length; i++) {
@@ -387,7 +392,7 @@ function firePlayerBullet() {
 
 function hitPlayer() {
     lives--;
-    screenShake = 16;
+    shake.hit(6.4);
     spawnExplosion(playerX + PLAYER_WIDTH / 2, canvas.height - PLAYER_HEIGHT / 2 - 10, '#26d0ce');
     if (lives <= 0) {
         lives = 0;
@@ -827,13 +832,12 @@ function draw() {
     ctx.fillStyle = '#080820';
     ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-    // Sacudida al perder una vida. El desplazamiento se deriva de screenShake y
-    // frame, no de Math.random(), para no meter aleatoriedad en el render.
-    const shaking = screenShake > 0;
+    // Sacudida al perder una vida. Los desplazamientos se eligen en update(),
+    // no aquí: un mismo frame repintado dos veces tiene que salir igual.
+    const shaking = shake.active();
     if (shaking) {
-        const mag = screenShake * 0.4;
         ctx.save();
-        ctx.translate((frame % 2 ? 1 : -1) * mag, (frame % 3 ? -1 : 1) * mag * 0.5);
+        shake.translate(ctx);
     }
 
     drawStars();

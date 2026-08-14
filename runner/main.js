@@ -43,7 +43,10 @@ var squishY     = 1;
 var wasOnGround = true;
 var deathAngle  = 0;
 var deathVY     = 0;
-var screenShake = 0;
+/* decay 0.771: la sacudida duraba 14 frames restando 1 por frame. La amplitud
+ * era constante (5 en X, 3 en Y) en vez de decaer; ahora se atenúa, que es lo
+ * que hace el resto de la colección. `ratio` conserva la proporción 3/5. */
+var shake = new Shake({ decay: 0.771, ratio: 0.6 });
 
 var hud = GU.hud({
     score: 'score',
@@ -1016,17 +1019,14 @@ function runDeathAnim(ts) {
     deathVY += GRAVITY * 0.8;
     player.y += deathVY;
 
-    if (screenShake > 0) screenShake--;
+    shake.update(1 / 60);
 
     drawBackground();
     drawDust();
     drawObstacles();
 
     ctx.save();
-    if (screenShake > 0) {
-        // Jitter determinista a partir del contador (sin Math.random en render)
-        ctx.translate(Math.sin(screenShake * 12.9898) * 3, Math.cos(screenShake * 78.233) * 2);
-    }
+    shake.translate(ctx);
     drawDino(player.x, player.y, false, true, deathAngle);
     drawScore();
     ctx.restore();
@@ -1083,15 +1083,10 @@ function gameLoop(ts) {
 
     updateScore();
 
-    var shakeX = 0, shakeY = 0;
-    if (screenShake > 0) {
-        shakeX = (Math.random() - 0.5) * 5;
-        shakeY = (Math.random() - 0.5) * 3;
-        screenShake--;
-    }
+    shake.update(1 / 60);
 
     ctx.save();
-    if (shakeX || shakeY) ctx.translate(shakeX, shakeY);
+    shake.translate(ctx);
     drawBackground();
     drawDust();
     drawObstacles();
@@ -1123,7 +1118,7 @@ function startGame() {
     deathVY = 0;
     squishX = 1; squishY = 1;
     blinkTimer = 100;
-    screenShake = 0;
+    shake.stop();
 
     document.getElementById('gameOverPopup').style.display = 'none';
     gameControls.running();
@@ -1141,7 +1136,7 @@ function gameOver() {
 
     deathAngle = 0;
     deathVY = -7;
-    screenShake = 14;
+    shake.hit(14);
 
     animFrameId = requestAnimationFrame(runDeathAnim);
 }

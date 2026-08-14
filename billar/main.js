@@ -73,7 +73,9 @@ var state = STATE.IDLE;
 var score = 0;
 var lastTime = 0;
 var rafId = null;
-var screenShake = 0;
+/* decay 0.711 reproduce la duración del decremento lineal anterior
+ * (6 → 0 restando 30 por segundo, unos 12 frames). */
+var shake = new Shake({ decay: 0.711 });
 
 var balls = [];      // {x,y,vx,vy,r,num,color,pocketed,sinkScale}
 var cue = null;      // referencia a la bola blanca
@@ -256,7 +258,7 @@ function sinkBall(b) {
     b.vx = 0; b.vy = 0;
     spawnSink(b.x, b.y, b.num === 0 ? '#bbbbbb' : b.color);
     sunkThisTurn.push(b);
-    screenShake = Math.max(screenShake, 6);
+    shake.hit(6);
 }
 
 /* Procesa los resultados al final de un turno (cuando todo se detiene) */
@@ -516,7 +518,7 @@ function startGame() {
     particles.clear();
     sunkThisTurn = [];
     foulMsg = 0;
-    screenShake = 0;
+    shake.stop();
     pendingClack = false; pendingWall = false;
     rackBalls();
     state = STATE.AIM;
@@ -574,15 +576,12 @@ function loop(ts) {
     updateParticles(dt);
     if (foulMsg > 0) foulMsg -= dt;
 
-    /* shake */
-    var sx = 0, sy = 0;
-    if (screenShake > 0) {
-        sx = (Math.random() - 0.5) * screenShake;
-        sy = (Math.random() - 0.5) * screenShake;
-        screenShake -= dt * 30;
-        if (screenShake < 0) screenShake = 0;
-    }
-    if (sx || sy) { ctx.save(); ctx.translate(sx, sy); }
+    /* La sacudida se avanza aquí, con el resto del estado, y sólo se COMPONE al
+     * dibujar: antes el decremento vivía dentro del mismo bloque que el
+     * translate, lo que ataba su duración al número de repintados. */
+    shake.update(dt);
+    var shaking = shake.active();
+    if (shaking) { ctx.save(); shake.translate(ctx); }
 
     drawTable();
     drawBalls();
@@ -590,7 +589,7 @@ function loop(ts) {
     if (state === STATE.AIM) drawAim();
     drawHud();
 
-    if (sx || sy) ctx.restore();
+    if (shaking) ctx.restore();
 
     rafId = requestAnimationFrame(loop);
 }

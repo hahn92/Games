@@ -65,8 +65,11 @@
     var particles = [];
     var comboMsg = '';
     var comboMsgT = 0;
-    var screenShake = 0;
-    var shakeOx = 0, shakeOy = 0;
+    /* decay 0.840 reproduce la duración del decremento lineal anterior
+     * (16 → 0 restando 0.55 por frame, unos 29 frames). Los desplazamientos se
+     * leen crudos con .ox/.oy porque este juego compone la sacudida con
+     * setTransform, no con translate. */
+    var shake = new Shake({ decay: 0.840 });
     var bgStars = [];        // decoración fondo pre-calculada
 
     /* ── localStorage ──────────────────────────────────────────── */
@@ -280,12 +283,12 @@
         // mensaje & audio (fuera del render loop)
         if (cascade >= 1) {
             GameAudio.scoreHigh();
-            screenShake = Math.min(16, 6 + cascade * 2);
+            shake.hit(Math.min(16, 6 + cascade * 2));
             comboMsg = 'COMBO x' + (cascade + 1);
             comboMsgT = 1;
         } else if (count >= 5) {
             GameAudio.scoreHigh();
-            screenShake = 10;
+            shake.hit(10);
             comboMsg = '¡' + count + ' EN LÍNEA!';
             comboMsgT = 1;
         } else if (count >= 4) {
@@ -538,11 +541,7 @@
         if (comboMsgT > 0) comboMsgT = Math.max(0, comboMsgT - 0.018 * step);
 
         // shake
-        if (screenShake > 0) {
-            screenShake = Math.max(0, screenShake - 0.55 * step);
-            shakeOx = (Math.random() - 0.5) * screenShake;
-            shakeOy = (Math.random() - 0.5) * screenShake;
-        } else { shakeOx = 0; shakeOy = 0; }
+        shake.update(step / 60);   /* step va en frames; Shake pide segundos */
 
         // transiciones de fase
         if ((phase === 'swap-forward' || phase === 'swap-back' ||
@@ -611,7 +610,7 @@
             alpha = 1 - g.fadeT;
             scale = 1 + g.fadeT * 0.35;
         }
-        ctx.setTransform(1, 0, 0, 1, shakeOx + g.x, shakeOy + g.y);
+        ctx.setTransform(1, 0, 0, 1, shake.ox + g.x, shake.oy + g.y);
         if (scale !== 1) ctx.scale(scale, scale);
         ctx.globalAlpha = alpha;
 
@@ -641,12 +640,12 @@
         ctx.fill();
 
         ctx.globalAlpha = 1;
-        if (scale !== 1) ctx.setTransform(1, 0, 0, 1, shakeOx, shakeOy);
+        if (scale !== 1) ctx.setTransform(1, 0, 0, 1, shake.ox, shake.oy);
     }
 
     /* ── render ────────────────────────────────────────────────── */
     function render() {
-        ctx.setTransform(1, 0, 0, 1, shakeOx, shakeOy);
+        ctx.setTransform(1, 0, 0, 1, shake.ox, shake.oy);
 
         // fondo
         ctx.fillStyle = bgGrad;
@@ -742,7 +741,7 @@
                 drawGem(g);
             }
         }
-        ctx.setTransform(1, 0, 0, 1, shakeOx, shakeOy);
+        ctx.setTransform(1, 0, 0, 1, shake.ox, shake.oy);
 
         // partículas (batch por color no es útil aquí; cada una es pequeña)
         for (var pi = 0; pi < particles.length; pi++) {
@@ -804,7 +803,7 @@
         cascade = 0;
         comboMsg = '';
         comboMsgT = 0;
-        screenShake = 0;
+        shake.stop();
         buildBoard();
         // por si el builder deja accidentalmente un tablero sin jugadas
         if (!hasValidMove()) reshuffleBoard();

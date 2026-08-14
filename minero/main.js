@@ -58,10 +58,10 @@ var isLevelTransition = false;
 var levelTransitionT = 0;
 var animFrameId = null;
 var lastT = 0;
-var shake = 0;
+/* decay 0.754 reproduce la duración del decremento lineal anterior
+ * (14 → 0 restando 0.8 por frame, unos 17 frames). */
+var shake = new Shake({ decay: 0.754 });
 var flashAlpha = 0;
-var shakeOffX = 0;
-var shakeOffY = 0;
 var wheelRot = 0;
 
 var startBtn     = document.getElementById('startBtn');
@@ -137,7 +137,7 @@ function resetGame() {
     quota = 700;
     particles.clear();
     popups = [];
-    shake = 0;
+    shake.stop();
     flashAlpha = 0;
     isGameOver = false;
     isLevelTransition = false;
@@ -187,13 +187,7 @@ function hookTipPos(len) {
 
 /* ──────────────────────── Update ────────────────────────────────── */
 function update(dt) {
-    if (shake > 0) {
-        shake -= dt * 0.8;
-        shakeOffX = (Math.random() - 0.5) * shake;
-        shakeOffY = (Math.random() - 0.5) * shake;
-    } else {
-        shakeOffX = 0; shakeOffY = 0;
-    }
+    shake.update(dt / 60);   /* dt va en frames; Shake pide segundos */
     if (flashAlpha > 0) flashAlpha -= dt * 0.025;
 
     if (!isPlaying) return;
@@ -349,7 +343,7 @@ function endGame() {
     isPlaying = false;
     isGameOver = true;
     bestCheck();
-    shake = 14;
+    shake.hit(14);
     flashAlpha = 0.5;
     GameAudio.gameOver();
     setTimeout(function () {
@@ -814,7 +808,7 @@ function drawTransition() {
 
 function render() {
     ctx.save();
-    if (shake > 0) ctx.translate(shakeOffX, shakeOffY);
+    shake.translate(ctx);   /* no hace nada si no hay sacudida activa */
 
     drawBackground();
     drawMiner();

@@ -59,9 +59,10 @@ var speed         = START_SPEED;
 var spawnEvery    = START_SPAWN;
 var spawnTimer    = 0;
 var hitFlash      = 0;          // flash global pequeño al acertar
-var screenShake   = 0;
-var shakeOffX     = 0;
-var shakeOffY     = 0;
+/* decay 0.736 reproduce la duración del decremento lineal anterior
+ * (10 → 0 restando 40 por segundo, unos 15 frames). Como la amplitud usaba la
+ * mitad del valor, hit() recibe la mitad. */
+var shake = new Shake({ decay: 0.736 });
 var elapsed       = 0;
 /* El récord va por GU.highScore: comparar, guardar y el valor por defecto
  * en un solo sitio. `best` se mantiene porque el resto del fichero la lee. */
@@ -128,7 +129,7 @@ function resetState() {
     spawnEvery = START_SPAWN;
     spawnTimer = 0;
     hitFlash = 0;
-    screenShake = 0;
+    shake.stop();
     elapsed = 0;
     isPlaying = false;
     isOver = false;
@@ -214,7 +215,7 @@ function handleTap(x, y) {
 function loseLife(lane, y) {
     combo = 0;
     lives--;
-    screenShake = 10;
+    shake.hit(5);
     pops.push({
         x: lane * LANE_W + LANE_W / 2,
         y: y,
@@ -267,15 +268,7 @@ function update(dt) {
         lanePulse[k] = Math.max(0, lanePulse[k] - dt * 3.5);
     }
     hitFlash = Math.max(0, hitFlash - dt * 2.2);
-    screenShake = Math.max(0, screenShake - dt * 40);
-    // precomputar offset de shake fuera del render
-    if (screenShake > 0) {
-        shakeOffX = (Math.random() - 0.5) * screenShake * 0.5;
-        shakeOffY = (Math.random() - 0.5) * screenShake * 0.5;
-    } else {
-        shakeOffX = 0;
-        shakeOffY = 0;
-    }
+    shake.update(dt);
 }
 
 /* ─────────────────────── Render ─────────────────────── */
@@ -477,9 +470,7 @@ function drawInitialOverlay() {
 
 function render() {
     ctx.save();
-    if (screenShake > 0) {
-        ctx.translate(shakeOffX, shakeOffY);
-    }
+    shake.translate(ctx);   /* no hace nada si no hay sacudida activa */
     drawBackground();
     drawHitLine();
     drawTiles();
