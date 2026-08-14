@@ -520,9 +520,15 @@ function draw() {
         ctx.globalAlpha = 1;
     }
 
-    // Touch zone overlay (solo visible con opacidad muy baja)
+    /* Zonas táctiles, muy tenues.
+     *
+     * Aquí había un `var W = canvas.width, H = canvas.height;` y costaba el
+     * juego entero: `var` se iza al principio de draw(), así que W y H quedaban
+     * SOMBREADAS y valían undefined en la primera línea de la función — la que
+     * pinta el fondo. Ese fillRect(0,0,undefined,undefined) no pintaba nada, el
+     * canvas no se limpiaba nunca, y estas franjas blancas al 8% se acumulaban
+     * frame tras frame hasta dejar el espacio en blanco. Se usan las globales. */
     if (isPlaying) {
-        var W = canvas.width, H = canvas.height;
         ctx.globalAlpha = 0.08;
         ctx.fillStyle = '#fff';
         // Zona izquierda

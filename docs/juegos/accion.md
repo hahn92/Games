@@ -11,6 +11,20 @@ Los dos shooters con notas propias.
 ## Asteroids (`asteroids/`)
 - Thrust fire particles: orange/yellow particles spawned at ship tail when thrusting
 - Asteroid trails: last 5 positions stored in `trail[]` array, drawn faded
+- **El fondo no se pintaba.** `draw()` empieza con `ctx.fillRect(0, 0, W, H)`
+  sobre el degradado azul, pero más abajo, dentro del `if (isPlaying)` de las
+  zonas táctiles, había un `var W = canvas.width, H = canvas.height;`. `var` se
+  iza al principio de la función, así que W y H quedaban **sombreadas** y valían
+  `undefined` justo en esa primera línea: el `fillRect` no pintaba nada, el
+  canvas no se limpiaba nunca y las franjas blancas al 8% de las zonas táctiles
+  se acumulaban frame tras frame hasta dejar el espacio en blanco.
+
+  Es el fallo más difícil de ver de todos los que hay documentados aquí: no da
+  error, el juego responde, la puntuación sube y las formas se dibujan — sólo
+  que sobre un fondo que va blanqueando. Se localizó mirando una captura y
+  midiendo el píxel de la esquina: (145,152,173) donde tenía que haber
+  (13,27,75). Un barrido posterior confirmó que era el único caso del patrón en
+  los 64 juegos.
 - Explosion: triangular fragment particles (`spawnFragments()`) that spin and fade
 - Sacudida y destello rojo al perder una vida. Durante un tiempo esto fue mentira:
   `screenShake`, `shakeOffX`, `shakeOffY` y `deathFlash` se asignaban al chocar y no

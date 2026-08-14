@@ -197,9 +197,11 @@ function drawSecretRow() {
     ctx.fill();
     ctx.fillStyle = '#8fd3f4';
     ctx.font = 'bold 12px monospace';
-    ctx.fillText('CÓDIGO', BOARD_X + 10, BOARD_Y - 4);
+    ctx.fillText('CÓDIGO', BOARD_X + 10, BOARD_Y + 4);
+    /* Las fichas del código se alinean a la DERECHA del recuadro: alineadas a la
+     * izquierda como las de los intentos, la primera quedaba debajo del rótulo. */
     for (var i = 0; i < SLOTS; i++) {
-        var x = slotX(i) + 28, y = BOARD_Y;
+        var x = W - BOARD_X - 22 - (SLOTS - 1 - i) * 40, y = BOARD_Y;
         if (revealSecret) {
             drawPeg(x, y, COLORS[secret[i]], 13);
         } else {

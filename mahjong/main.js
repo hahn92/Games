@@ -21,25 +21,31 @@ var H = canvas.height;   // 520
 var TW = 34, TH = 44;      // tamaño de ficha
 var DX = 5, DY = 5;        // desplazamiento por capa, para que se vea el relieve
 
-/* La figura: filas de la capa base más dos capas menores encima. Las
- * coordenadas van en MEDIAS FICHAS para poder solapar como el tablero clásico. */
+/* La figura, en MEDIAS FICHAS.
+ *
+ * Que la unidad sea la media ficha es lo que permite desplazar una capa medio
+ * hueco, como el tablero clásico. Pero por eso mismo dos fichas CONTIGUAS van a
+ * distancia 2, no 1: `row()` avanza de dos en dos y las filas también. Ponerlo
+ * a 1 hace que cada ficha tape media vecina y la figura entera se apelotona —
+ * y `isFree` deja de tener sentido, porque su idea de "pegada al lado" es
+ * exactamente una distancia de 2. */
 var LAYOUT = buildLayout();
 
 function buildLayout() {
     var slots = [];
     function row(layer, y, x0, count) {
-        for (var i = 0; i < count; i++) slots.push({ l: layer, x: x0 + i, y: y });
+        for (var i = 0; i < count; i++) slots.push({ l: layer, x: x0 + i * 2, y: y });
     }
     /* Capa 0: pirámide ancha */
-    row(0, 0, 1, 10);
-    row(0, 1, 0, 12);
+    row(0, 0, 2, 10);
     row(0, 2, 0, 12);
-    row(0, 3, 1, 10);
-    /* Capa 1 */
-    row(1, 1, 3, 6);
-    row(1, 2, 3, 6);
-    /* Capa 2 */
-    row(2, 1.5, 5, 2);
+    row(0, 4, 0, 12);
+    row(0, 6, 2, 10);
+    /* Capa 1, encima y centrada */
+    row(1, 2, 6, 6);
+    row(1, 4, 6, 6);
+    /* Capa 2, la cumbre */
+    row(2, 3, 10, 2);
     return slots;
 }
 
@@ -300,9 +306,14 @@ function syncHud() {
 
 /* ── Dibujo ───────────────────────────────────────────────────────── */
 
+/* La figura ocupa 24 medias fichas de ancho (12 columnas) y 8 de alto (4 filas),
+ * y se centra en el canvas a partir de eso. Con la anchura escrita a mano se
+ * descentra en cuanto cambia una fila. */
+var SPAN_X = 24, SPAN_Y = 8;
+
 function tilePos(t) {
-    var baseX = (W - 13 * TW / 2) / 2;
-    var baseY = 42;
+    var baseX = (W - SPAN_X * TW / 2) / 2;
+    var baseY = (H - SPAN_Y * TH / 2) / 2;
     return {
         x: baseX + t.slot.x * TW / 2 + t.slot.l * DX,
         y: baseY + t.slot.y * TH / 2 - t.slot.l * DY

@@ -126,6 +126,12 @@ Aquí sólo lo que no es evidente leyendo el código.
     se reintenta, con tope de 60 como el nonograma. Medido: 200 de 200 repartos
     completos, y 175 de 200 se vacían incluso jugando siempre la primera pareja
     que aparece.
+- **Las coordenadas van en medias fichas, así que dos contiguas van a distancia
+  2, no 1.** La media ficha es la unidad para poder desplazar una capa medio
+  hueco; con paso 1 cada ficha tapa media vecina, la figura se apelotona y
+  `isFree` deja de tener sentido, porque su idea de "pegada al lado" es
+  exactamente una distancia de 2. Salió al mirar una captura: las 58 fichas
+  amontonadas en un cuarto del tablero.
 - Al teclado sólo se le ofrecen las fichas **libres**: navegar por las
   bloqueadas no lleva a ninguna parte y multiplicaría por cuatro los pasos.
 

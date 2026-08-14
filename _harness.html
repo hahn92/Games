@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<title>Arnés de captura</title>
+<style>
+    html, body { margin: 0; background: #101010; }
+    iframe { border: 0; display: block; }
+</style>
+</head>
+<body>
+<!--
+    Arnés para capturar un juego EN MARCHA con Chrome headless.
+
+        ?game=tron&w=1100&h=900&keys=ArrowUp,ArrowLeft&clicks=200x300
+
+    El iframe tiene que ser ANCHO y visible: uno estrecho mete a MobileLayout en
+    su rama de móvil, y uno fuera de pantalla hace que Chrome estrangule su rAF
+    y el juego no avance ni un frame. Está en docs/trampas.md.
+
+    Pulsa Iniciar dentro del iframe (mismo origen, así que se puede) y luego
+    inyecta las teclas y los clics que le pidas, para que la captura sea de una
+    partida de verdad y no de la pantalla de reposo.
+-->
+<iframe id="frame"></iframe>
+<script>
+var q = new URLSearchParams(location.search);
+var game = q.get('game');
+var W = parseInt(q.get('w') || '1100', 10);
+var H = parseInt(q.get('h') || '900', 10);
+
+var frame = document.getElementById('frame');
+frame.width = W;
+frame.height = H;
+frame.src = './' + game + '/index.html';
+
+frame.addEventListener('load', function () {
+    var doc = frame.contentDocument;
+    var win = frame.contentWindow;
+
+    /* Arrancar la partida. Algunos juegos no tienen Iniciar (chess, damas). */
+    var start = doc.getElementById('startBtn');
+    if (start && !start.disabled) start.click();
+
+    /* Teclas: se envían como keydown+keyup reales sobre el documento del juego,
+     * que es donde GU.keys escucha. */
+    var keys = (q.get('keys') || '').split(',').filter(Boolean);
+    keys.forEach(function (k, i) {
+        win.setTimeout(function () {
+            doc.dispatchEvent(new win.KeyboardEvent('keydown', { key: k, code: k, bubbles: true }));
+            win.setTimeout(function () {
+                doc.dispatchEvent(new win.KeyboardEvent('keyup', { key: k, code: k, bubbles: true }));
+            }, 260);
+        }, 200 + i * 320);
+    });
+
+    /* Clics sobre el canvas, en coordenadas de canvas. */
+    var clicks = (q.get('clicks') || '').split(';').filter(Boolean);
+    var canvas = doc.querySelector('canvas');
+    clicks.forEach(function (c, i) {
+        var xy = c.split('x');
+        win.setTimeout(function () {
+            if (!canvas) return;
+            var r = canvas.getBoundingClientRect();
+            var ev = new win.MouseEvent('mousedown', {
+                clientX: r.left + (+xy[0]) * (r.width / canvas.width),
+                clientY: r.top + (+xy[1]) * (r.height / canvas.height),
+                bubbles: true
+            });
+            canvas.dispatchEvent(ev);
+        }, 300 + i * 300);
+    });
+
+    /* Deja constancia de cualquier error del juego en el título, que sí sale en
+     * la captura si se mira, y en la consola. */
+    win.addEventListener('error', function (e) {
+        document.title = 'ERROR: ' + e.message;
+        console.error('[harness] ' + game + ': ' + e.message);
+    });
+});
+</script>
+</body>
+</html>
