@@ -123,9 +123,10 @@ Aquí sólo lo que no es evidente leyendo el código.
     sólo queda libre **después** de retirar a su vecina, las dos nunca estuvieron
     disponibles al mismo tiempo y esa pareja no habría podido elegirse nunca.
   - Puede atascarse (dos fichas apiladas al final dejan sólo una libre), así que
-    se reintenta, con tope de 60 como el nonograma. Medido: 200 de 200 repartos
-    completos, y 175 de 200 se vacían incluso jugando siempre la primera pareja
-    que aparece.
+    se reintenta, con tope de 60 como el nonograma. Medido tras arreglar la
+    disposición: 100 de 100 repartos completos, y 92 de 100 se vacían incluso
+    jugando siempre la primera pareja que aparece. Los 8 restantes piden pensar,
+    que es de lo que va el juego.
 - **Las coordenadas van en medias fichas, así que dos contiguas van a distancia
   2, no 1.** La media ficha es la unidad para poder desplazar una capa medio
   hueco; con paso 1 cada ficha tapa media vecina, la figura se apelotona y
