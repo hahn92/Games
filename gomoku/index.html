@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <title>Cinco en Raya</title>
+    <meta name="description" content="Gomoku en tablero de 15×15 contra una IA que evalúa amenazas: distingue un tres abierto de uno tapado y puntúa cada casilla también desde tu lado.">
+    <meta name="theme-color" content="#181818">
+    <link rel="canonical" href="https://games.hahndev.com/gomoku/">
+    <link rel="icon" type="image/svg+xml" href="../favicon.svg">
+    <meta property="og:type" content="website">
+    <meta property="og:site_name" content="Juegos Web JS/CSS">
+    <meta property="og:title" content="Cinco en Raya — Estrategia">
+    <meta property="og:description" content="Gomoku 15×15 contra una IA que evalúa amenazas en las cuatro direcciones.">
+    <meta property="og:url" content="https://games.hahndev.com/gomoku/">
+    <meta property="og:image" content="https://games.hahndev.com/favicon.svg">
+    <meta name="twitter:card" content="summary">
+    <meta name="twitter:title" content="Cinco en Raya — Estrategia">
+    <meta name="twitter:description" content="Gomoku 15×15 contra una IA que evalúa amenazas en las cuatro direcciones.">
+    <link rel="stylesheet" href="./styles.css">
+</head>
+<body>
+    <main>
+        <div class="responsive-layout">
+            <div class="game-side" id="gameSide">
+                <canvas id="gomokuCanvas" class="gomoku-canvas" width="480" height="480" tabindex="0"></canvas>
+                <div id="mobileScore" class="mobile-score"></div>
+            </div>
+            <div class="info-side" id="infoSide">
+                <h1>Cinco en Raya</h1>
+                <p>Alinea <strong>cinco piedras</strong> en horizontal, vertical o diagonal antes que la máquina. Se juega sobre los cruces, como en el go.</p>
+                <p>La IA no busca en profundidad —con 225 casillas no sale a cuenta—: puntúa cada jugada por <strong>amenazas</strong>, mirando las cuatro direcciones y distinguiendo un tres <em>abierto</em> por los dos lados de uno tapado, que valen cosas muy distintas.</p>
+                <p>Y puntúa cada casilla también <strong>desde tu punto de vista</strong>, quedándose con el máximo. Sin eso haría lo de las IA malas de gomoku: seguir con su línea mientras tú completas la tuya.</p>
+                <div class="score-panel">
+                    <span>Ganadas: <b id="winsLabel">0</b></span>
+                    <span>Perdidas: <b id="lossesLabel">0</b></span>
+                    <span>Turno: <b id="turnLabel">—</b></span>
+                </div>
+                <div class="buttons-panel">
+                    <button id="startBtn" type="button">Iniciar</button>
+                    <button id="restartBtn" type="button" disabled>Reiniciar</button>
+                </div>
+                <div class="hint">
+                    <strong style="color:#aaa;">Consejos:</strong><br>
+                    Toca un cruce para poner piedra; con teclado, flechas y Enter.<br>
+                    Un <em>tres abierto</em> (con hueco a los dos lados) obliga a la máquina a responder.<br>
+                    Dos amenazas a la vez ganan la partida: la máquina sólo puede tapar una.<br>
+                    La piedra con borde blanco es la última jugada.<br>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <div class="popup" id="overPopup" style="display:none;">
+        <div class="popup-content">
+            <h2 id="overTitle">Fin de la partida</h2>
+            <p id="overScore"></p>
+            <p id="overRecord"></p>
+            <button id="playAgainBtn" type="button">Jugar de nuevo</button>
+        </div>
+    </div>
+
+    <script src="../mobile-layout.js"></script>
+    <script>
+    MobileLayout({
+        show: { mobileScore: 'block' },
+        fit: function (vHeight) {
+            var canvas = document.getElementById('gomokuCanvas');
+            var ratio  = 480 / 480;
+            /* -8: el canvas lleva borde de 3px por lado con content-box, así que
+               innerWidth pelado desborda el viewport en móvil. */
+            var availW = window.innerWidth - 8;
+            var availH = vHeight - (isMobile() ? 40 : 0);
+            var newH = Math.min(availH, availW / ratio);
+            var newW = newH * ratio;
+            if (newW > availW) { newW = availW; newH = newW / ratio; }
+            canvas.style.width  = newW + 'px';
+            canvas.style.height = newH + 'px';
+        },
+        reset: function () {
+            var canvas = document.getElementById('gomokuCanvas');
+            canvas.style.width  = '';
+            canvas.style.height = '';
+        },
+    });
+    </script>
+    <script src="../audio.js"></script>
+    <script src="../game-utils.js"></script>
+    <script src="./main.js"></script>
+    <script src="../fullscreen-btn.js"></script>
+</body>
+</html>

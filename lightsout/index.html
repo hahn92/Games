@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <title>Apaga las Luces</title>
+    <meta name="description" content="Pulsa una casilla y cambian ella y sus cuatro vecinas. El tablero se genera desde el estado apagado, así que siempre tiene solución.">
+    <meta name="theme-color" content="#181818">
+    <link rel="canonical" href="https://games.hahndev.com/lightsout/">
+    <link rel="icon" type="image/svg+xml" href="../favicon.svg">
+    <meta property="og:type" content="website">
+    <meta property="og:site_name" content="Juegos Web JS/CSS">
+    <meta property="og:title" content="Apaga las Luces — Lógica">
+    <meta property="og:description" content="Pulsa una casilla y cambian ella y sus vecinas. Apágalas todas.">
+    <meta property="og:url" content="https://games.hahndev.com/lightsout/">
+    <meta property="og:image" content="https://games.hahndev.com/favicon.svg">
+    <meta name="twitter:card" content="summary">
+    <meta name="twitter:title" content="Apaga las Luces — Lógica">
+    <meta name="twitter:description" content="Pulsa una casilla y cambian ella y sus vecinas. Apágalas todas.">
+    <link rel="stylesheet" href="./styles.css">
+</head>
+<body>
+    <main>
+        <div class="responsive-layout">
+            <div class="game-side" id="gameSide">
+                <canvas id="loCanvas" class="lo-canvas" width="420" height="460" tabindex="0"></canvas>
+                <div id="mobileScore" class="mobile-score"></div>
+            </div>
+            <div class="info-side" id="infoSide">
+                <h1>Apaga las Luces</h1>
+                <p>Cada pulsación cambia el estado de la casilla <strong>y de sus cuatro vecinas</strong>. Hay que dejar el tablero entero apagado.</p>
+                <p>Dos propiedades que conviene tener en la cabeza: pulsar dos veces la misma casilla <strong>no hace nada</strong>, y el orden da igual. Así que la solución no es una secuencia, es un <em>conjunto</em> de casillas — y por eso vale la pena pensarla entera antes de empezar.</p>
+                <p>El tablero se construye desde el estado apagado aplicando pulsaciones al azar, así que <strong>siempre se puede resolver</strong>. Sembrando luces al azar, en un 5×5 sólo una de cada cuatro configuraciones tiene solución, y no habría forma de distinguir «no lo veo» de «no se puede».</p>
+                <div class="score-panel">
+                    <span>Pulsaciones: <b id="movesLabel">0</b></span>
+                    <span>Encendidas: <b id="onLabel">0</b></span>
+                    <span>Récord: <b id="highScore">—</b></span>
+                </div>
+                <div class="buttons-panel">
+                    <button id="startBtn" type="button">Iniciar</button>
+                    <button id="restartBtn" type="button" disabled>Reiniciar</button>
+                    <button id="hintBtn" type="button">Pista</button>
+                    <label class="diff-wrap">Tamaño:
+                        <select id="diffSel">
+                            <option value="facil">4 × 4</option>
+                            <option value="medio" selected>5 × 5</option>
+                            <option value="dificil">6 × 6</option>
+                        </select>
+                    </label>
+                </div>
+                <div class="hint">
+                    <strong style="color:#aaa;">Consejos:</strong><br>
+                    Toca una casilla para pulsarla; H da una pista.<br>
+                    Con teclado: tabula al tablero, flechas para moverte y Enter para pulsar.<br>
+                    Empieza por la fila de arriba: cuando quede apagada, sólo puedes tocar las de abajo.<br>
+                    El récord es el <em>menor</em> número de pulsaciones, y va por tamaño.<br>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <div class="popup" id="overPopup" style="display:none;">
+        <div class="popup-content">
+            <h2 id="overTitle">Fin de la partida</h2>
+            <p id="overScore"></p>
+            <p id="overBest"></p>
+            <button id="playAgainBtn" type="button">Jugar de nuevo</button>
+        </div>
+    </div>
+
+    <script src="../mobile-layout.js"></script>
+    <script>
+    MobileLayout({
+        show: { mobileScore: 'block' },
+        fit: function (vHeight) {
+            var canvas = document.getElementById('loCanvas');
+            var ratio  = 420 / 460;
+            /* -8: el canvas lleva borde de 3px por lado con content-box, así que
+               innerWidth pelado desborda el viewport en móvil. */
+            var availW = window.innerWidth - 8;
+            var availH = vHeight - (isMobile() ? 40 : 0);
+            var newH = Math.min(availH, availW / ratio);
+            var newW = newH * ratio;
+            if (newW > availW) { newW = availW; newH = newW / ratio; }
+            canvas.style.width  = newW + 'px';
+            canvas.style.height = newH + 'px';
+        },
+        reset: function () {
+            var canvas = document.getElementById('loCanvas');
+            canvas.style.width  = '';
+            canvas.style.height = '';
+        },
+    });
+    </script>
+    <script src="../audio.js"></script>
+    <script src="../game-utils.js"></script>
+    <script src="./main.js"></script>
+    <script src="../fullscreen-btn.js"></script>
+</body>
+</html>

@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <title>Tuberías</title>
+    <meta name="description" content="Gira cada tramo hasta que el agua llegue a todos los grifos. El tablero se construye como un árbol de expansión, así que siempre tiene solución.">
+    <meta name="theme-color" content="#181818">
+    <link rel="canonical" href="https://games.hahndev.com/tuberias/">
+    <link rel="icon" type="image/svg+xml" href="../favicon.svg">
+    <meta property="og:type" content="website">
+    <meta property="og:site_name" content="Juegos Web JS/CSS">
+    <meta property="og:title" content="Tuberías — Lógica">
+    <meta property="og:description" content="Gira los tramos hasta que el agua llegue a todos los grifos.">
+    <meta property="og:url" content="https://games.hahndev.com/tuberias/">
+    <meta property="og:image" content="https://games.hahndev.com/favicon.svg">
+    <meta name="twitter:card" content="summary">
+    <meta name="twitter:title" content="Tuberías — Lógica">
+    <meta name="twitter:description" content="Gira los tramos hasta que el agua llegue a todos los grifos.">
+    <link rel="stylesheet" href="./styles.css">
+</head>
+<body>
+    <main>
+        <div class="responsive-layout">
+            <div class="game-side" id="gameSide">
+                <canvas id="tubCanvas" class="tub-canvas" width="440" height="480" tabindex="0"></canvas>
+                <div id="mobileScore" class="mobile-score"></div>
+            </div>
+            <div class="info-side" id="infoSide">
+                <h1>Tuberías</h1>
+                <p>Cada toque gira un tramo 90°. El agua sale del depósito amarillo y hay que hacerla llegar a <strong>todas</strong> las celdas.</p>
+                <p>Dos tramos sólo se unen si <em>los dos</em> tienen boca hacia el otro. Que una tubería apunte a su vecina no basta si la vecina mira a otro lado — es el error más fácil de cometer mirando el tablero por encima.</p>
+                <p>La red se construye como un <strong>árbol de expansión</strong> sobre la rejilla: conecta todas las celdas sin ciclos, así que la solución existe por construcción. Sembrando piezas al azar, casi ningún tablero se podría resolver.</p>
+                <div class="score-panel">
+                    <span>Giros: <b id="movesLabel">0</b></span>
+                    <span>Con agua: <b id="connLabel">0/0</b></span>
+                    <span>Récord: <b id="highScore">—</b></span>
+                </div>
+                <div class="buttons-panel">
+                    <button id="startBtn" type="button">Iniciar</button>
+                    <button id="restartBtn" type="button" disabled>Reiniciar</button>
+                    <label class="diff-wrap">Tamaño:
+                        <select id="diffSel">
+                            <option value="facil">5 × 5</option>
+                            <option value="medio" selected>7 × 7</option>
+                            <option value="dificil">9 × 9</option>
+                        </select>
+                    </label>
+                </div>
+                <div class="hint">
+                    <strong style="color:#aaa;">Consejos:</strong><br>
+                    Toca un tramo para girarlo; con teclado, flechas y Enter.<br>
+                    Los tramos con agua se ven en azul claro; los secos, en gris.<br>
+                    Empieza por el depósito y ve extendiendo: lo que ya tiene agua no miente.<br>
+                    Un extremo suelto lleva un grifo dibujado — todos tienen que acabar azules.<br>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <div class="popup" id="overPopup" style="display:none;">
+        <div class="popup-content">
+            <h2 id="overTitle">Fin de la partida</h2>
+            <p id="overScore"></p>
+            <p id="overBest"></p>
+            <button id="playAgainBtn" type="button">Jugar de nuevo</button>
+        </div>
+    </div>
+
+    <script src="../mobile-layout.js"></script>
+    <script>
+    MobileLayout({
+        show: { mobileScore: 'block' },
+        fit: function (vHeight) {
+            var canvas = document.getElementById('tubCanvas');
+            var ratio  = 440 / 480;
+            /* -8: el canvas lleva borde de 3px por lado con content-box, así que
+               innerWidth pelado desborda el viewport en móvil. */
+            var availW = window.innerWidth - 8;
+            var availH = vHeight - (isMobile() ? 40 : 0);
+            var newH = Math.min(availH, availW / ratio);
+            var newW = newH * ratio;
+            if (newW > availW) { newW = availW; newH = newW / ratio; }
+            canvas.style.width  = newW + 'px';
+            canvas.style.height = newH + 'px';
+        },
+        reset: function () {
+            var canvas = document.getElementById('tubCanvas');
+            canvas.style.width  = '';
+            canvas.style.height = '';
+        },
+    });
+    </script>
+    <script src="../audio.js"></script>
+    <script src="../game-utils.js"></script>
+    <script src="./main.js"></script>
+    <script src="../fullscreen-btn.js"></script>
+</body>
+</html>
