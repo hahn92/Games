@@ -467,7 +467,10 @@ function drawCursor() {
 }
 
 canvas.addEventListener('mousedown', (e) => { handleClick(canvasPoint(e)); });
-canvas.addEventListener('touchstart', (e) => { e.preventDefault(); handleClick(canvasPoint(e)); }, { passive: false });
+GU.swipe(canvas, {
+    preventDefault: true,
+    onTap: (p) => handleClick(p)
+});
 
 // ---- Rendering ----
 function makeBgGrad() {

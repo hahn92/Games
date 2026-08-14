@@ -394,12 +394,11 @@ function drawCursor() {
 canvas.addEventListener('click', function (e) {
     handlePeg(canvasPeg(e.clientX, e.clientY));
 });
-canvas.addEventListener('touchstart', function (e) {
-    if (!e.touches.length) return;
-    e.preventDefault();
-    var t = e.touches[0];
-    handlePeg(canvasPeg(t.clientX, t.clientY));
-}, { passive: false });
+GU.swipe(canvas, {
+    preventDefault: true,
+    /* Aquí sólo hay toques: la coordenada ya viene en espacio de canvas. */
+    onTap: function (p) { handlePeg(pegFromX(p.x)); }
+});
 
 /* ── Botones ── */
 function changeLevel(delta) {

@@ -1574,35 +1574,17 @@ addTap('btnLeft', 0, -1);
 addTap('btnRight', 0, 1);
 
 // Swipe gestures en el canvas
-(function() {
-    var swipeStartX, swipeStartY;
-    var MIN_SWIPE = 30;
-
-    canvas.addEventListener('touchstart', function(e) {
-        e.preventDefault();
-        swipeStartX = e.touches[0].clientX;
-        swipeStartY = e.touches[0].clientY;
-        var tc = document.getElementById('touchControls');
-        if (tc) tc.style.display = 'none';
-    }, { passive: false });
-
-    canvas.addEventListener('touchend', function(e) {
-        e.preventDefault();
-        var dx = e.changedTouches[0].clientX - swipeStartX;
-        var dy = e.changedTouches[0].clientY - swipeStartY;
-        var absDx = Math.abs(dx), absDy = Math.abs(dy);
-        if (Math.max(absDx, absDy) < MIN_SWIPE) {
-            // TAP: iniciar o reiniciar si no está jugando
-            if (!isPlaying) { startGame(); }
-        } else if (absDx > absDy) {
-            if (dx > 0) { moveFrog(0, 1); }
-            else        { moveFrog(0, -1); }
-        } else {
-            if (dy > 0) { moveFrog(1, 0); }
-            else        { moveFrog(-1, 0); }
-        }
-    }, { passive: false });
-})();
+GU.swipe(canvas, {
+    minDist: 30,
+    preventDefault: true,
+    onSwipe: function (dir) {
+        if (dir === 'right')     moveFrog(0, 1);
+        else if (dir === 'left') moveFrog(0, -1);
+        else if (dir === 'down') moveFrog(1, 0);
+        else                     moveFrog(-1, 0);
+    },
+    onTap: function () { if (!isPlaying) startGame(); }
+});
 
 var gameControls = GU.controls({ start: startGame, popup: 'gameOverPopup' });
 

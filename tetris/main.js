@@ -699,34 +699,21 @@ window.addEventListener('keydown', e => {
 
 // Swipe gestures en el canvas
 (function() {
-    var swipeStartX, swipeStartY;
     var MIN_SWIPE = 30;
 
-    canvas.addEventListener('touchstart', function(e) {
-        e.preventDefault();
-        swipeStartX = e.touches[0].clientX;
-        swipeStartY = e.touches[0].clientY;
-        var tc = document.getElementById('touchControls');
-        if (tc) tc.style.display = 'none';
-    }, { passive: false });
-
-    canvas.addEventListener('touchend', function(e) {
-        e.preventDefault();
-        var dx = e.changedTouches[0].clientX - swipeStartX;
-        var dy = e.changedTouches[0].clientY - swipeStartY;
-        var absDx = Math.abs(dx), absDy = Math.abs(dy);
-        if (!isPlaying) return;
-        if (Math.max(absDx, absDy) < MIN_SWIPE) {
-            // TAP: rotar pieza (más intuitivo en móvil)
-            rotate();
-        } else if (absDx > absDy) {
-            if (dx > 0) { move(1); }
-            else        { move(-1); }
-        } else {
-            if (dy > 0) { drop(); }
-            else        { rotate(); }
-        }
-    }, { passive: false });
+    GU.swipe(canvas, {
+        minDist: MIN_SWIPE,
+        preventDefault: true,
+        onSwipe: function (dir) {
+            if (!isPlaying) return;
+            if (dir === 'right')     move(1);
+            else if (dir === 'left') move(-1);
+            else if (dir === 'down') drop();
+            else                     rotate();
+        },
+        /* Un toque rota, que en móvil es más natural que buscar un botón. */
+        onTap: function () { if (isPlaying) rotate(); }
+    });
 })();
 
 updateScoreDOM();

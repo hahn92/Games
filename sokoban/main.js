@@ -671,21 +671,16 @@
     });
 
     // Touch swipe
-    var touchStartX = 0, touchStartY = 0;
-    canvas.addEventListener('touchstart', function (e) {
-        touchStartX = e.touches[0].clientX;
-        touchStartY = e.touches[0].clientY;
-        e.preventDefault();
-    }, { passive: false });
-    canvas.addEventListener('touchend', function (e) {
-        var dx = e.changedTouches[0].clientX - touchStartX;
-        var dy = e.changedTouches[0].clientY - touchStartY;
-        var absDx = Math.abs(dx), absDy = Math.abs(dy);
-        if (Math.max(absDx, absDy) < 15) return;
-        if (absDx > absDy) tryMove(0, dx > 0 ? 1 : -1);
-        else               tryMove(dy > 0 ? 1 : -1, 0);
-        e.preventDefault();
-    }, { passive: false });
+    GU.swipe(canvas, {
+        minDist: 15,
+        preventDefault: true,
+        onSwipe: function (dir) {
+            if (dir === 'right')     tryMove(0, 1);
+            else if (dir === 'left') tryMove(0, -1);
+            else if (dir === 'down') tryMove(1, 0);
+            else                     tryMove(-1, 0);
+        }
+    });
 
     // ── Button handlers ───────────────────────────────────────────────
     /* Iniciar y "Jugar de nuevo" hacen lo mismo: volver al primer nivel. El

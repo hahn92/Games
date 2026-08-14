@@ -101,8 +101,6 @@
     var exitPulse = 0;  // oscillator for exit breathing
 
     /* ── swipe detection ─────────────────────────────────────────── */
-    var touchStartX = 0, touchStartY = 0;
-    var touchStartTime = 0;
     var SWIPE_MIN = 18;   // minimum px for a swipe
 
     /* ── localStorage helpers ───────────────────────────────────── */
@@ -623,28 +621,17 @@
     });
 
     /* ── touch / swipe ──────────────────────────────────────────── */
-    canvas.addEventListener('touchstart', function (e) {
-        var t = e.touches[0];
-        touchStartX = t.clientX;
-        touchStartY = t.clientY;
-        touchStartTime = performance.now();
-        e.preventDefault();
-    }, { passive: false });
-
-    canvas.addEventListener('touchend', function (e) {
-        var t = e.changedTouches[0];
-        var dx = t.clientX - touchStartX;
-        var dy = t.clientY - touchStartY;
-        var dt = performance.now() - touchStartTime;
-        if (dt > 600) return;   // too slow, ignore
-        if (Math.abs(dx) < SWIPE_MIN && Math.abs(dy) < SWIPE_MIN) return;
-        if (Math.abs(dx) > Math.abs(dy)) {
-            tryMove(dx > 0 ? 1 : -1, 0);
-        } else {
-            tryMove(0, dy > 0 ? 1 : -1);
+    GU.swipe(canvas, {
+        minDist: SWIPE_MIN,
+        maxTime: 600,          /* un arrastre lento no cuenta como gesto */
+        preventDefault: true,
+        onSwipe: function (dir) {
+            if (dir === 'right')     tryMove(1, 0);
+            else if (dir === 'left') tryMove(-1, 0);
+            else if (dir === 'down') tryMove(0, 1);
+            else                     tryMove(0, -1);
         }
-        e.preventDefault();
-    }, { passive: false });
+    });
 
     /* ── buttons ─────────────────────────────────────────────────── */
     var gameControls = GU.controls({

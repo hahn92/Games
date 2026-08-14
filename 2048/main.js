@@ -260,50 +260,15 @@ document.getElementById('btnLeft').addEventListener('click', () => isPlaying && 
 document.getElementById('btnRight').addEventListener('click', () => isPlaying && move('right'));
 
 // Soporte para Swipe (mínimo 30px)
-let touchstartX = 0;
-let touchstartY = 0;
-let touchendX = 0;
-let touchendY = 0;
-
 // Zona de gestos: todo el gameSide, no sólo la rejilla — en móvil el tablero
 // ocupa una fracción de la pantalla y los swipes fuera de él se perdían.
 const gestureZone = document.getElementById('gameSide') || document.getElementById('game2048');
 
-gestureZone.addEventListener('touchstart', function(event) {
-    touchstartX = event.changedTouches[0].screenX;
-    touchstartY = event.changedTouches[0].screenY;
-    touchendX = touchstartX;
-    touchendY = touchstartY;
-}, { passive: true });
-
-// Evita el scroll/bounce de la página mientras se desliza sobre el tablero.
-gestureZone.addEventListener('touchmove', function(event) {
-    if (isPlaying) event.preventDefault();
-}, { passive: false });
-
-gestureZone.addEventListener('touchend', function(event) {
-    touchendX = event.changedTouches[0].screenX;
-    touchendY = event.changedTouches[0].screenY;
-    handleGesture();
-}, false);
-
-function handleGesture() {
-    if (!isPlaying) return;
-    let dx = touchendX - touchstartX;
-    let dy = touchendY - touchstartY;
-
-    if (Math.abs(dx) > Math.abs(dy)) {
-        if (Math.abs(dx) > 30) {
-            if (dx > 0) move('right');
-            else move('left');
-        }
-    } else {
-        if (Math.abs(dy) > 30) {
-            if (dy > 0) move('down');
-            else move('up');
-        }
-    }
-}
+GU.swipe(gestureZone, {
+    minDist: 30,
+    preventDefault: true,
+    onSwipe: function (dir) { if (isPlaying) move(dir); }
+});
 
 window.addEventListener('keydown', e => {
     if (!isPlaying) return;

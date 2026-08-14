@@ -660,26 +660,22 @@ var gameBest = GU.highScore('pacmanHighScore');
             }
         }
     });
-
-    var touchX=0, touchY=0;
-    canvas.addEventListener('touchstart',function(e){
-        if(e.touches.length){touchX=e.touches[0].clientX; touchY=e.touches[0].clientY;}
-    },{passive:true});
-    canvas.addEventListener('touchend',function(e){
-        if(!e.changedTouches.length) return;
-        var dx=e.changedTouches[0].clientX-touchX;
-        var dy=e.changedTouches[0].clientY-touchY;
-        if(Math.abs(dx)<10&&Math.abs(dy)<10) return;
-        var d = Math.abs(dx)>Math.abs(dy)
-            ? (dx>0?{x:1,y:0}:{x:-1,y:0})
-            : (dy>0?{x:0,y:1}:{x:0,y:-1});
-        if(gameState==='playing'){
-            pac.nextDir=d;
-            if(pac.dir.x===0&&pac.dir.y===0&&canMove(pac.row,pac.col,d)){
-                pac.dir=d; pac.targetRow=pac.row+d.y; pac.targetCol=pac.col+d.x;
+    /* `live: true`: aquí se conduce en continuo, así que el giro tiene que
+     * salir en cuanto el dedo cruza el umbral, no al levantarlo. */
+    GU.swipe(canvas, {
+        live: true,
+        minDist: 10,
+        preventDefault: true,
+        onSwipe: function (dir) {
+            if (gameState !== 'playing') return;
+            var d = dir === 'right' ? {x:1,y:0} : dir === 'left' ? {x:-1,y:0}
+                  : dir === 'down'  ? {x:0,y:1} : {x:0,y:-1};
+            pac.nextDir = d;
+            if (pac.dir.x === 0 && pac.dir.y === 0 && canMove(pac.row, pac.col, d)) {
+                pac.dir = d; pac.targetRow = pac.row + d.y; pac.targetCol = pac.col + d.x;
             }
         }
-    },{passive:true});
+    });
 
     // ── Botones ──────────────────────────────────────────────
     function doStart(){

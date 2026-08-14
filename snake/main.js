@@ -662,32 +662,22 @@ window.addEventListener('keydown', e => {
 
 // Swipe gestures en el canvas
 (function() {
-    var swipeStartX, swipeStartY;
-    var MIN_SWIPE = 30;
-
-    canvas.addEventListener('touchstart', function(e) {
-        e.preventDefault();
-        swipeStartX = e.touches[0].clientX;
-        swipeStartY = e.touches[0].clientY;
-        // Ocultar botones táctiles al usar swipe en canvas
-        var tc = document.getElementById('touchControls');
-        if (tc) tc.style.display = 'none';
-    }, { passive: false });
-
-    canvas.addEventListener('touchend', function(e) {
-        e.preventDefault();
-        var dx = e.changedTouches[0].clientX - swipeStartX;
-        var dy = e.changedTouches[0].clientY - swipeStartY;
-        var absDx = Math.abs(dx), absDy = Math.abs(dy);
-        if (Math.max(absDx, absDy) < MIN_SWIPE) {
-            // TAP: iniciar si no ha empezado, reiniciar si hay game over
-            if (!isPlaying && !deathFlash) { startGame(); }
-        } else if (absDx > absDy) {
-            queueDirection(dx > 0 ? 'RIGHT' : 'LEFT');
-        } else {
-            queueDirection(dy > 0 ? 'DOWN' : 'UP');
+    /* `live: true`: la serpiente se conduce en continuo, así que el giro tiene
+     * que salir al cruzar el umbral y no al levantar el dedo. queueDirection ya
+     * encola como máximo dos giros, que es lo que evita el suicidio por dos
+     * pulsaciones dentro del mismo tick. */
+    GU.swipe(canvas, {
+        live: true,
+        minDist: 30,
+        preventDefault: true,
+        onSwipe: function (dir) {
+            queueDirection(dir === 'right' ? 'RIGHT' : dir === 'left' ? 'LEFT'
+                         : dir === 'down'  ? 'DOWN'  : 'UP');
+        },
+        onTap: function () {
+            if (!isPlaying && !deathFlash) startGame();
         }
-    }, { passive: false });
+    });
 })();
 
 const startBtn = document.getElementById('startBtn');

@@ -1376,27 +1376,20 @@ var gameBest = GU.highScore('carrace_hs');
     });
 
     // Touch — swipe left/right
-    let touchStartX = null;
-    canvas.addEventListener('touchstart', function (e) {
-        if (e.touches.length > 0) {
-            touchStartX = e.touches[0].clientX;
+    GU.swipe(canvas, {
+        minDist: 30,
+        onSwipe: function (dir) {
+            if (!gameRunning) return;
+            if (dir === 'left' || dir === 'right') changeLane(dir === 'left' ? -1 : 1);
+        },
+        /* onTap devuelve coordenadas de canvas cuando el objetivo es un canvas,
+         * así que la mitad se decide contra el ancho lógico y no contra el
+         * rectángulo en pantalla. */
+        onTap: function (p) {
+            if (!gameRunning) return;
+            changeLane(p.x < canvas.width / 2 ? -1 : 1);
         }
-    }, { passive: true });
-
-    canvas.addEventListener('touchend', function (e) {
-        if (!gameRunning) { touchStartX = null; return; }
-        const endX  = e.changedTouches[0].clientX;
-        const deltaX = touchStartX !== null ? endX - touchStartX : 0;
-        touchStartX = null;
-        if (Math.abs(deltaX) > 30) {
-            // Swipe: move toward the swipe direction
-            changeLane(deltaX < 0 ? -1 : 1);
-        } else {
-            // Tap: left half = lane left, right half = lane right
-            const rect = canvas.getBoundingClientRect();
-            changeLane(endX - rect.left < rect.width / 2 ? -1 : 1);
-        }
-    }, { passive: true });
+    });
 
     // Buttons
     var gameControls = GU.controls({ start: startGame, popup: 'gameOverPopup' });
