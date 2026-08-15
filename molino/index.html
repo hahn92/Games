@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <title>Molino</title>
+    <meta name="description" content="Nine Men’s Morris con sus tres fases: colocar, mover y volar. Al cerrar un molino quitas una ficha rival, pero no una que esté dentro de otro molino.">
+    <meta name="theme-color" content="#181818">
+    <link rel="canonical" href="https://games.hahndev.com/molino/">
+    <link rel="icon" type="image/svg+xml" href="../favicon.svg">
+    <meta property="og:type" content="website">
+    <meta property="og:site_name" content="Juegos Web JS/CSS">
+    <meta property="og:title" content="Molino — Estrategia">
+    <meta property="og:description" content="Tres fases, molinos y la captura restringida del juego de verdad.">
+    <meta property="og:url" content="https://games.hahndev.com/molino/">
+    <meta property="og:image" content="https://games.hahndev.com/favicon.svg">
+    <meta name="twitter:card" content="summary">
+    <meta name="twitter:title" content="Molino — Estrategia">
+    <meta name="twitter:description" content="Tres fases, molinos y la captura restringida del juego de verdad.">
+    <link rel="stylesheet" href="./styles.css">
+</head>
+<body>
+    <main>
+        <div class="responsive-layout">
+            <div class="game-side" id="gameSide">
+                <canvas id="molinoCanvas" class="molino-canvas" width="460" height="460" tabindex="0"></canvas>
+                <div id="mobileScore" class="mobile-score"></div>
+            </div>
+            <div class="info-side" id="infoSide">
+                <h1>Molino</h1>
+                <p>Primero <strong>colocáis</strong> las nueve fichas por turnos. Luego se <strong>mueven</strong> a un punto contiguo vacío. Y a quien le quedan tres, <strong>vuela</strong>: puede saltar a cualquier punto libre.</p>
+                <p>Alinear tres en una línea marcada es un <strong>molino</strong>, y te llevas una ficha del rival — pero <strong>no una que esté dentro de otro molino</strong>, salvo que todas lo estén. Sin esa restricción los molinos del rival serían gratis.</p>
+                <p>Se pierde al bajar de tres fichas <em>o al quedarse sin movimientos</em>. Y si pasan 50 jugadas sin que nadie cierre un molino, son tablas: sin esa regla dos jugadores que se limiten a ir y venir alargan la partida para siempre.</p>
+                <div class="score-panel">
+                    <span>Tus fichas: <b id="yoursLabel">9</b></span>
+                    <span>Fichas IA: <b id="theirsLabel">9</b></span>
+                    <span>Fase: <b id="phaseLabel">—</b></span>
+                    <span>Ganadas: <b id="winsLabel">0</b></span>
+                </div>
+                <div class="buttons-panel">
+                    <button id="startBtn" type="button">Iniciar</button>
+                    <button id="restartBtn" type="button" disabled>Reiniciar</button>
+                </div>
+                <div class="hint">
+                    <strong style="color:#aaa;">Consejos:</strong><br>
+                    Colocando: toca un punto vacío. Moviendo: toca tu ficha y luego el destino.<br>
+                    Con teclado: sólo se ofrecen los puntos que tienen sentido en cada momento.<br>
+                    Un molino que puedes abrir y cerrar cada turno es una máquina de comer fichas.<br>
+                    Encerrar al rival vale tanto como comerle: quedarse sin movimientos también pierde.<br>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <div class="popup" id="overPopup" style="display:none;">
+        <div class="popup-content">
+            <h2 id="overTitle">Fin de la partida</h2>
+            <p id="overScore"></p>
+            <p id="overRecord"></p>
+            <button id="playAgainBtn" type="button">Jugar de nuevo</button>
+        </div>
+    </div>
+
+    <script src="../mobile-layout.js"></script>
+    <script>
+    MobileLayout({
+        show: { mobileScore: 'block' },
+        fit: function (vHeight) {
+            var canvas = document.getElementById('molinoCanvas');
+            var ratio  = 460 / 460;
+            /* -8: el canvas lleva borde de 3px por lado con content-box, así que
+               innerWidth pelado desborda el viewport en móvil. */
+            var availW = window.innerWidth - 8;
+            var availH = vHeight - (isMobile() ? 40 : 0);
+            var newH = Math.min(availH, availW / ratio);
+            var newW = newH * ratio;
+            if (newW > availW) { newW = availW; newH = newW / ratio; }
+            canvas.style.width  = newW + 'px';
+            canvas.style.height = newH + 'px';
+        },
+        reset: function () {
+            var canvas = document.getElementById('molinoCanvas');
+            canvas.style.width  = '';
+            canvas.style.height = '';
+        },
+    });
+    </script>
+    <script src="../audio.js"></script>
+    <script src="../game-utils.js"></script>
+    <script src="./main.js"></script>
+    <script src="../fullscreen-btn.js"></script>
+</body>
+</html>

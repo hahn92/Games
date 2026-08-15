@@ -101,3 +101,34 @@ código.
 - Las semillas se colocan en **espiral de ángulo áureo a partir del índice**,
   nunca con `Math.random()`: un frame repintado dos veces —como pasa en un
   resize— las movería de sitio.
+
+## Molino (`molino/`)
+
+- **La topología no está escrita a mano.** Los 24 puntos van numerados como
+  `anillo*8 + posición`, con la posición girando en sentido horario desde la
+  esquina superior izquierda. Con eso las esquinas son las posiciones pares y los
+  puntos medios las impares, así que la vecindad dentro de un anillo es `i±1`
+  módulo 8 y el salto entre anillos existe sólo en las impares. Los 16 molinos
+  salen igual. Verificado: vecindad simétrica, 12 esquinas con 2 vecinos, medios
+  del anillo central con 4 y del exterior/interior con 3, y cada punto en
+  exactamente 2 molinos.
+- **La captura restringida.** Al cerrar molino te llevas una ficha rival, pero no
+  una que esté dentro de otro molino, salvo que todas lo estén. Sin eso los
+  molinos del rival son gratis y el juego se rompe. Tiene prueba en los dos
+  sentidos.
+- **Se pierde también por bloqueo**, no sólo por bajar de tres fichas. Olvidarlo
+  deja partidas atascadas para siempre.
+- **Tablas a las 50 jugadas sin molino.** Salió al probar la IA contra un rival
+  aleatorio: las partidas no terminaban nunca. En la fase de mover, dos jugadores
+  que se limiten a ir y venir alargan la partida indefinidamente, y eso también
+  le puede pasar a una persona.
+- **La fase de volar era el cuello de botella.** Con tres fichas se puede ir a
+  cualquier hueco, así que son ~63 jugadas por bando y el árbol se multiplica:
+  una jugada llegaba a 2,7 s. Se baja la profundidad a 2 ahí —la partida ya está
+  decidida— y se quita el término de movilidad del evaluador, que volando no
+  distingue nada y cuesta dos recorridos por hoja.
+- **Ordenar las jugadas fue el mayor ahorro.** Probando primero las que cierran
+  molino, la poda alfa-beta corta mucho antes: la fase de mover pasó de 286 ms de
+  media y 1,1 s en la peor a 67 ms y 585 ms. Y la IA salió *más fuerte*, de
+  9-0-3 a 12-0-0 contra rival aleatorio. Ordenar no cambia el resultado de la
+  búsqueda, sólo lo que cuesta llegar a él.

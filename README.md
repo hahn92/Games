@@ -1,6 +1,6 @@
 # Games
 
-69 juegos clásicos jugables en el navegador, hechos con JavaScript, HTML5 Canvas y
+70 juegos clásicos jugables en el navegador, hechos con JavaScript, HTML5 Canvas y
 CSS puro. Sin build, sin dependencias, sin plugins.
 
 **[games.hahndev.com](https://games.hahndev.com)**
@@ -40,7 +40,7 @@ este orden: `mobile-layout` → `audio` → `game-utils` → `main` → `fullscr
 
 ## `game-utils.js`
 
-Biblioteca común a los 69 juegos. Lo relevante:
+Biblioteca común a los 70 juegos. Lo relevante:
 
 | Área | Qué aporta |
 |------|-----------|

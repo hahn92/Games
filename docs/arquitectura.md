@@ -5,7 +5,7 @@ catálogo completo.
 
 ## Overview
 
-A collection of 69 classic browser-based games built with vanilla JavaScript, HTML5 Canvas, and CSS. No build system or dependencies — open any `index.html` directly in a browser to run. Deployed at https://games.hahndev.com (see `CNAME`).
+A collection of 70 classic browser-based games built with vanilla JavaScript, HTML5 Canvas, and CSS. No build system or dependencies — open any `index.html` directly in a browser to run. Deployed at https://games.hahndev.com (see `CNAME`).
 
 ## Running the project
 
@@ -124,3 +124,4 @@ Each game lives in its own folder with:
 | `gomoku/` | Cinco en Raya | Estrategia | Canvas |
 | `futoshiki/` | Futoshiki | Lógica | Canvas |
 | `mancala/` | Mancala | Mesa | Canvas |
+| `molino/` | Molino | Estrategia | Canvas |
