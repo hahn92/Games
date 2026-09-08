@@ -18,6 +18,7 @@ because games already called them unqualified.
 | Input | `GU.swipe(el, {onSwipe, onTap, minDist, maxTime, live, mouse, preventDefault})`; `GU.keys(bindings, {preventDefault, onPress, onRelease})` → `.down/.pressed/.set/.flush/.clear` |
 | HUD | `GU.hud({field: id, mobile: {el, html}})` → `.set/.add/.get/.refresh` (un campo a `null` se sigue sin pintarlo); `GU.popup(id)` → `.show(fields)/.hide()/.visible()`; `GU.highScore(key, {lower})` → `.value/.submit/.display/.has/.reset`; `GU.formatTime(ms, {ms, hours})` |
 | Controles | `GU.controls({start, restart, playAgain, popup, sound})` → `.running()/.idle()` — cablea los tres botones de la página; `GU.buttons(selector, handler)` para un botón que sale más de una vez |
+| Mesa | `GU.idleScreen(ctx, {title, lines, bg, band})` — la pantalla de reposo; `GU.toast()` → `.show(txt, secs)/.update(dt)/.draw(ctx,x,y)/.active()`; `GU.minimax({moves, apply, evaluate, isOver, order})` → `.best(state, side, depth)`; `GU.cards({w,h})` → `.deck()/.face(s,r)/.back()/.suitPath()/.isRed()`; `GU.drawDie(ctx,x,y,size,valor)` y `GU.rollDie(caras)`; `GU.canvasButtons()` → `.add/.at/.targets/.draw` |
 | Shake | `new Shake({decay, ratio, max})`\* with `.hit(mag)`, `.update(dt)`, `.translate(ctx)`, `.active()`, `.stop()` |
 | Storage | `GameStore.getNum/setNum/getJSON/setJSON/get/set/remove`\*, `GameStore.available` |
 | Particles | `new Particles(max, {semiImplicit})`\* with `.burst(x, y, n, opts)`, `.add(x, y, vx, vy, opts)`, `.update(dt)`, `.draw(ctx)`, `.each(fn)`, `.clear()` |
@@ -122,6 +123,54 @@ because games already called them unqualified.
   ended. It marks them as `alertdialog`, names them from their heading and moves
   focus into them when they appear. Careful with visibility checks here:
   `offsetParent` is null for `position: fixed`, which every one of these popups is.
+- **Las piezas de mesa** (`idleScreen`, `toast`, `minimax`, `cards`, `drawDie`,
+  `canvasButtons`) salieron de medir qué se repetía entre los 70 juegos:
+
+  - **`idleScreen`** — 30 juegos llevaban la MISMA función de doce líneas
+    cambiando sólo colores y texto, y con tres formas distintas de dejar el
+    contexto: unos restauraban `textAlign` y otros no, lo que movía el texto del
+    siguiente que dibujara. Aquí va con `save`/`restore`. `band: true` cubre sólo
+    una franja central, que es lo que quiere un juego cuyo tablero se sigue
+    viendo detrás.
+  - **`toast`** — el mensaje efímero sobre el tablero, que seis juegos llevaban
+    como la pareja `msg` + `msgT` con el descuento repetido en su bucle. Es una
+    pieza de ESTADO, no de dibujo: `active()` es justo lo que un bucle de
+    `rafDraw` necesita devolver para seguir pintando mientras el mensaje está en
+    pantalla.
+  - **`minimax`** — siete juegos llevaban su copia de la misma búsqueda con poda
+    alfa-beta. Dos cosas del contrato importan y las dos salieron de escribir las
+    pruebas:
+
+    `apply` devuelve **a quién le toca**, no se alterna por dentro. Eso es lo que
+    permite que valga para mancala (una jugada puede repetir turno), para reversi
+    (un bando pasa) y para timbiriche (cerrar cuadro repite). Alternar a ciegas
+    es el fallo clásico de esas IA.
+
+    `evaluate(state, maxSide, depth)` recibe el **maximizador**, no el que mueve,
+    y la **profundidad restante**. Lo primero es lo que hace que un evaluador
+    simétrico sirva para los dos bandos; con la otra firma hay que escribir uno
+    por bando y el segundo sale del revés sin avisar. Lo segundo hay que usarlo
+    en las victorias (`gana ? 1000 + depth : …`) o ganar ahora y ganar en tres
+    valen igual, la IA elige entre ellas al azar y se queda mirando un remate
+    servido.
+
+    Y una del motor: **la raíz busca con la ventana completa**, sin arrastrar el
+    alpha de una jugada a la siguiente. Con la ventana estrecha, una jugada peor
+    devuelve el recorte —exactamente `alpha`— en vez de su valor, entra empatada
+    con la mejor y `pick` acaba eligiéndola: con eso la IA dejaba de rematar y de
+    bloquear, y dos minimax perfectos de tres en raya no llegaban a tablas.
+    Dentro del árbol la poda sigue entera.
+  - **`cards`** — las 52 caras y el dorso prerenderizados, sacados de solitario.
+    `r` es el índice 0..12, así que el as es 0 y el rey 12 y las reglas quedan en
+    aritmética directa. Los palos son paths: la baraja no lleva un solo emoji.
+  - **`drawDie` / `rollDie`** — la cara de un dado con puntos. Nunca con texto:
+    «⚀» es exactamente lo que la regla del proyecto prohíbe en canvas.
+  - **`canvasButtons`** — el botón dibujado sobre el tablero, con su hit-test, su
+    estado apagado y —lo que siempre se olvida— la lista de `targets` para
+    `GU.canvasCursor`, sin la cual el juego vuelve a ser sólo para ratón. Se
+    reconstruyen cada frame a propósito: así un botón que aparece según el turno
+    no necesita que nadie lo sincronice.
+
 - **`rafDraw`** — diecisiete juegos por turnos repintaban un tablero quieto sesenta
   veces por segundo. Medido en chess con el contexto instrumentado: **99 operaciones
   de canvas y 10 construcciones de degradado por frame** en la pantalla de reposo, o

@@ -1,6 +1,6 @@
 # Índice de juegos
 
-Los 70 juegos y dónde está documentado cada uno. **70 tienen nota**; el resto no
+Los 80 juegos y dónde está documentado cada uno. **80 tienen nota**; el resto no
 tiene ninguna trampa registrada — se juegan y se editan como aparentan.
 
 - **propia** — sección dedicada a ese juego.
@@ -27,6 +27,7 @@ tiene ninguna trampa registrada — se juegan y se editan como aparentan.
 | [`tiroalblanco/`](../../tiroalblanco/) | Galería de Tiro | Reflejos | [nuevos-2](./nuevos-2.md) |
 | [`canastas/`](../../canastas/) | Canastas | Física | [nuevos-2](./nuevos-2.md) |
 | [`lightsout/`](../../lightsout/) | Apaga las Luces | Lógica | [tanda-3](./tanda-3.md) |
+- [Tanda 4](./tanda-4.md) — inundacion, senku, timbiriche, escaleras, freecell, kakuro, puentes, gatosupremo, bloques y backgammon.
 | [`tuberias/`](../../tuberias/) | Tuberías | Lógica | [tanda-3](./tanda-3.md) |
 | [`gomoku/`](../../gomoku/) | Cinco en Raya | Estrategia | [tanda-3](./tanda-3.md) |
 | [`futoshiki/`](../../futoshiki/) | Futoshiki | Lógica | [tanda-3](./tanda-3.md) |

@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <title>Timbiriche</title>
+    <meta name="description" content="Une puntos con líneas y cierra cuadros. Quien cierra un cuadro repite turno, y esa cadena es todo el juego.">
+    <meta name="theme-color" content="#181818">
+    <link rel="canonical" href="https://games.hahndev.com/timbiriche/">
+    <link rel="icon" type="image/svg+xml" href="../favicon.svg">
+    <meta property="og:type" content="website">
+    <meta property="og:site_name" content="Juegos Web JS/CSS">
+    <meta property="og:title" content="Timbiriche — Estrategia">
+    <meta property="og:description" content="Cierra más cuadros que la máquina. Cerrar da turno extra.">
+    <meta property="og:url" content="https://games.hahndev.com/timbiriche/">
+    <meta property="og:image" content="https://games.hahndev.com/favicon.svg">
+    <meta name="twitter:card" content="summary">
+    <meta name="twitter:title" content="Timbiriche — Estrategia">
+    <meta name="twitter:description" content="Cierra más cuadros que la máquina. Cerrar da turno extra.">
+    <link rel="stylesheet" href="./styles.css">
+</head>
+<body>
+    <main>
+        <div class="responsive-layout">
+            <div class="game-side" id="gameSide">
+                <canvas id="gameCanvas" class="timbiriche-canvas" width="460" height="500" tabindex="0"></canvas>
+                <div id="mobileScore" class="mobile-score"></div>
+            </div>
+            <div class="info-side" id="infoSide">
+                <h1>Timbiriche</h1>
+                <p>Por turnos, cada uno traza <strong>una línea</strong> entre dos puntos contiguos. Quien completa el cuarto lado de un cuadro se lo queda <strong>y vuelve a jugar</strong>.</p>
+                <p>Ese turno extra es el juego entero: al final de la partida las casillas se ganan en cadenas de varias seguidas, no de una en una.</p>
+                <p>Por eso la jugada difícil no es cerrar, es <em>decidir cuándo entregar</em> la primera cadena: hacerlo en la más corta es lo que gana partidas.</p>
+                <div class="score-panel">
+                    <span>Tú: <b id="youLabel">0</b></span>
+                    <span>Máquina: <b id="aiLabel">0</b></span>
+                    <span>Ganadas: <b id="winsLabel">0</b></span>
+                </div>
+                <div class="buttons-panel">
+                    <button id="startBtn" type="button">Iniciar</button>
+                    <button id="restartBtn" type="button" disabled>Reiniciar</button>
+                </div>
+                <div class="hint">
+                    <strong style="color:#aaa;">Consejos:</strong><br>
+                    Toca entre dos puntos para trazar esa línea.<br>
+                    Evita dar el tercer lado de un cuadro: se lo regalas.<br>
+                    Cuando ya no queden jugadas seguras, entrega la cadena más corta.<br>
+                    La máquina cierra todo lo que puede antes de entregar nada.
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <div class="popup" id="overPopup" style="display:none;">
+        <div class="popup-content">
+            <h2 id="overTitle">Fin de la partida</h2>
+            <p id="overScore"></p>
+            <p id="overRecord"></p>
+            <button id="playAgainBtn" type="button">Jugar de nuevo</button>
+        </div>
+    </div>
+
+    <script src="../mobile-layout.js"></script>
+    <script>
+    MobileLayout({
+        show: { mobileScore: 'block' },
+        fit: function (vHeight) {
+            var canvas = document.getElementById('gameCanvas');
+            var ratio  = 460 / 500;
+            /* -8: el canvas lleva borde de 3px por lado con content-box, así que
+               innerWidth pelado desborda el viewport en móvil. */
+            var availW = window.innerWidth - 8;
+            var availH = vHeight - (isMobile() ? 40 : 0);
+            var newH = Math.min(availH, availW / ratio);
+            var newW = newH * ratio;
+            if (newW > availW) { newW = availW; newH = newW / ratio; }
+            canvas.style.width  = newW + 'px';
+            canvas.style.height = newH + 'px';
+        },
+        reset: function () {
+            var canvas = document.getElementById('gameCanvas');
+            canvas.style.width  = '';
+            canvas.style.height = '';
+        },
+    });
+    </script>
+    <script src="../audio.js"></script>
+    <script src="../game-utils.js"></script>
+    <script src="./main.js"></script>
+    <script src="../fullscreen-btn.js"></script>
+</body>
+</html>

@@ -55,7 +55,7 @@ All games use a shared, file-free sound system built on the Web Audio API. Inclu
 
 `GameAudio` expone `setMuted(bool)` / `isMuted()` / `toggleMute()`, y quien los usa
 es **`fullscreen-btn.js`**: pone un botón de altavoz en la barra de navegación, o
-sea en los 70 juegos a la vez, y guarda la preferencia en `GameStore` bajo
+sea en los 80 juegos a la vez, y guarda la preferencia en `GameStore` bajo
 `gamesMuted`. Un juego no tiene que hacer nada para tenerlo, y **no debe montar
 su propio interruptor**: dos controles del mismo estado acaban discrepando.
 

@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <title>Gato Supremo</title>
+    <meta name="description" content="Tres en raya dentro de tres en raya: tu jugada decide en qué tablero pequeño juega el rival.">
+    <meta name="theme-color" content="#181818">
+    <link rel="canonical" href="https://games.hahndev.com/gatosupremo/">
+    <link rel="icon" type="image/svg+xml" href="../favicon.svg">
+    <meta property="og:type" content="website">
+    <meta property="og:site_name" content="Juegos Web JS/CSS">
+    <meta property="og:title" content="Gato Supremo — Estrategia">
+    <meta property="og:description" content="Tres en raya de nueve tableros. Tu jugada elige dónde juega el rival.">
+    <meta property="og:url" content="https://games.hahndev.com/gatosupremo/">
+    <meta property="og:image" content="https://games.hahndev.com/favicon.svg">
+    <meta name="twitter:card" content="summary">
+    <meta name="twitter:title" content="Gato Supremo — Estrategia">
+    <meta name="twitter:description" content="Tres en raya de nueve tableros. Tu jugada elige dónde juega el rival.">
+    <link rel="stylesheet" href="./styles.css">
+</head>
+<body>
+    <main>
+        <div class="responsive-layout">
+            <div class="game-side" id="gameSide">
+                <canvas id="gameCanvas" class="gatosupremo-canvas" width="500" height="560" tabindex="0"></canvas>
+                <div id="mobileScore" class="mobile-score"></div>
+            </div>
+            <div class="info-side" id="infoSide">
+                <h1>Gato Supremo</h1>
+                <p>Hay nueve tableros pequeños dentro de uno grande. Ganar un tablero pequeño te da esa casilla del grande, y se gana como siempre: <strong>tres en raya</strong> en el grande.</p>
+                <p>La regla que lo cambia todo: <strong>la casilla que eliges manda al rival al tablero correspondiente</strong>. Si juegas en la esquina superior derecha de tu tablero, el rival tiene que jugar en el tablero de la esquina superior derecha.</p>
+                <p>Si ese tablero ya está decidido o lleno, el rival juega donde quiera. Regalar esa libertad suele costar la partida.</p>
+                <div class="score-panel">
+                    <span>Tú: <b id="youLabel">0</b></span>
+                    <span>Máquina: <b id="aiLabel">0</b></span>
+                    <span>Ganadas: <b id="winsLabel">0</b></span>
+                </div>
+                <div class="buttons-panel">
+                    <button id="startBtn" type="button">Iniciar</button>
+                    <button id="restartBtn" type="button" disabled>Reiniciar</button>
+                </div>
+                <div class="hint">
+                    <strong style="color:#aaa;">Consejos:</strong><br>
+                    El tablero donde te toca jugar sale resaltado.<br>
+                    Antes de elegir casilla, mira a qué tablero mandas al rival.<br>
+                    Ganar un tablero no sirve de nada si con ello le abres el que le faltaba.<br>
+                    Mandarlo a un tablero ya decidido le da libertad: casi siempre es mala idea.
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <div class="popup" id="overPopup" style="display:none;">
+        <div class="popup-content">
+            <h2 id="overTitle">Fin de la partida</h2>
+            <p id="overScore"></p>
+            <p id="overRecord"></p>
+            <button id="playAgainBtn" type="button">Jugar de nuevo</button>
+        </div>
+    </div>
+
+    <script src="../mobile-layout.js"></script>
+    <script>
+    MobileLayout({
+        show: { mobileScore: 'block' },
+        fit: function (vHeight) {
+            var canvas = document.getElementById('gameCanvas');
+            var ratio  = 500 / 560;
+            /* -8: el canvas lleva borde de 3px por lado con content-box, así que
+               innerWidth pelado desborda el viewport en móvil. */
+            var availW = window.innerWidth - 8;
+            var availH = vHeight - (isMobile() ? 40 : 0);
+            var newH = Math.min(availH, availW / ratio);
+            var newW = newH * ratio;
+            if (newW > availW) { newW = availW; newH = newW / ratio; }
+            canvas.style.width  = newW + 'px';
+            canvas.style.height = newH + 'px';
+        },
+        reset: function () {
+            var canvas = document.getElementById('gameCanvas');
+            canvas.style.width  = '';
+            canvas.style.height = '';
+        },
+    });
+    </script>
+    <script src="../audio.js"></script>
+    <script src="../game-utils.js"></script>
+    <script src="./main.js"></script>
+    <script src="../fullscreen-btn.js"></script>
+</body>
+</html>

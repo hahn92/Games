@@ -75,7 +75,10 @@ congelada. Con el HUD compartido refrescar por frame ya no cuesta nada.
 | `Shake` | 22/64 | los demás no tienen sacudida |
 | `GU.swipe` | 21/64 | pong arrastra la pala en continuo y runner tiene zona de mantener pulsado con temporizador: no son gestos |
 | `GU.keys` | 16/64 | los demás usan keydown de flanco, sin estado retenido — ahí no hay tecla que encallar |
-| `GU.rafDraw` | 17/70 | son los juegos por turnos: el resto tiene algo moviéndose en casi todos los frames y no hay nada que ahorrar |
+| `GU.rafDraw` | 27/80 | son los juegos por turnos: el resto tiene algo moviéndose en casi todos los frames y no hay nada que ahorrar |
+| `GU.idleScreen` | 10/80 | los diez de la tanda 4; los otros 30 con pantalla de reposo llevan todavía su copia a mano |
+| `GU.minimax` | 2/80 | timbiriche y gatosupremo. Los siete que ya tenían la suya siguen con ella: migrar una IA que funciona es riesgo sin ganancia |
+| `GU.cards` | 1/80 | freecell. solitario, de donde salió, no está migrado por el mismo motivo |
 
 Las cifras de esta tabla salen de un `grep -l`, así que se pueden rehacer en
 cualquier momento y no hace falta fiarse de que estén al día.

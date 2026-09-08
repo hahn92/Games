@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <title>Puentes</title>
+    <meta name="description" content="Hashi: une las islas con puentes hasta que cada una tenga exactamente los que pide su número y todas queden conectadas.">
+    <meta name="theme-color" content="#181818">
+    <link rel="canonical" href="https://games.hahndev.com/puentes/">
+    <link rel="icon" type="image/svg+xml" href="../favicon.svg">
+    <meta property="og:type" content="website">
+    <meta property="og:site_name" content="Juegos Web JS/CSS">
+    <meta property="og:title" content="Puentes — Lógica">
+    <meta property="og:description" content="Une las islas con puentes sin cruzarlos y deja todo conectado.">
+    <meta property="og:url" content="https://games.hahndev.com/puentes/">
+    <meta property="og:image" content="https://games.hahndev.com/favicon.svg">
+    <meta name="twitter:card" content="summary">
+    <meta name="twitter:title" content="Puentes — Lógica">
+    <meta name="twitter:description" content="Une las islas con puentes sin cruzarlos y deja todo conectado.">
+    <link rel="stylesheet" href="./styles.css">
+</head>
+<body>
+    <main>
+        <div class="responsive-layout">
+            <div class="game-side" id="gameSide">
+                <canvas id="gameCanvas" class="puentes-canvas" width="520" height="560" tabindex="0"></canvas>
+                <div id="mobileScore" class="mobile-score"></div>
+            </div>
+            <div class="info-side" id="infoSide">
+                <h1>Puentes</h1>
+                <p>Cada isla lleva un número: los puentes que salen de ella tienen que sumar <strong>exactamente</strong> esa cifra. Los puentes van en horizontal o en vertical, entre dos islas, y como mucho <strong>dos entre el mismo par</strong>.</p>
+                <p>Los puentes <strong>no se cruzan</strong> ni pasan por encima de una isla. Y al terminar, todas las islas tienen que quedar en <strong>una sola red conectada</strong>: cumplir los números pero dejar dos grupos sueltos no es una solución.</p>
+                <p>Cada tablero se genera a partir de una solución válida, así que siempre se puede resolver.</p>
+                <div class="score-panel">
+                    <span>Islas: <b id="islandsLabel">0</b></span>
+                    <span>Completas: <b id="doneLabel">0</b></span>
+                    <span>Tiempo: <b id="timeLabel">0:00</b></span>
+                    <span>Récord: <b id="highScore">—</b></span>
+                </div>
+                <div class="buttons-panel">
+                    <button id="startBtn" type="button">Iniciar</button>
+                    <button id="restartBtn" type="button" disabled>Reiniciar</button>
+                </div>
+                <div class="hint">
+                    <strong style="color:#aaa;">Consejos:</strong><br>
+                    Toca dos islas alineadas para poner un puente; vuelve a tocar para hacerlo doble y otra vez para quitarlo.<br>
+                    Una isla con 4 y un solo vecino posible es un puente doble seguro… si el vecino admite dos.<br>
+                    Las islas de las esquinas son por donde se empieza: tienen menos vecinos.<br>
+                    Una isla que ya tiene sus puentes se marca; si te sobra alguno, hay algo mal antes.
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <div class="popup" id="overPopup" style="display:none;">
+        <div class="popup-content">
+            <h2 id="overTitle">Fin de la partida</h2>
+            <p id="overScore"></p>
+            <p id="overRecord"></p>
+            <button id="playAgainBtn" type="button">Jugar de nuevo</button>
+        </div>
+    </div>
+
+    <script src="../mobile-layout.js"></script>
+    <script>
+    MobileLayout({
+        show: { mobileScore: 'block' },
+        fit: function (vHeight) {
+            var canvas = document.getElementById('gameCanvas');
+            var ratio  = 520 / 560;
+            /* -8: el canvas lleva borde de 3px por lado con content-box, así que
+               innerWidth pelado desborda el viewport en móvil. */
+            var availW = window.innerWidth - 8;
+            var availH = vHeight - (isMobile() ? 40 : 0);
+            var newH = Math.min(availH, availW / ratio);
+            var newW = newH * ratio;
+            if (newW > availW) { newW = availW; newH = newW / ratio; }
+            canvas.style.width  = newW + 'px';
+            canvas.style.height = newH + 'px';
+        },
+        reset: function () {
+            var canvas = document.getElementById('gameCanvas');
+            canvas.style.width  = '';
+            canvas.style.height = '';
+        },
+    });
+    </script>
+    <script src="../audio.js"></script>
+    <script src="../game-utils.js"></script>
+    <script src="./main.js"></script>
+    <script src="../fullscreen-btn.js"></script>
+</body>
+</html>

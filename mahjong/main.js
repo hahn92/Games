@@ -60,7 +60,13 @@ var KINDS = [];
 
 var tiles = [];          // [{slot, kind, gone}]
 var selected = -1;
-var history = [];        // para deshacer
+/* `undoStack`, no `history`: `window.history` es de SOLO LECTURA, así que
+ * `var history = []` no sobrescribe nada — la variable seguía siendo el objeto
+ * History del navegador y `history.push(...)` lanzaba en cada pareja retirada.
+ * Como la excepción salta a media función, se llevaba por delante todo lo que
+ * venía detrás: limpiar la selección, el sonido, el marcador y la comprobación
+ * de fin de partida. Ver docs/trampas.md. */
+var undoStack = [];
 var status = 'idle';     // idle | playing | won | over
 var startMs = 0, elapsed = 0;
 var hintPair = null, hintT = 0;
@@ -194,7 +200,7 @@ function deal() {
 function newGame() {
     deal();
     selected = -1;
-    history = [];
+    undoStack = [];
     hintPair = null;
     fx.clear();
     status = 'playing';
@@ -233,7 +239,7 @@ function pick(t) {
     var a = tiles[selected];
     if (sameKind(a, t)) {
         a.gone = true; t.gone = true;
-        history.push([tiles.indexOf(a), idx]);
+        undoStack.push([tiles.indexOf(a), idx]);
         selected = -1;
         hintPair = null;
         var pa = tilePos(a), pb = tilePos(t);
@@ -249,8 +255,8 @@ function pick(t) {
 }
 
 function undo() {
-    if (status !== 'playing' || !history.length) return;
-    var pair = history.pop();
+    if (status !== 'playing' || !undoStack.length) return;
+    var pair = undoStack.pop();
     tiles[pair[0]].gone = false;
     tiles[pair[1]].gone = false;
     selected = -1;

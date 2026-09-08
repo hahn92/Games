@@ -64,7 +64,7 @@ por delante todo el resto del fichero**. `2048` tenía la variante con
 Lo que hace a estos casos difíciles es que no se distinguen de un juego que
 simplemente no ha arrancado: la página carga, el CSS pinta la caja del canvas, la
 barra de navegación sale (la mete otro fichero) y sólo la consola lo dice. La
-comprobación que los encuentra es cargar los 70 en headless y mirar si alguno
+comprobación que los encuentra es cargar los 80 en headless y mirar si alguno
 escribe `Uncaught`:
 
 ```bash

@@ -1,0 +1,36 @@
+@import url('../styles.css');
+
+/* El cromo compartido (.popup, los botones, .info-side p, .buttons-panel) viene
+   de la raíz. Aquí sólo lo que es propio de este juego. */
+
+.info-side h1 {
+    font-size: 2.2rem;
+    margin-bottom: 1rem;
+    background: var(--grad-primary);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+}
+.info-side .hint { font-size: 0.95rem; color: #b7c6d6; margin-top: 1rem; line-height: 1.7; }
+.score-panel {
+    display: flex; gap: 1.2rem; font-size: 1.05rem; margin-bottom: 1rem;
+    color: var(--text-muted); flex-wrap: wrap;
+}
+
+body { background: var(--grad-bg); color: #fff; min-height: 100vh; margin: 0; }
+
+.timbiriche-canvas {
+    background: #101a2c;
+    border: 3px solid var(--accent-color);
+    border-radius: 16px;
+    display: block;
+    margin: 0 auto 1.5rem auto;
+    box-shadow: 0 4px 24px rgba(0,0,0,0.35);
+    touch-action: manipulation;
+}
+
+/* El canvas es objetivo de foco real (canvasCursor): necesita indicador propio,
+   porque el borde naranja no se distingue del estado de reposo. */
+.timbiriche-canvas:focus-visible { outline: 3px solid #fff; outline-offset: 2px; }
+.buttons-panel { flex-wrap: wrap; align-items: center; margin-top: 1rem; }
+#startBtn, #restartBtn { margin: 0; }

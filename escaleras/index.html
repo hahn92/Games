@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <title>Serpientes y Escaleras</title>
+    <meta name="description" content="Tira el dado y recorre el tablero: las escaleras te suben y las serpientes te devuelven abajo. Carrera contra la máquina.">
+    <meta name="theme-color" content="#181818">
+    <link rel="canonical" href="https://games.hahndev.com/escaleras/">
+    <link rel="icon" type="image/svg+xml" href="../favicon.svg">
+    <meta property="og:type" content="website">
+    <meta property="og:site_name" content="Juegos Web JS/CSS">
+    <meta property="og:title" content="Serpientes y Escaleras — Dados">
+    <meta property="og:description" content="Sube por las escaleras, esquiva las serpientes y llega a la 100 antes que la máquina.">
+    <meta property="og:url" content="https://games.hahndev.com/escaleras/">
+    <meta property="og:image" content="https://games.hahndev.com/favicon.svg">
+    <meta name="twitter:card" content="summary">
+    <meta name="twitter:title" content="Serpientes y Escaleras — Dados">
+    <meta name="twitter:description" content="Sube por las escaleras, esquiva las serpientes y llega a la 100 antes que la máquina.">
+    <link rel="stylesheet" href="./styles.css">
+</head>
+<body>
+    <main>
+        <div class="responsive-layout">
+            <div class="game-side" id="gameSide">
+                <canvas id="gameCanvas" class="escaleras-canvas" width="460" height="540" tabindex="0"></canvas>
+                <div id="mobileScore" class="mobile-score"></div>
+            </div>
+            <div class="info-side" id="infoSide">
+                <h1>Serpientes y Escaleras</h1>
+                <p>Se tira un dado y se avanza. Si acabas al pie de una <strong>escalera</strong> subes hasta arriba; si caes en la cabeza de una <strong>serpiente</strong> bajas hasta la cola.</p>
+                <p>Para entrar en la casilla 100 hay que sacar el número <strong>exacto</strong>: si te pasas, rebotas hacia atrás. Esa regla es la que mantiene abierta la partida hasta el último tiro.</p>
+                <p>Sacar un seis da <strong>tiro extra</strong>. No hay decisiones que tomar: es una carrera, y va de ver cuánto puede cambiar en un solo dado.</p>
+                <div class="score-panel">
+                    <span>Tú: <b id="youLabel">0</b></span>
+                    <span>Máquina: <b id="aiLabel">0</b></span>
+                    <span>Ganadas: <b id="winsLabel">0</b></span>
+                </div>
+                <div class="buttons-panel">
+                    <button id="startBtn" type="button">Iniciar</button>
+                    <button id="restartBtn" type="button" disabled>Reiniciar</button>
+                </div>
+                <div class="hint">
+                    <strong style="color:#aaa;">Consejos:</strong><br>
+                    Toca el tablero o pulsa Espacio para tirar.<br>
+                    El seis repite tirada.<br>
+                    En la 100 hay que entrar justo: pasarse te hace rebotar.<br>
+                    Las escaleras largas están puestas donde más duele fallarlas.
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <div class="popup" id="overPopup" style="display:none;">
+        <div class="popup-content">
+            <h2 id="overTitle">Fin de la partida</h2>
+            <p id="overScore"></p>
+            <p id="overRecord"></p>
+            <button id="playAgainBtn" type="button">Jugar de nuevo</button>
+        </div>
+    </div>
+
+    <script src="../mobile-layout.js"></script>
+    <script>
+    MobileLayout({
+        show: { mobileScore: 'block' },
+        fit: function (vHeight) {
+            var canvas = document.getElementById('gameCanvas');
+            var ratio  = 460 / 540;
+            /* -8: el canvas lleva borde de 3px por lado con content-box, así que
+               innerWidth pelado desborda el viewport en móvil. */
+            var availW = window.innerWidth - 8;
+            var availH = vHeight - (isMobile() ? 40 : 0);
+            var newH = Math.min(availH, availW / ratio);
+            var newW = newH * ratio;
+            if (newW > availW) { newW = availW; newH = newW / ratio; }
+            canvas.style.width  = newW + 'px';
+            canvas.style.height = newH + 'px';
+        },
+        reset: function () {
+            var canvas = document.getElementById('gameCanvas');
+            canvas.style.width  = '';
+            canvas.style.height = '';
+        },
+    });
+    </script>
+    <script src="../audio.js"></script>
+    <script src="../game-utils.js"></script>
+    <script src="./main.js"></script>
+    <script src="../fullscreen-btn.js"></script>
+</body>
+</html>

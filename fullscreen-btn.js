@@ -80,6 +80,16 @@
         ['futoshiki',    'Futoshiki'],
         ['mancala',      'Mancala'],
         ['molino',       'Molino'],
+        ['inundacion',   'Inundación'],
+        ['senku',        'Senku'],
+        ['timbiriche',   'Timbiriche'],
+        ['escaleras',    'Serpientes y Escaleras'],
+        ['freecell',     'FreeCell'],
+        ['kakuro',       'Kakuro'],
+        ['puentes',      'Puentes'],
+        ['gatosupremo',  'Gato Supremo'],
+        ['bloques',      'Bloques'],
+        ['backgammon',   'Backgammon'],
     ];
 
     /* ── Detect current game folder from URL ────────────────────────── */

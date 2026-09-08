@@ -455,5 +455,173 @@ function check(name, cond) {
     }
 }
 
+
+/* ── 11. Piezas de mesa: minimax, toast, cards, canvasButtons, idleScreen ─ */
+{
+    const dom = makeDom([]);
+    const sb = loadToolkit(dom);
+    const GU = sb.GU;
+
+    console.log('\n11. GU.minimax');
+
+    /* Tres en raya completo como banco de pruebas: es pequeño, tiene resultado
+     * conocido (el juego perfecto es tablas) y ejercita las tres cosas que una
+     * IA de tablero tiene que acertar. */
+    const LINES = [[0,1,2],[3,4,5],[6,7,8],[0,3,6],[1,4,7],[2,5,8],[0,4,8],[2,4,6]];
+    function winnerOf(b) {
+        for (const [a,c,d] of LINES) if (b[a] && b[a] === b[c] && b[a] === b[d]) return b[a];
+        return null;
+    }
+    const ttt = GU.minimax({
+        moves: (b) => b.map((v, i) => v ? -1 : i).filter(i => i >= 0),
+        apply: (b, m, side) => {
+            const nb = b.slice(); nb[m] = side;
+            return { state: nb, side: side === 'X' ? 'O' : 'X' };
+        },
+        isOver: (b) => !!winnerOf(b) || b.every(v => v),
+        /* Siempre desde el maximizador, que aquí es X. La profundidad entra en
+         * el signo para que prefiera ganar pronto y perder tarde. */
+        /* La profundidad restante entra en el signo: asi prefiere ganar cuanto
+         * antes y perder cuanto mas tarde. Sin ella, rematar y no rematar
+         * puntuan igual. */
+        evaluate: (b, maxSide, depth) => {
+            const w = winnerOf(b);
+            if (!w) return 0;
+            return w === maxSide ? 1000 + depth : -1000 - depth;
+        }
+    });
+
+    // Remata cuando puede: X en 0 y 1, la 2 gana.
+    let b = ['X','X','',  '','O','',  '','O',''];
+    check('remata su propia linea', ttt.best(b, 'X', 6).move === 2);
+
+    // Bloquea: O amenaza en 6,7 y la 8 lo para (X no tiene remate propio).
+    b = ['X','','',  'X','',' '.trim(),  'O','O',''];
+    check('bloquea la amenaza del rival', ttt.best(b, 'X', 6).move === 8);
+
+    // Partida perfecta contra sí mismo: tablas, nunca una victoria.
+    b = ['','','','','','','','',''];
+    let side = 'X';
+    while (!winnerOf(b) && b.some(v => !v)) {
+        const m = ttt.best(b, side, 9).move;
+        b[m] = side; side = side === 'X' ? 'O' : 'X';
+    }
+    check('minimax contra minimax acaba en tablas', winnerOf(b) === null);
+
+    /* La poda no puede cambiar el resultado, sólo lo que cuesta. Se compara el
+     * valor de la raiz con y sin orden de jugadas: si difieren, la poda esta
+     * mal puesta. */
+    const sinOrden = GU.minimax({
+        moves: (x) => x.map((v, i) => v ? -1 : i).filter(i => i >= 0),
+        apply: (x, m, sd) => { const nb = x.slice(); nb[m] = sd; return { state: nb, side: sd === 'X' ? 'O' : 'X' }; },
+        isOver: (x) => !!winnerOf(x) || x.every(v => v),
+        evaluate: (x, ms, d) => { const w = winnerOf(x); return !w ? 0 : (w === ms ? 1000 + d : -1000 - d); }
+    });
+    const conOrden = GU.minimax({
+        moves: (x) => x.map((v, i) => v ? -1 : i).filter(i => i >= 0),
+        apply: (x, m, sd) => { const nb = x.slice(); nb[m] = sd; return { state: nb, side: sd === 'X' ? 'O' : 'X' }; },
+        isOver: (x) => !!winnerOf(x) || x.every(v => v),
+        evaluate: (x, ms, d) => { const w = winnerOf(x); return !w ? 0 : (w === ms ? 1000 + d : -1000 - d); },
+        order: (ms) => ms.slice().reverse()
+    });
+    const pos = ['X','','O','','X','','','','O'];
+    check('ordenar las jugadas no cambia el valor de la busqueda',
+        sinOrden.score(pos, 'X', 7) === conOrden.score(pos, 'X', 7));
+
+    /* Que `apply` devuelva el turno es lo que permite una jugada que REPITE.
+     * Sin eso (alternando a ciegas) una IA de mancala no ve las cadenas. */
+    const repite = GU.minimax({
+        moves: () => [0, 1],
+        apply: (st, m, sd) => ({
+            state: { n: st.n + 1, quien: sd },
+            /* la jugada 0 repite turno */
+            side: m === 0 ? sd : (sd === 'a' ? 'b' : 'a')
+        }),
+        isOver: (st) => st.n >= 3,
+        evaluate: (st) => st.quien === 'a' ? 10 : -10
+    });
+    check('apply puede devolver el mismo lado (turno extra)',
+        repite.best({ n: 0, quien: null }, 'a', 3).score === 10);
+
+    console.log('\n12. GU.toast');
+    {
+        const t = GU.toast();
+        check('nace apagado', !t.active() && t.text() === '');
+        t.show('turno extra', 1);
+        check('show lo enciende', t.active() && t.text() === 'turno extra');
+        t.update(0.6);
+        check('sigue vivo a media vida', t.active());
+        t.update(0.6);
+        check('se apaga al agotarse', !t.active() && t.text() === '');
+        t.show('x', 1); t.clear();
+        check('clear lo apaga en el acto', !t.active());
+        t.show('y', 1); t.update(99);
+        check('un dt enorme no lo deja en negativo', !t.active());
+    }
+
+    console.log('\n13. GU.cards');
+    {
+        const deck = GU.cards().deck();
+        check('el mazo son 52 cartas', deck.length === 52);
+        const claves = new Set(deck.map(c => c.s + c.r));
+        check('sin repetidas', claves.size === 52);
+        check('el as es 0 y el rey 12',
+            deck[0].r === 0 && deck[12].r === 12);
+        const c = GU.cards();
+        check('corazones y diamantes son los rojos',
+            c.isRed('C') && c.isRed('D') && !c.isRed('T') && !c.isRed('P'));
+        check('label lee la carta', c.label({ s: 'P', r: 12 }) === 'KP');
+    }
+
+    console.log('\n14. GU.canvasButtons');
+    {
+        const bs = GU.canvasButtons();
+        bs.add({ id: 'pedir', label: 'Pedir', x: 10, y: 10, w: 80, h: 30 });
+        bs.add({ id: 'doblar', label: 'Doblar', x: 100, y: 10, w: 80, h: 30, disabled: true });
+        check('acierta el boton bajo el punto', bs.at(20, 20).id === 'pedir');
+        check('fuera de todo devuelve null', bs.at(300, 300) === null);
+        check('un boton apagado no se puede pulsar', bs.at(110, 20) === null);
+        check('targets solo ofrece los activos',
+            bs.targets().length === 1 && bs.targets()[0].id === 'pedir');
+        bs.clear();
+        check('clear los quita todos', bs.all().length === 0 && bs.at(20, 20) === null);
+    }
+
+    console.log('\n15. GU.idleScreen');
+    {
+        /* Un contexto de mentira que apunta lo que le hacen: lo que importa de
+         * esta pieza es que no le deje el estado cambiado al siguiente que
+         * dibuje, que es lo que hacian las copias que sustituye. */
+        const ops = [];
+        const ctx = {
+            canvas: { width: 400, height: 300 },
+            fillStyle: '', font: '', textAlign: 'left', textBaseline: 'alphabetic',
+            _stack: [],
+            save() { this._stack.push([this.textAlign, this.textBaseline, this.fillStyle]); ops.push('save'); },
+            restore() {
+                const st = this._stack.pop();
+                if (st) { this.textAlign = st[0]; this.textBaseline = st[1]; this.fillStyle = st[2]; }
+                ops.push('restore');
+            },
+            fillRect(x, y, w, h) { ops.push('rect:' + w + 'x' + h); },
+            fillText(t) { ops.push('text:' + t); }
+        };
+        GU.idleScreen(ctx, { title: 'MOLINO', lines: ['Alinea tres'] });
+        check('pinta titulo y linea',
+            ops.includes('text:MOLINO') && ops.includes('text:Alinea tres'));
+        check('cubre el canvas entero por defecto', ops.includes('rect:400x300'));
+        check('devuelve textAlign como estaba', ctx.textAlign === 'left');
+
+        ops.length = 0;
+        GU.idleScreen(ctx, { title: 'BOLOS', lines: ['a', 'b'], band: true });
+        check('band pinta solo una franja',
+            ops.some(o => o.startsWith('rect:400x') && o !== 'rect:400x300'));
+
+        ops.length = 0;
+        GU.idleScreen(ctx, { title: 'X', hint: 'una sola' });
+        check('hint vale como una linea suelta', ops.includes('text:una sola'));
+    }
+}
+
 console.log('\n' + pass + ' pasan, ' + fail + ' fallan');
 process.exit(fail ? 1 : 0);

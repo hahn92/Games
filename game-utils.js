@@ -1856,12 +1856,426 @@
     }
 
     /* ═══════════════════════════════════════════════════════════
+       Piezas de juego de mesa
+    ═══════════════════════════════════════════════════════════ */
+
+    /* Pantalla de reposo. Treinta juegos llevaban la MISMA función de doce
+     * líneas —velo, título, un par de líneas de ayuda— cambiando sólo los
+     * colores y el texto, y con tres formas distintas de dejar el contexto:
+     * unos restauraban `textAlign` a 'left' y otros no, lo que le movía el
+     * texto al siguiente que dibujara.
+     *
+     * opts: {title, lines, bg, color, hint, band, y}. `band` cubre sólo una
+     * franja central en vez del canvas entero, que es lo que quiere un juego
+     * cuyo tablero se sigue viendo detrás (bolos). */
+    function idleScreen(ctx, opts) {
+        opts = opts || {};
+        var canvas = ctx.canvas;
+        var W = canvas.width, H = canvas.height;
+        var lines = opts.lines || (opts.hint ? [opts.hint] : []);
+        if (typeof lines === 'string') lines = [lines];
+        var cy = opts.y == null ? H / 2 : opts.y;
+
+        ctx.save();
+        ctx.fillStyle = opts.bg || 'rgba(10,16,32,0.78)';
+        if (opts.band) {
+            var half = 34 + lines.length * 13;
+            ctx.fillRect(0, cy - half, W, half * 2);
+        } else {
+            ctx.fillRect(0, 0, W, H);
+        }
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        if (opts.title) {
+            ctx.fillStyle = opts.color || '#8fd3f4';
+            ctx.font = 'bold ' + (opts.titleSize || 26) + 'px Arial';
+            ctx.fillText(opts.title, W / 2, cy - (lines.length ? 14 : 0));
+        }
+        ctx.fillStyle = opts.lineColor || '#b7c6d6';
+        ctx.font = (opts.lineSize || 15) + 'px Arial';
+        for (var i = 0; i < lines.length; i++) {
+            ctx.fillText(lines[i], W / 2, cy + 16 + i * 22);
+        }
+        /* save/restore y no un reset a mano: el juego que dibuje después no
+         * tiene por qué saber qué alineación tenía antes. */
+        ctx.restore();
+    }
+
+    /* Mensaje efímero sobre el tablero — "no puedes mover", "turno extra",
+     * "¡molino!". Seis juegos llevaban la misma pareja `msg` + `msgT` con el
+     * descuento repetido en su bucle y el mismo dibujo.
+     *
+     * Es una pieza de ESTADO, no sólo de dibujo: `active()` es justo lo que un
+     * bucle de GU.rafDraw necesita devolver para seguir pintando mientras el
+     * mensaje esté en pantalla. */
+    function toast(opts) {
+        opts = opts || {};
+        var text = '', t = 0, total = 0;
+        return {
+            show: function (msg, secs) {
+                text = msg;
+                total = t = secs == null ? 1.6 : secs;
+            },
+            update: function (dt) { if (t > 0) t = Math.max(0, t - dt); },
+            active: function () { return t > 0; },
+            text:   function () { return t > 0 ? text : ''; },
+            clear:  function () { t = 0; },
+            /* El desvanecido va en el último tercio: antes de eso el mensaje
+             * tiene que leerse a plena opacidad o no da tiempo. */
+            draw: function (ctx, x, y) {
+                if (t <= 0) return;
+                var fade = total ? Math.min(1, t / (total * 0.34)) : 1;
+                var canvas = ctx.canvas;
+                if (x == null) x = canvas.width / 2;
+                if (y == null) y = canvas.height * 0.12;
+                ctx.save();
+                ctx.globalAlpha = fade;
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+                ctx.font = 'bold ' + (opts.size || 17) + 'px Arial';
+                var w = ctx.measureText(text).width + 28;
+                ctx.fillStyle = opts.bg || 'rgba(8,14,26,0.82)';
+                roundRectPath(ctx, x - w / 2, y - 16, w, 32, 16);
+                ctx.fill();
+                ctx.fillStyle = opts.color || '#ffd54a';
+                ctx.fillText(text, x, y + 1);
+                ctx.restore();
+            }
+        };
+    }
+
+    /* Minimax con poda alfa-beta, una vez. Siete juegos llevaban su propia
+     * copia y las siete se diferenciaban en lo mismo: cómo generar y aplicar
+     * una jugada. La búsqueda —maximizar, minimizar, podar, cortar— era
+     * idéntica, incluidos los errores que se cometen al reescribirla.
+     *
+     * spec:
+     *   moves(state, side)        -> lista de jugadas legales
+     *   apply(state, move, side)  -> {state, side} — el estado siguiente y a
+     *                                QUIÉN le toca. Devolver el turno en vez de
+     *                                alternarlo a ciegas es lo que hace que esto
+     *                                sirva para mancala, donde una jugada puede
+     *                                repetir turno, y para reversi, donde un
+     *                                bando pasa. Alternar por dentro era el
+     *                                fallo clásico de esas dos IA.
+     *   evaluate(state, maxSide, depth, turn) -> puntuación desde el punto de
+     *                                vista de `maxSide`, que es el bando que
+     *                                pidió la búsqueda — NO el que mueve en ese
+     *                                nodo, que llega aparte como `turn`. Es la
+     *                                diferencia que hace que un evaluador
+     *                                simétrico valga para los dos bandos; con la
+     *                                otra firma hay que escribir uno por bando y
+     *                                el segundo sale del revés sin avisar.
+     *
+     *                                La profundidad que QUEDA es el tercer
+     *                                argumento y hay que usarla en las
+     *                                victorias: `gana ? 1000 + depth : ...`. Sin
+     *                                ella, ganar ahora y ganar en tres valen lo
+     *                                mismo, la IA elige entre las dos al azar y
+     *                                se queda mirando un remate servido. Es el
+     *                                fallo más común al escribir un evaluador, y
+     *                                por eso el parámetro está ahí.
+     *   isOver(state)             -> opcional, corta la rama
+     *   order(moves, state, side) -> opcional. Ordenar primero lo prometedor no
+     *                                cambia el resultado, sólo lo que cuesta
+     *                                llegar a él: en molino bajó la jugada media
+     *                                de 286 ms a 67 ms.
+     *
+     * `best()` devuelve {move, score, nodes}. Elige entre jugadas empatadas al
+     * azar, o la IA repite la misma partida contra el mismo jugador siempre. */
+    function minimax(spec) {
+        var WIN = 1e6;
+
+        function search(state, side, depth, alpha, beta, maxSide, nodes) {
+            nodes.n++;
+            if (depth <= 0 || (spec.isOver && spec.isOver(state))) {
+                return spec.evaluate(state, maxSide, depth, side);
+            }
+            var moves = spec.moves(state, side);
+            if (!moves || !moves.length) return spec.evaluate(state, maxSide, depth, side);
+            if (spec.order) moves = spec.order(moves, state, side);
+
+            var maximizing = side === maxSide;
+            var best = maximizing ? -Infinity : Infinity;
+            for (var i = 0; i < moves.length; i++) {
+                var next = spec.apply(state, moves[i], side);
+                var val = search(next.state, next.side, depth - 1, alpha, beta, maxSide, nodes);
+                if (maximizing) {
+                    if (val > best) best = val;
+                    if (best > alpha) alpha = best;
+                } else {
+                    if (val < best) best = val;
+                    if (best < beta) beta = best;
+                }
+                if (alpha >= beta) break;   /* poda */
+            }
+            return best;
+        }
+
+        return {
+            WIN: WIN,
+            /* La raíz busca cada jugada con la VENTANA COMPLETA, no arrastrando
+             * el alpha de una hermana a la siguiente. Cuesta algo de poda en el
+             * primer nivel y hay una razón para pagarlo: con la ventana
+             * estrecha, una jugada peor que la mejor hasta ahora no devuelve su
+             * valor real sino el recorte —exactamente `alpha`—, así que entra
+             * empatada con la mejor y `pick` acaba eligiéndola. Con eso la IA
+             * dejaba de rematar y de bloquear, y dos minimax perfectos de tres
+             * en raya no llegaban a tablas. El `>` sí sería fiable; lo que no
+             * lo es, y es lo que se usa para variar entre jugadas iguales, es
+             * el `===`. Dentro del árbol la poda sigue entera. */
+            best: function (state, side, depth) {
+                var moves = spec.moves(state, side);
+                if (!moves || !moves.length) return { move: null, score: 0, nodes: 0 };
+                if (spec.order) moves = spec.order(moves, state, side);
+                var nodes = { n: 0 };
+                var bestScore = -Infinity, tied = [];
+                for (var i = 0; i < moves.length; i++) {
+                    var next = spec.apply(state, moves[i], side);
+                    var val = search(next.state, next.side, depth - 1, -Infinity, Infinity, side, nodes);
+                    if (val > bestScore) { bestScore = val; tied = [moves[i]]; }
+                    else if (val === bestScore) tied.push(moves[i]);
+                }
+                return { move: pick(tied), score: bestScore, nodes: nodes.n };
+            },
+            score: function (state, side, depth) {
+                return search(state, side, depth, -Infinity, Infinity, side, { n: 0 });
+            }
+        };
+    }
+
+    /* Un dado, dibujado con puntos. Nunca con texto ni con emoji — la cara «⚀»
+     * es exactamente lo que la regla del proyecto prohíbe en canvas. */
+    var PIP_LAYOUT = {
+        1: [[0.5, 0.5]],
+        2: [[0.28, 0.28], [0.72, 0.72]],
+        3: [[0.28, 0.28], [0.5, 0.5], [0.72, 0.72]],
+        4: [[0.28, 0.28], [0.72, 0.28], [0.28, 0.72], [0.72, 0.72]],
+        5: [[0.28, 0.28], [0.72, 0.28], [0.5, 0.5], [0.28, 0.72], [0.72, 0.72]],
+        6: [[0.28, 0.25], [0.72, 0.25], [0.28, 0.5], [0.72, 0.5], [0.28, 0.75], [0.72, 0.75]]
+    };
+    function drawDie(ctx, x, y, size, value, opts) {
+        opts = opts || {};
+        ctx.fillStyle = opts.face || '#f4f1ea';
+        roundRectPath(ctx, x, y, size, size, size * 0.18);
+        ctx.fill();
+        if (opts.border !== false) {
+            ctx.strokeStyle = opts.border || '#b9b3a6';
+            ctx.lineWidth = opts.lineWidth || 2;
+            ctx.stroke();
+        }
+        var pts = PIP_LAYOUT[value] || PIP_LAYOUT[1];
+        ctx.fillStyle = opts.pip || '#26221c';
+        for (var i = 0; i < pts.length; i++) {
+            ctx.beginPath();
+            ctx.arc(x + pts[i][0] * size, y + pts[i][1] * size, size * (opts.pipSize || 0.075), 0, Math.PI * 2);
+            ctx.fill();
+        }
+    }
+    function rollDie(faces) { return 1 + Math.floor(Math.random() * (faces || 6)); }
+
+    /* Baraja francesa: los datos y los 53 sprites (52 caras y el dorso).
+     *
+     * `r` es el índice 0..12, así que el as es 0 y el rey 12 y las reglas
+     * quedan en aritmética directa (`card.r === onto.r - 1`) sin mapear
+     * nombres. Los palos son 'C','D','T','P' y los rojos son los dos primeros.
+     *
+     * Las caras se prerenderizan porque una carta son ~4 paths y dos textos y
+     * se repinta decenas de veces por frame: en solitario, de donde sale esto,
+     * eran unas 200 llamadas de path por frame sólo para las esquinas. */
+    function cards(opts) {
+        opts = opts || {};
+        var CW = opts.w || 62, CH = opts.h || 88;
+        var SUITS = ['C', 'D', 'T', 'P'];
+        var RANKS = ['A', '2', '3', '4', '5', '6', '7', '8', '9', '10', 'J', 'Q', 'K'];
+        var RED = { C: true, D: true, T: false, P: false };
+
+        function suitPath(c, s, x, y, k) {
+            c.beginPath();
+            if (s === 'C') {
+                heartPath(c, x, y, k * 2);
+            } else if (s === 'D') {
+                c.moveTo(x, y - k); c.lineTo(x + k * 0.72, y);
+                c.lineTo(x, y + k); c.lineTo(x - k * 0.72, y);
+                c.closePath();
+            } else if (s === 'T') {                       // trébol
+                c.arc(x, y - k * 0.42, k * 0.42, 0, Math.PI * 2);
+                c.moveTo(x - k * 0.36, y + k * 0.2);
+                c.arc(x - k * 0.4, y + k * 0.16, k * 0.42, 0, Math.PI * 2);
+                c.moveTo(x + k * 0.44, y + k * 0.16);
+                c.arc(x + k * 0.4, y + k * 0.16, k * 0.42, 0, Math.PI * 2);
+                c.moveTo(x - k * 0.16, y + k);
+                c.lineTo(x + k * 0.16, y + k);
+                c.lineTo(x + k * 0.08, y + k * 0.2);
+                c.lineTo(x - k * 0.08, y + k * 0.2);
+                c.closePath();
+            } else {                                      // pica
+                c.moveTo(x, y - k);
+                c.bezierCurveTo(x + k * 0.95, y - k * 0.1, x + k * 0.6, y + k * 0.5, x, y + k * 0.28);
+                c.bezierCurveTo(x - k * 0.6, y + k * 0.5, x - k * 0.95, y - k * 0.1, x, y - k);
+                c.closePath();
+                c.moveTo(x - k * 0.2, y + k);
+                c.lineTo(x + k * 0.2, y + k);
+                c.lineTo(x + k * 0.07, y + k * 0.24);
+                c.lineTo(x - k * 0.07, y + k * 0.24);
+                c.closePath();
+            }
+        }
+
+        function makeBack() {
+            return sprite(CW, CH, function (c) {
+                c.fillStyle = opts.backColor || '#123a6b';
+                c.beginPath(); c.roundRect(0.5, 0.5, CW - 1, CH - 1, 8); c.fill();
+                c.strokeStyle = '#e8eef7'; c.lineWidth = 2;
+                c.beginPath(); c.roundRect(4, 4, CW - 8, CH - 8, 6); c.stroke();
+                /* El recorte va ANTES de trazar las diagonales: el beginPath que
+                 * necesita el rectángulo de recorte descarta el path que hubiera,
+                 * así que construirlas primero traza el rectángulo. */
+                c.save();
+                c.beginPath(); c.roundRect(4, 4, CW - 8, CH - 8, 6); c.clip();
+                c.strokeStyle = 'rgba(143,211,244,0.45)';
+                c.lineWidth = 1;
+                c.beginPath();
+                for (var i = -CH; i < CW; i += 10) {
+                    c.moveTo(i, 4); c.lineTo(i + CH - 8, CH - 4);
+                }
+                c.stroke();
+                c.restore();
+            });
+        }
+
+        function makeFace(s, r) {
+            return sprite(CW, CH, function (c) {
+                c.fillStyle = '#fdfdfb';
+                c.beginPath(); c.roundRect(0.5, 0.5, CW - 1, CH - 1, 8); c.fill();
+                c.strokeStyle = '#c3ccd8'; c.lineWidth = 1;
+                c.beginPath(); c.roundRect(0.5, 0.5, CW - 1, CH - 1, 8); c.stroke();
+
+                var col = RED[s] ? '#d63c34' : '#1d2430';
+                var label = RANKS[r];
+                c.fillStyle = col;
+                c.font = 'bold 17px sans-serif';
+                c.textAlign = 'left';
+                c.textBaseline = 'top';
+                c.fillText(label, 6, 5);
+                suitPath(c, s, 13, 30, 7);
+                c.fill();
+
+                c.save();                       // esquina opuesta, girada 180°
+                c.translate(CW, CH);
+                c.rotate(Math.PI);
+                c.fillStyle = col;
+                c.fillText(label, 6, 5);
+                suitPath(c, s, 13, 30, 7);
+                c.fill();
+                c.restore();
+
+                c.fillStyle = col;
+                if (r >= 10) {
+                    c.font = 'bold ' + Math.round(CH * 0.45) + 'px serif';
+                    c.textAlign = 'center';
+                    c.textBaseline = 'middle';
+                    c.fillText(label, CW / 2, CH / 2 + 2);
+                    c.strokeStyle = col; c.lineWidth = 1.5;
+                    c.strokeRect(18, 26, CW - 36, CH - 52);
+                } else {
+                    suitPath(c, s, CW / 2, CH / 2, Math.round(CH * 0.21));
+                    c.fill();
+                }
+            });
+        }
+
+        var sheet = spriteSheet(function (key) {
+            if (key === 'back') return makeBack();
+            return makeFace(key[0], parseInt(key.slice(1), 10));
+        });
+
+        return {
+            SUITS: SUITS, RANKS: RANKS, w: CW, h: CH,
+            isRed: function (s) { return !!RED[s]; },
+            suitPath: suitPath,
+            face: function (s, r) { return sheet.get(s + r); },
+            back: function () { return sheet.get('back'); },
+            label: function (c) { return RANKS[c.r] + c.s; },
+            /* Mazo nuevo, ordenado. Barajarlo es cosa de quien lo pide: hay
+             * juegos que reparten desde una posición conocida. */
+            deck: function () {
+                var d = [];
+                for (var si = 0; si < 4; si++) {
+                    for (var r = 0; r < 13; r++) d.push({ s: SUITS[si], r: r, up: false });
+                }
+                return d;
+            }
+        };
+    }
+
+    /* Botones dibujados EN el canvas. blackjack los tenía a mano y cada juego
+     * nuevo que quiere un control sobre el tablero los reescribe: el rectángulo,
+     * el hit-test, el estado deshabilitado y —lo que siempre se olvida— la
+     * lista de objetivos para GU.canvasCursor, sin la cual el juego vuelve a ser
+     * sólo para ratón.
+     *
+     * Se reconstruyen cada frame a propósito: así un botón que aparece o se
+     * apaga según el turno no necesita que nadie lo sincronice. */
+    function canvasButtons(opts) {
+        opts = opts || {};
+        var list = [];
+        return {
+            clear: function () { list.length = 0; return this; },
+            add: function (b) { list.push(b); return this; },
+            all: function () { return list; },
+            enabled: function () {
+                return list.filter(function (b) { return !b.disabled; });
+            },
+            at: function (x, y) {
+                for (var i = list.length - 1; i >= 0; i--) {
+                    var b = list[i];
+                    if (b.disabled) continue;
+                    if (x >= b.x && x <= b.x + b.w && y >= b.y && y <= b.y + b.h) return b;
+                }
+                return null;
+            },
+            /* Lo que GU.canvasCursor pide en `targets`. */
+            targets: function () {
+                return list.filter(function (b) { return !b.disabled; })
+                           .map(function (b) {
+                               return { x: b.x, y: b.y, w: b.w, h: b.h, id: b.id || b.label, btn: b };
+                           });
+            },
+            draw: function (ctx) {
+                for (var i = 0; i < list.length; i++) {
+                    var b = list[i];
+                    var off = !!b.disabled;
+                    ctx.fillStyle = off ? 'rgba(90,105,125,0.35)'
+                                        : (b.color || opts.color || '#2b6ea8');
+                    roundRectPath(ctx, b.x, b.y, b.w, b.h, b.r == null ? 9 : b.r);
+                    ctx.fill();
+                    ctx.strokeStyle = off ? 'rgba(160,180,200,0.35)'
+                                          : (b.border || opts.border || '#8fd3f4');
+                    ctx.lineWidth = 2;
+                    ctx.stroke();
+                    ctx.fillStyle = off ? 'rgba(220,232,245,0.45)' : (b.textColor || '#f2f7ff');
+                    ctx.font = 'bold ' + (b.size || opts.size || 15) + 'px Arial';
+                    ctx.textAlign = 'center';
+                    ctx.textBaseline = 'middle';
+                    ctx.fillText(b.label, b.x + b.w / 2, b.y + b.h / 2 + 1);
+                }
+                ctx.textAlign = 'left';
+                ctx.textBaseline = 'alphabetic';
+            }
+        };
+    }
+
+    /* ═══════════════════════════════════════════════════════════
        Exports
     ═══════════════════════════════════════════════════════════ */
 
     var GameUtils = {
         rafInterval: rafInterval, rafClear: rafClear, rafLoop: rafLoop,
         rafDraw: rafDraw,
+        idleScreen: idleScreen, toast: toast, minimax: minimax,
+        drawDie: drawDie, rollDie: rollDie, cards: cards,
+        canvasButtons: canvasButtons,
         clamp: clamp, lerp: lerp, dist: dist, dist2: dist2,
         rand: rand, randInt: randInt, pick: pick, shuffle: shuffle,
         angleDelta: angleDelta,

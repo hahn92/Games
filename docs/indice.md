@@ -1,6 +1,6 @@
 # Documentación
 
-Guía técnica de la colección de 70 juegos. Empieza por aquí.
+Guía técnica de la colección de 80 juegos. Empieza por aquí.
 
 ## Mapa
 

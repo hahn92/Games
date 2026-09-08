@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <title>FreeCell</title>
+    <meta name="description" content="El solitario en el que se ven las 52 cartas desde el principio: casi todas las reparticiones tienen solución y perder es cosa del plan, no de la suerte.">
+    <meta name="theme-color" content="#181818">
+    <link rel="canonical" href="https://games.hahndev.com/freecell/">
+    <link rel="icon" type="image/svg+xml" href="../favicon.svg">
+    <meta property="og:type" content="website">
+    <meta property="og:site_name" content="Juegos Web JS/CSS">
+    <meta property="og:title" content="FreeCell — Cartas">
+    <meta property="og:description" content="El solitario de las cuatro celdas libres. Casi todo reparto tiene solución.">
+    <meta property="og:url" content="https://games.hahndev.com/freecell/">
+    <meta property="og:image" content="https://games.hahndev.com/favicon.svg">
+    <meta name="twitter:card" content="summary">
+    <meta name="twitter:title" content="FreeCell — Cartas">
+    <meta name="twitter:description" content="El solitario de las cuatro celdas libres. Casi todo reparto tiene solución.">
+    <link rel="stylesheet" href="./styles.css">
+</head>
+<body>
+    <main>
+        <div class="responsive-layout">
+            <div class="game-side" id="gameSide">
+                <canvas id="gameCanvas" class="freecell-canvas" width="620" height="600" tabindex="0"></canvas>
+                <div id="mobileScore" class="mobile-score"></div>
+            </div>
+            <div class="info-side" id="infoSide">
+                <h1>FreeCell</h1>
+                <p>Ocho columnas con las <strong>52 cartas boca arriba</strong>. Arriba a la izquierda hay <strong>cuatro celdas libres</strong>, cada una para una carta suelta, y a la derecha las cuatro pilas donde hay que subir del as al rey.</p>
+                <p>En las columnas se apila en <strong>orden descendente y alternando color</strong>. Sólo se mueve una carta cada vez: lo que parece mover una escalera entera son varios movimientos encadenados, y por eso el número de celdas y de columnas vacías limita cuánto puedes arrastrar.</p>
+                <p>No hay nada oculto ni ningún mazo que robar. Si pierdes, la partida estaba perdida desde una jugada tuya, y eso es justo lo que hace bueno a este solitario.</p>
+                <div class="score-panel">
+                    <span>Movimientos: <b id="movesLabel">0</b></span>
+                    <span>Subidas: <b id="foundLabel">0</b></span>
+                    <span>Récord: <b id="highScore">—</b></span>
+                </div>
+                <div class="buttons-panel">
+                    <button id="startBtn" type="button">Iniciar</button>
+                    <button id="restartBtn" type="button" disabled>Reiniciar</button>
+                </div>
+                <div class="hint">
+                    <strong style="color:#aaa;">Consejos:</strong><br>
+                    Toca una carta y luego su destino.<br>
+                    Vaciar una columna vale más que llenar una celda: multiplica lo que puedes mover.<br>
+                    Saca los ases en cuanto puedas, pero no subas cartas bajas que aún hacen falta abajo.<br>
+                    Deshacer está en la tecla Z.
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <div class="popup" id="overPopup" style="display:none;">
+        <div class="popup-content">
+            <h2 id="overTitle">Fin de la partida</h2>
+            <p id="overScore"></p>
+            <p id="overRecord"></p>
+            <button id="playAgainBtn" type="button">Jugar de nuevo</button>
+        </div>
+    </div>
+
+    <script src="../mobile-layout.js"></script>
+    <script>
+    MobileLayout({
+        show: { mobileScore: 'block' },
+        fit: function (vHeight) {
+            var canvas = document.getElementById('gameCanvas');
+            var ratio  = 620 / 600;
+            /* -8: el canvas lleva borde de 3px por lado con content-box, así que
+               innerWidth pelado desborda el viewport en móvil. */
+            var availW = window.innerWidth - 8;
+            var availH = vHeight - (isMobile() ? 40 : 0);
+            var newH = Math.min(availH, availW / ratio);
+            var newW = newH * ratio;
+            if (newW > availW) { newW = availW; newH = newW / ratio; }
+            canvas.style.width  = newW + 'px';
+            canvas.style.height = newH + 'px';
+        },
+        reset: function () {
+            var canvas = document.getElementById('gameCanvas');
+            canvas.style.width  = '';
+            canvas.style.height = '';
+        },
+    });
+    </script>
+    <script src="../audio.js"></script>
+    <script src="../game-utils.js"></script>
+    <script src="./main.js"></script>
+    <script src="../fullscreen-btn.js"></script>
+</body>
+</html>
