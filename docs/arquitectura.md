@@ -32,7 +32,8 @@ Or open `index.html` (root or per-game) directly in a browser.
 | `fullscreen-btn.js` | Inter-game navigation bar (all devices) + fullscreen/landscape button (mobile only). **Required in every game** — see "Navigation bar" below |
 | `favicon.svg` | Shared favicon, referenced relatively (`./favicon.svg` from root, `../favicon.svg` from a game) |
 | `main.js` | Catalog filter, search and pagination with shareable URLs |
-| `thumbnails.js` | One canvas-drawing function per game, keyed by folder name. Each thumbnail is drawn the first time its card is actually on screen — see "Catalog thumbnails" below |
+| `thumbnails.js` | Cargador de miniaturas: pide `thumbnails/<carpeta>.js` la primera vez que la tarjeta de ese juego entra en pantalla. Una función de dibujo por juego, cada una en su fichero — ver "Miniaturas del catálogo" en [Rendimiento](./rendimiento.md) |
+| `thumbnails/` | Una miniatura por juego, cargada bajo demanda |
 
 ### Per-game structure
 Each game lives in its own folder with:

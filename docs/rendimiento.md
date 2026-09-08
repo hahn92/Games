@@ -3,25 +3,39 @@
 Las reglas de esta página salen de trabajo de optimización real: cada una
 corresponde a un cuello de botella que se midió.
 
-## Catalog thumbnails
+## Miniaturas del catálogo
 
-All 80 thumbnail canvases live in the DOM at once, but the catalog paginates by
-toggling `display` on the cards, so only 8 are shown at a time. `thumbnails.js`
-therefore draws each one lazily, through an `IntersectionObserver`: a hidden card
-has no layout box and never intersects, and paginating or filtering to it gives it
-one. Drawing all 80 up front spent ~85% of the work on canvases nobody could see —
-and since they render at device pixel density, each is a 440x440 backing store.
+Cada miniatura es una escena dibujada a canvas, sin imágenes, y vive en su
+propio fichero: `thumbnails/<carpeta>.js`. `thumbnails.js` ya no las contiene:
+es el cargador que pide la de cada tarjeta **cuando la tarjeta entra en
+pantalla**, con un `IntersectionObserver`.
 
-Two consequences when touching this:
+Estuvieron las ochenta en un solo fichero, y el observador difería el DIBUJO
+pero no la descarga ni el parseo — 292 KB de JavaScript (56 KB comprimidos) que
+la portada se bajaba y parseaba en el hilo principal para pintar las ocho
+tarjetas de la primera página. Medido:
 
-- A thumbnail is drawn **once**. The canvas keeps its pixels when the card is
-  hidden again, so there is nothing to redraw on the way back.
-- These canvases are sized from script, not from markup, so the automatic HiDPI
-  pass skips them. `thumbnails.js` opts in with
-  `GU.upgradeCanvas(canvas, { pinCss: false })` after setting width/height and
-  before `getContext`. `pinCss: false` matters: the cards size the canvas with
-  `width:100%` + `aspect-ratio:1/1`, and pinning an explicit height would win over
-  that aspect ratio and squash the image.
+| | Antes | Ahora |
+|---|-------|-------|
+| JS de la portada | 361 KB | **115 KB** (cargador 4 KB + 8 miniaturas) |
+
+Consecuencias al tocar esto:
+
+- **Añadir un juego es añadir `thumbnails/<carpeta>.js`.** No hay lista que
+  mantener en el cargador: el nombre sale del `data-game` de la tarjeta. Si el
+  fichero falta, la tarjeta se queda con el canvas vacío y se avisa por consola
+  — el catálogo sigue funcionando.
+- Cada fichero repite los ayudantes (`W`, `H`, la paleta, `roundRect`). Son unos
+  900 bytes por fichero y es a propósito: compartirlos obligaría a un segundo
+  script y a coordinar su carga, y lo que se ahorra no lo paga.
+- Una miniatura se dibuja **una vez**. El canvas conserva sus píxeles cuando la
+  tarjeta se vuelve a ocultar, así que no hay nada que repintar al volver.
+- Estos canvas se dimensionan desde script, no desde el markup, así que la
+  pasada automática de HiDPI los salta. El cargador se apunta con
+  `GU.upgradeCanvas(canvas, { pinCss: false })` después de fijar width/height y
+  antes de `getContext`. El `pinCss: false` importa: las tarjetas miden el canvas
+  con `width:100%` + `aspect-ratio:1/1`, y fijarle un alto explícito ganaría a
+  esa proporción y aplastaría la imagen.
 
 ## Canvas performance rules
 

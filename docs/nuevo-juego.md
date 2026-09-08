@@ -49,6 +49,6 @@
        </div>
    </div>
    ```
-9. Add a thumbnail drawing function to `thumbnails.js` under the game's folder name key
+9. Crea `thumbnails/<carpeta>.js` con la miniatura (copia otro de ahí: la cabecera con los ayudantes es la misma y sólo cambia el cuerpo de `draw`). El cargador la pide sola por el `data-game` de la tarjeta; no hay lista que tocar
 10. Use `requestAnimationFrame` for the game loop, not `setInterval` — either a rAF loop throttled with `if (ts - lastFrameTs < 15) return;` (see `pinball/main.js`) or, for fixed-tick games, `rafInterval()` or `rafLoop()` from `game-utils.js`
 11. Run `/validate-game [name]` after finishing to confirm all criteria pass
