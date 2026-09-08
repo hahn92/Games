@@ -234,7 +234,7 @@ function humanPlay(pit) {
     turn = 'ai';
     busy = true;
     syncHud();
-    setTimeout(aiTurn, 550);
+    setTimeout(function () { aiTurn(); view.invalidate(); }, 550);
 }
 
 function aiTurn() {
@@ -253,7 +253,7 @@ function aiTurn() {
     if (res.again) {
         say('La máquina repite');
         syncHud();
-        setTimeout(aiTurn, 550);
+        setTimeout(function () { aiTurn(); view.invalidate(); }, 550);
         return;
     }
     busy = false;
@@ -444,10 +444,12 @@ function drawIdle() {
     ctx.textAlign = 'left';
 }
 
-rafLoop(function (dt) {
+/* Dibujo bajo demanda — ver GU.rafDraw. */
+var view = rafDraw(function (dt) {
     if (msgT > 0) msgT -= dt;
     fx.update(dt);
     draw();
+    return fx.count > 0 || msgT > 0;
 });
 
 /* ── Entrada ──────────────────────────────────────────────────────── */

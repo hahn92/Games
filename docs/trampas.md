@@ -1,7 +1,8 @@
 # Trampas conocidas
 
-Tres formas de romper un juego que no dan error en consola. Las tres costaron
-tiempo una vez.
+Cuatro formas de romper un juego sin que se note. Tres no dan error en consola;
+la cuarta lo da, y aun así el juego parece que simplemente no ha arrancado.
+Todas costaron tiempo una vez.
 
 ## Critical: Never use emoji on canvas
 
@@ -38,6 +39,45 @@ When touching a game's loop, confirm the render entry point is actually reached:
   and take a screenshot. Reading pixels back with `getImageData` from a parent
   frame is **not** trustworthy: it returned all-black for games that were plainly
   rendering on screen.
+
+## Un juego usado antes de asignarse muere entero y en silencio
+
+`airhockey` y `saltador` cargaban con el canvas **en negro y sin bucle**: ni
+lógica, ni entrada, nada. Los dos tenían la misma forma:
+
+```js
+loadStats();               // llama a updateHUD()
+
+var gameHud = GU.hud({...});   // ← todavía sin asignar cuando corrió la línea de arriba
+
+function updateHUD() {
+    gameHud.set({...});    // TypeError: Cannot read properties of undefined
+}
+```
+
+`var gameHud` se iza pero vale `undefined` hasta su asignación, así que la
+llamada de arriba lanza — y como está en el nivel superior del módulo, **se lleva
+por delante todo el resto del fichero**. `2048` tenía la variante con
+`ReferenceError`: una línea suelta usaba `highScoreEl`, que es un `const` local de
+`render()`, y mataba el `render()` inicial de la línea siguiente.
+
+Lo que hace a estos casos difíciles es que no se distinguen de un juego que
+simplemente no ha arrancado: la página carga, el CSS pinta la caja del canvas, la
+barra de navegación sale (la mete otro fichero) y sólo la consola lo dice. La
+comprobación que los encuentra es cargar los 70 en headless y mirar si alguno
+escribe `Uncaught`:
+
+```bash
+for d in */; do g=${d%/}
+  "$CHROME" --headless --disable-gpu --virtual-time-budget=2500 \
+    --enable-logging=stderr --log-level=0 --dump-dom \
+    "http://localhost:8899/_harness.html?game=$g&w=900&h=900&clicks=300x300" 2>&1 >/dev/null \
+    | grep -iE "Uncaught" | head -2 | sed "s/^/$g: /"
+done
+```
+
+Los clics importan: un error que sólo salta al interactuar no aparece si el
+barrido se limita a cargar la página.
 
 ## Never call `adjustMobileLayout()` by hand
 

@@ -281,7 +281,9 @@ window.addEventListener('keydown', e => {
     }
 });
 
-// Initial display
+/* Pintado inicial. `highScoreEl` es un const LOCAL de render(), asi que la
+ * linea que lo tocaba aqui lanzaba un ReferenceError y se llevaba por delante
+ * el render() de debajo: el tablero no se pintaba al cargar y la consola se
+ * quedaba con un error suelto. render() ya escribe el record, no hacia falta. */
 gameHud.set({ score: score });
-highScoreEl.textContent = highScore;
 render();

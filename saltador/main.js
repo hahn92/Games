@@ -113,8 +113,6 @@ function loadHigh() {
 function saveHigh() {
     gameBest.submit(state.highScore);
 }
-loadHigh();
-
 var gameHud = GU.hud({
     score: scoreEl,
     highScore: highScoreEl,
@@ -122,6 +120,11 @@ var gameHud = GU.hud({
         return 'Altura: ' + state.score + '   Récord: ' + state.highScore;
     } }
 });
+
+/* Despues del hud: loadHigh() llama a updateHUD() y `gameHud` no estaba
+ * asignada todavia. Mismo caso que airhockey — el fichero moria aqui y el
+ * juego se quedaba en un canvas negro. */
+loadHigh();
 
 function updateHUD() {
     gameHud.set({ score: state.score, highScore: state.highScore });

@@ -320,13 +320,23 @@ function tilePos(t) {
     };
 }
 
-rafLoop(function (dt) {
-    if (status === 'playing') elapsed = performance.now() - startMs;
+/* Dibujo bajo demanda — ver GU.rafDraw. */
+var view = rafDraw(function (dt) {
     if (hintT > 0) hintT -= dt;
     fx.update(dt);
-    syncHud();
     draw();
+    return fx.count > 0 || hintT > 0;
 });
+
+/* El reloj vive en el HUD, no en el canvas. Sacarlo del bucle de dibujo tiene
+ * aqui una segunda ventaja: la linea de movil se recalcula en cada set() y la
+ * suya llama a freePairs(), que recorre el tablero entero buscando parejas
+ * libres. Eso pasa de 60 veces por segundo a 4. */
+setInterval(function () {
+    if (status !== 'playing') return;
+    elapsed = performance.now() - startMs;
+    syncHud();
+}, 250);
 
 function draw() {
     ctx.fillStyle = gMemo('bg', function () {

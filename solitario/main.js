@@ -574,18 +574,29 @@ function drawIdle() {
 
 /* ═══════════════ Bucle ═══════════════ */
 
-rafLoop(function (dt) {
-    if (gs.status === 'playing') {
-        gs.elapsed = performance.now() - gs.startMs;
-        hud.set({ time: gs.elapsed });
-
-        if (canAutoComplete()) {
-            gs.autoT += dt;
-            if (gs.autoT > 0.09) { gs.autoT = 0; autoStep(); }
-        }
+/* Dibujo bajo demanda — ver GU.rafDraw. Aqui hay que declarar los eventos de
+ * arrastre: por defecto rafDraw no escucha el movimiento del puntero, y sin
+ * ellos la carta cogida no seguiria al raton. El auto-completado se mantiene
+ * vivo devolviendo true mientras le queden cartas que colocar. */
+var view = rafDraw(function (dt) {
+    var auto = gs.status === 'playing' && canAutoComplete();
+    if (auto) {
+        gs.autoT += dt;
+        if (gs.autoT > 0.09) { gs.autoT = 0; autoStep(); }
     }
     draw();
-});
+    return auto;
+}, { events: ['pointerdown', 'pointerup', 'pointermove', 'mousedown', 'mouseup',
+              'mousemove', 'click', 'touchstart', 'touchend', 'touchmove',
+              'keydown', 'keyup'] });
+
+/* El cronometro solo se pinta en el HUD, no en el canvas, asi que no necesita
+ * un frame para avanzar. */
+setInterval(function () {
+    if (gs.status !== 'playing') return;
+    gs.elapsed = performance.now() - gs.startMs;
+    hud.set({ time: gs.elapsed });
+}, 250);
 
 /* ═══════════════ Eventos ═══════════════ */
 

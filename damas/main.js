@@ -86,7 +86,7 @@ function newGame() {
     GameAudio.start();
     if (gs.mode === 'ai' && gs.aiColor === 'r') {
         gs.aiThinking = true;
-        setTimeout(doAiMove, 300);
+        setTimeout(function () { doAiMove(); view.invalidate(); }, 300);
     }
 }
 
@@ -569,7 +569,7 @@ function handleClick(px, py) {
                 else if (captured) GameAudio.brick();
                 else GameAudio.place();
                 if (gs.mode === 'ai' && gs.status === 'playing' && gs.turn === gs.aiColor) {
-                    gs.aiThinking = true; setTimeout(doAiMove, 300);
+                    gs.aiThinking = true; setTimeout(function () { doAiMove(); view.invalidate(); }, 300);
                 }
                 return;
             }
@@ -650,10 +650,8 @@ gs.board = makeBoard();
 gs.status = 'idle';
 updateModeLabel();
 updateMobileScore();
-var lastRenderTs = 0;
-requestAnimationFrame(function loop(ts) {
-    if (ts - lastRenderTs >= 15) { lastRenderTs = ts; render(); }
-    requestAnimationFrame(loop);
-});
+/* Dibujo bajo demanda — ver GU.rafDraw, y la nota de chess: mismo tablero, mismo
+ * motivo. */
+var view = GU.rafDraw(function () { render(); });
 
 }());

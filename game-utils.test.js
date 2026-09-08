@@ -308,5 +308,152 @@ function check(name, cond) {
     check('se cablea directo en vez de quedarse mudo', log.join(',') === 'start');
 }
 
+
+/* ── 10. GU.rafDraw: pintar sólo cuando hace falta ────────────────────── */
+{
+    /* Este necesita un rAF y un reloj que se puedan pisar a mano, así que monta
+     * su propio sandbox en vez de usar loadToolkit(). */
+    function makeClockDom() {
+        const listeners = {};
+        const target = {
+            addEventListener(type, fn) { (listeners[type] = listeners[type] || []).push(fn); },
+            removeEventListener(type, fn) {
+                const l = listeners[type] || [];
+                const i = l.indexOf(fn);
+                if (i >= 0) l.splice(i, 1);
+            },
+            fire(type) { (listeners[type] || []).slice().forEach(fn => fn({})); },
+            count(type) { return (listeners[type] || []).length; }
+        };
+        const doc = {
+            readyState: 'complete', documentElement: target,
+            getElementById: () => null, querySelectorAll: () => [],
+            getElementsByTagName: () => [], createElement: () => ({ style: {} }),
+            addEventListener() {}, removeEventListener() {},
+            body: { appendChild() {} }, activeElement: null
+        };
+        let now = 0;
+        const queue = [];
+        const sandbox = {
+            window: null, document: doc, console,
+            requestAnimationFrame(fn) { queue.push(fn); return queue.length; },
+            cancelAnimationFrame() {},
+            getComputedStyle: () => ({ display: 'none' }),
+            localStorage: undefined, navigator: { userAgent: 'node' },
+            devicePixelRatio: 1, setTimeout, clearTimeout,
+            performance: { now: () => now }
+        };
+        sandbox.window = sandbox; sandbox.self = sandbox;
+        vm.createContext(sandbox);
+        vm.runInContext(fs.readFileSync(require('path').join(__dirname, 'game-utils.js'), 'utf8'), sandbox);
+        /* Corre los frames pendientes avanzando el reloj `ms` en cada uno. */
+        sandbox.tick = function (frames, ms) {
+            for (let i = 0; i < frames; i++) {
+                const pending = queue.splice(0, queue.length);
+                if (!pending.length) return;
+                now += (ms == null ? 16 : ms);
+                pending.forEach(fn => fn(now));
+            }
+        };
+        sandbox.pending = () => queue.length;
+        sandbox.target = target;
+        return sandbox;
+    }
+
+    console.log('\n10. GU.rafDraw');
+
+    /* Pinta una vez al arrancar y luego se calla. */
+    {
+        const sb = makeClockDom();
+        let draws = 0;
+        sb.GU.rafDraw(function () { draws++; });
+        sb.tick(1);
+        check('pinta el primer frame sin que nadie lo pida', draws === 1);
+        sb.tick(20);
+        check('y no vuelve a pintar mientras nada cambie', draws === 1);
+        check('deja de pedir frames del todo', sb.pending() === 0);
+    }
+
+    /* Devolver algo veraz mantiene el bucle vivo: la animación en curso. */
+    {
+        const sb = makeClockDom();
+        let draws = 0, animando = true;
+        sb.GU.rafDraw(function () { draws++; return animando; });
+        sb.tick(5);
+        check('sigue pintando mientras fn devuelve true', draws === 5);
+        animando = false;
+        sb.tick(5);
+        check('y se para en cuanto devuelve false', draws === 6);
+    }
+
+    /* invalidate() despierta el bucle dormido. */
+    {
+        const sb = makeClockDom();
+        let draws = 0;
+        const h = sb.GU.rafDraw(function () { draws++; });
+        sb.tick(3);
+        check('dormido tras el primer frame', draws === 1 && sb.pending() === 0);
+        h.invalidate();
+        sb.tick(3);
+        check('invalidate() pinta exactamente un frame mas', draws === 2);
+    }
+
+    /* La entrada del usuario invalida sola: es lo que evita la pantalla
+     * congelada cuando un juego olvida pedir el repintado. */
+    {
+        const sb = makeClockDom();
+        let draws = 0;
+        sb.GU.rafDraw(function () { draws++; });
+        sb.tick(2);
+        check('parado antes del clic', draws === 1);
+        sb.target.fire('pointerdown');
+        sb.tick(2);
+        check('un pointerdown repinta sin que el juego haga nada', draws === 2);
+        sb.target.fire('keydown');
+        sb.tick(2);
+        check('y un keydown tambien', draws === 3);
+    }
+
+    /* Dormir mucho no puede producir un dt gigante. */
+    {
+        const sb = makeClockDom();
+        let dts = [];
+        const h = sb.GU.rafDraw(function (dt) { dts.push(dt); });
+        sb.tick(1);
+        sb.tick(1, 60000);          /* un minuto quieto (no pinta, esta dormido) */
+        h.invalidate();
+        sb.tick(1, 16);
+        check('el dt al despertar es un paso normal, no el hueco entero',
+            dts.length === 2 && dts[1] <= 0.1);
+    }
+
+    /* rafClear desata los listeners: un juego que reinicia su bucle no puede ir
+     * acumulando invalidaciones de bucles muertos. */
+    {
+        const sb = makeClockDom();
+        const h = sb.GU.rafDraw(function () {});
+        const antes = sb.target.count('pointerdown');
+        sb.rafClear(h);
+        check('rafClear desata los eventos que habia atado',
+            antes === 1 && sb.target.count('pointerdown') === 0);
+        let draws = 0;
+        const h2 = sb.GU.rafDraw(function () { draws++; });
+        sb.rafClear(h2);
+        sb.tick(3);
+        check('y un bucle parado no vuelve a pintar', draws === 0);
+    }
+
+    /* El ahorro real, que es de lo que va la pieza. */
+    {
+        const sb = makeClockDom();
+        let conBucle = 0, conDemanda = 0;
+        sb.GU.rafLoop(function () { conBucle++; });
+        sb.GU.rafDraw(function () { conDemanda++; });
+        sb.tick(60);
+        check('60 frames de tablero quieto: rafLoop pinta 60, rafDraw pinta 1',
+            conBucle === 60 && conDemanda === 1);
+    }
+}
+
 console.log('\n' + pass + ' pasan, ' + fail + ' fallan');
 process.exit(fail ? 1 : 0);

@@ -396,7 +396,7 @@ function passToAI() {
     turn = AI;
     busy = true;
     syncHud();
-    setTimeout(aiTurn, 420);
+    setTimeout(function () { aiTurn(); view.invalidate(); }, 420);
 }
 
 function aiTurn() {
@@ -614,10 +614,12 @@ function drawIdle() {
     ctx.textAlign = 'left';
 }
 
-rafLoop(function (dt) {
+/* Dibujo bajo demanda — ver GU.rafDraw. */
+var view = rafDraw(function (dt) {
     if (msgT > 0) msgT -= dt;
     fx.update(dt);
     draw();
+    return fx.count > 0 || msgT > 0;
 });
 
 /* ── Entrada ──────────────────────────────────────────────────────── */

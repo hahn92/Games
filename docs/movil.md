@@ -52,6 +52,25 @@ Remaining per-game conventions:
 
 **Every game MUST include the inter-game navigation bar.** It is provided by `fullscreen-btn.js`, which renders the navigation bar on all devices (and the fullscreen/landscape button on mobile). There are no exceptions — any new or existing game without it is considered incomplete.
 
+La barra lleva ahora cuatro controles: anterior, catálogo, siguiente y **silencio**
+(ver [Sonido](./audio.md)).
+
+**Añadir el juego al array `GAMES` de `fullscreen-btn.js` es parte de crearlo.**
+La barra se construye sólo si `findGameIndex()` encuentra la carpeta, así que un
+juego que falte en ese array se queda sin barra — y como el juego funciona por lo
+demás, no se nota salvo mirándolo. Pasó: la lista se quedó en 49 mientras el
+catálogo llegaba a 70, y **21 juegos estuvieron sin navegación** (todos los de
+sudoku en adelante). El orden del array es el del catálogo, porque de él salen el
+anterior y el siguiente. Para comprobarlo de una vez:
+
+```bash
+node -e "
+var fs=require('fs'), s=fs.readFileSync('fullscreen-btn.js','utf8');
+var ids=[...s.match(/var GAMES = \[([\s\S]*?)\n    \];/)[1].matchAll(/\['([a-z0-9]+)'/g)].map(x=>x[1]);
+var dirs=fs.readdirSync('.').filter(d=>fs.existsSync(d+'/main.js'));
+console.log('sin barra:', dirs.filter(d=>!ids.includes(d)).join(' ')||'ninguno');"
+```
+
 To include it, add the script tag **last**, after `audio.js` and `main.js`:
 
 ```html

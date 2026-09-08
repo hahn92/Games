@@ -247,10 +247,15 @@ function drawIdle() {
 
 /* Arrancado aquí abajo, fuera de sí mismo: un bucle que sólo se referencia
  * dentro nunca corre y el juego se queda quieto sin dar error. */
-rafLoop(function (dt) {
+/* Dibujo bajo demanda: entre pulsaciones esto es una imagen fija, y repintarla
+ * 60 veces por segundo no cambia un pixel. GU.rafDraw invalida solo con la
+ * entrada del jugador; lo que devolvemos mantiene vivo el bucle mientras quede
+ * animacion (las particulas de la victoria, el parpadeo de la pista). */
+var view = rafDraw(function (dt) {
     if (hintT > 0) hintT -= dt;
     fx.update(dt);
     draw();
+    return fx.count > 0 || hintT > 0;
 });
 
 /* ── Entrada ──────────────────────────────────────────────────────── */

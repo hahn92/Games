@@ -78,7 +78,7 @@ function newGame() {
     over.hide();
     syncHud();
     GameAudio.start();
-    if (turn === 'ai') setTimeout(aiTurn, 700);
+    if (turn === 'ai') setTimeout(function () { aiTurn(); view.invalidate(); }, 700);
     else say('Sales tú');
 }
 
@@ -150,7 +150,7 @@ function playerPlay(idx, side) {
     syncHud();
     if (checkEnd()) return;
     turn = 'ai';
-    setTimeout(aiTurn, 650);
+    setTimeout(function () { aiTurn(); view.invalidate(); }, 650);
 }
 
 function playerDraw() {
@@ -167,7 +167,7 @@ function playerDraw() {
     say('Pasas');
     turn = 'ai';
     if (checkEnd()) return;
-    setTimeout(aiTurn, 600);
+    setTimeout(function () { aiTurn(); view.invalidate(); }, 600);
 }
 
 function aiTurn() {
@@ -260,10 +260,12 @@ function syncHud() {
 
 /* ── Dibujo ───────────────────────────────────────────────────────── */
 
-rafLoop(function (dt) {
+/* Dibujo bajo demanda — ver GU.rafDraw. */
+var view = rafDraw(function (dt) {
     if (msgT > 0) msgT -= dt;
     fx.update(dt);
     draw();
+    return fx.count > 0 || msgT > 0;
 });
 
 function draw() {

@@ -224,7 +224,7 @@ function endGame() {
 function scheduleAi() {
     gs.aiThinking = true;
     updateMobileScore();
-    setTimeout(doAiMove, 320);
+    setTimeout(function () { doAiMove(); view.invalidate(); }, 320);
 }
 
 function evalBoard(b, color) {
@@ -473,15 +473,10 @@ function drawCursor() {
 }
 
 /* ── Animación / loop ── */
-var lastRenderTs = 0;
-var lastTime = 0;
-function loop(ts) {
-    requestAnimationFrame(loop);
-    if (ts - lastRenderTs < 15) return;
-    var dt = lastTime ? (ts - lastTime) / 1000 : 0;
-    lastTime = ts;
-    lastRenderTs = ts;
-
+/* Dibujo bajo demanda — ver GU.rafDraw. El volteo de las fichas es la unica
+ * animacion, asi que mientras queden fichas girando pedimos el siguiente frame
+ * y al acabar el tablero se queda quieto sin gastar nada. */
+var view = GU.rafDraw(function (dt) {
     // actualizar volteos
     if (gs.flipping.length > 0) {
         for (var i = gs.flipping.length - 1; i >= 0; i--) {
@@ -492,7 +487,8 @@ function loop(ts) {
         }
     }
     draw();
-}
+    return gs.flipping.length > 0;
+});
 
 /* ── Entrada (click/tap con escalado) ── */
 function canvasToCell(clientX, clientY) {
@@ -577,7 +573,6 @@ gs.board = makeBoard();
 gs.status = 'idle';
 updateModeLabel();
 updateMobileScore();
-requestAnimationFrame(loop);
 // auto-iniciar primera partida
 newGame();
 

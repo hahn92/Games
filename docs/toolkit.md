@@ -8,7 +8,7 @@ because games already called them unqualified.
 
 | Group | API |
 |-------|-----|
-| Loop | `rafInterval(fn, ms)` / `rafClear(h)` — fixed-tick loop; `rafLoop(fn, minMs)` — free-running ~60fps loop, `fn(dt, ts)` with `dt` clamped so a backgrounded tab can't tunnel bodies through walls |
+| Loop | `rafInterval(fn, ms)` / `rafClear(h)` — fixed-tick loop; `rafLoop(fn, minMs)` — free-running ~60fps loop, `fn(dt, ts)` with `dt` clamped so a backgrounded tab can't tunnel bodies through walls; `rafDraw(fn, {el, events, minMs})` — draw-on-demand loop for a board that only changes when something happens, `.invalidate()` asks for a frame |
 | Math | `clamp`\*, `lerp`\*, `GU.dist`, `GU.dist2`, `GU.rand`, `GU.randInt`, `GU.pick`, `GU.shuffle`, `GU.angleDelta`, `GU.easeOutQuad` / `easeInQuad` / `easeInOutQuad` |
 | Collision | `GU.rectsOverlap(ax,ay,aw,ah, bx,by,bw,bh)`, `GU.circlesOverlap(x1,y1,r1, x2,y2,r2)` |
 | Color | `hexToRgb`\*, `shade(hex, ±d)`\* (additive), `GU.scaleColor(hex, f)` (multiplicative), `GU.rgba(hex, a)`, `GU.mixColor(a, b, t)` |
@@ -122,6 +122,47 @@ because games already called them unqualified.
   ended. It marks them as `alertdialog`, names them from their heading and moves
   focus into them when they appear. Careful with visibility checks here:
   `offsetParent` is null for `position: fixed`, which every one of these popups is.
+- **`rafDraw`** — diecisiete juegos por turnos repintaban un tablero quieto sesenta
+  veces por segundo. Medido en chess con el contexto instrumentado: **99 operaciones
+  de canvas y 10 construcciones de degradado por frame** en la pantalla de reposo, o
+  sea 600 degradados por segundo para no cambiar un pixel. Aqui `fn` sólo corre en
+  los frames que alguien ha pedido, y cuando no hay nada que pedir el bucle deja de
+  encolar rAF del todo.
+
+  Lo que hace que esto no acabe en la pantalla congelada de
+  [Trampas](./trampas.md) son dos cosas, y las dos importan:
+
+  - **La entrada invalida sola.** Puntero y teclas se escuchan en **fase de
+    captura**, así que un juego que llame a `stopPropagation` conserva su
+    repintado. Todo cambio que empieza en el jugador queda cubierto sin que el
+    juego recuerde nada — que es justo lo que no se puede pedir a 17 ficheros.
+  - **Lo que NO empieza en el jugador tiene que avisar**: la jugada de la IA en su
+    `setTimeout`, un temporizador. En los juegos migrados es una línea por
+    `setTimeout(aiTurn, …)`.
+
+  El valor de retorno es lo que sostiene una animación ya en marcha:
+  `return fx.count > 0` mantiene el bucle mientras queden partículas. Devolver
+  nada lo duerme. Y el `dt` se mide desde el último frame **pintado** y va
+  acotado como el de `rafLoop`, así que despertar tras un minuto quieto da un
+  paso normal, no uno de sesenta segundos.
+
+  Un reloj es el caso que no encaja solo: si el juego enseña un cronómetro, algo
+  tiene que pedir el frame. Los que lo pintan **dentro** del canvas (sudoku,
+  nonograma) lo hacen desde un `setInterval` de 250 ms — cuatro repintados por
+  segundo bastan para un contador en segundos, frente a sesenta. Los que sólo lo
+  enseñan en el HUD (futoshiki, mahjong, solitario) no necesitan ni eso: refrescan
+  el HUD desde ese mismo intervalo y el canvas sigue durmiendo. En mahjong eso
+  arregló de paso algo peor: su línea de móvil llama a `freePairs()`, que recorre
+  el tablero entero, y se recalcula en CADA `set()` — pasó de 60 veces por segundo
+  a 4.
+
+  Migrados: chess, damas, reversi, hanoi, sudoku, nonograma, solitario, mastermind,
+  generala, domino, mahjong, tuberias, lightsout, gomoku, futoshiki, mancala y
+  molino. **blackjack se dejó a propósito**: su flujo es una cascada de
+  `setTimeout` con las cartas interpolándose hacia su sitio, así que casi todos
+  sus frames son frames con movimiento y lo que se ahorraría no compensa el
+  riesgo de dejar una mano a medio repartir.
+
 - **`gradientMemo`** — gradients are among the more expensive 2D calls. Key on
   everything the gradient depends on, geometry and colour stops both, and make sure the
   key is BOUNDED: keying on a scrolling or animated coordinate leaks a gradient per

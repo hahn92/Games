@@ -317,15 +317,9 @@ function drawStar(cx, cy, r, color) {
 }
 
 /* ── Loop ── */
-var lastRenderTs = 0;
-var lastTime = 0;
-function loop(ts) {
-    requestAnimationFrame(loop);
-    if (ts - lastRenderTs < 15) return;
-    var dt = lastTime ? (ts - lastTime) / 1000 : 0;
-    lastTime = ts;
-    lastRenderTs = ts;
-
+/* Dibujo bajo demanda — ver GU.rafDraw. Entre movimientos esto es una imagen
+ * fija; el disco en vuelo, la sacudida y las particulas son lo que pide seguir. */
+var view = GU.rafDraw(function (dt) {
     if (gs.shake > 0) gs.shake = Math.max(0, gs.shake - 1);
 
     // animación de movimiento de disco (subir, mover, bajar)
@@ -356,7 +350,8 @@ function loop(ts) {
     gs.particles.update(dt);
 
     draw();
-}
+    return !!gs.anim || gs.shake > 0 || gs.particles.count > 0;
+});
 
 /* ── Entrada ── */
 function pegFromX(px) {
@@ -468,6 +463,5 @@ function closePopup() {
 
 /* ── Arranque ── */
 setupLevel(3);
-requestAnimationFrame(loop);
 
 })();

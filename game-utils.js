@@ -225,7 +225,10 @@
     }
 
     function rafClear(handle) {
-        if (handle) { handle.stop = true; cancelAnimationFrame(handle.id); }
+        if (!handle) return;
+        handle.stop = true;
+        cancelAnimationFrame(handle.id);
+        if (handle.dispose) handle.dispose();
     }
 
     /* Free-running rAF loop capped at ~60fps. `fn(dtSeconds, ts)` — dt is
@@ -244,6 +247,93 @@
             fn(Math.min(elapsed, 100) / 1000, ts);
         }
         handle.id = requestAnimationFrame(loop);
+        return handle;
+    }
+
+    /* Draw-on-demand loop, for a game whose picture only changes when something
+     * happens. A board between moves is a still image, and repainting it sixty
+     * times a second is pure waste: chess measured 99 canvas operations and 10
+     * gradient constructions PER FRAME sitting on its idle screen.
+     *
+     * `fn(dtSeconds, ts)` runs only on frames that were asked for. Return a
+     * truthy value to ask for the next one — that is how an animation already
+     * in flight keeps itself alive (`return fx.count > 0`). Return nothing and
+     * the loop stops requesting frames at all, costing zero until something
+     * calls `invalidate()`.
+     *
+     * The failure this design can produce is the one docs/trampas.md is about:
+     * a game that changes state without asking for a repaint freezes on screen
+     * with a clean console. Two things guard against it.
+     *
+     *   - Input invalidates automatically. Pointer and key events are watched on
+     *     `opts.el` (plus the document for keys), in the CAPTURE phase so a game
+     *     that calls stopPropagation still gets its repaint. Every change that
+     *     starts with the player is therefore covered without the game
+     *     remembering anything.
+     *   - What does NOT start with the player must call `invalidate()`: an AI
+     *     reply on a setTimeout, a popup, a timer.
+     *
+     * dt is measured from the last PAINTED frame and clamped like rafLoop's, so
+     * a game waking after a minute of stillness gets a normal time step rather
+     * than a sixty-second one.
+     *
+     * opts: {el, events, minMs}. Stop with rafClear(), which also unbinds. */
+    function rafDraw(fn, opts) {
+        opts = opts || {};
+        var minMs = opts.minMs == null ? 15 : opts.minMs;
+        var handle = { id: 0, stop: false, dirty: false, running: false, frames: 0 };
+        var last = performance.now();
+
+        function loop(ts) {
+            if (handle.stop) return;
+            var elapsed = ts - last;
+            if (elapsed < minMs) { handle.id = requestAnimationFrame(loop); return; }
+            last = ts;
+            handle.dirty = false;
+            handle.frames++;
+            if (fn(Math.min(elapsed, 100) / 1000, ts)) handle.dirty = true;
+            if (handle.dirty) handle.id = requestAnimationFrame(loop);
+            else handle.running = false;
+        }
+
+        handle.invalidate = function () {
+            handle.dirty = true;
+            if (handle.running || handle.stop) return;
+            handle.running = true;
+            /* The gap since the last painted frame is not a time step, it is how
+             * long nothing happened. Back-date it by one tick so the waking
+             * frame paints at once and with a normal dt. */
+            last = performance.now() - minMs;
+            handle.id = requestAnimationFrame(loop);
+        };
+
+        var el = opts.el || (global.document && global.document.documentElement);
+        var evts = opts.events ||
+            ['pointerdown', 'pointerup', 'mousedown', 'mouseup', 'click',
+             'touchstart', 'touchend', 'keydown', 'keyup'];
+        var bound = [];
+        function bind(target, type) {
+            if (!target || !target.addEventListener) return;
+            var h = function () { handle.invalidate(); };
+            target.addEventListener(type, h, { capture: true, passive: true });
+            bound.push([target, type, h]);
+        }
+        for (var i = 0; i < evts.length; i++) {
+            bind(el, evts[i]);
+            /* Keys land on the document, not on a canvas. */
+            if (el !== global.document && evts[i].indexOf('key') === 0) bind(global.document, evts[i]);
+        }
+        bind(global, 'resize');
+        bind(global.document, 'visibilitychange');
+
+        handle.dispose = function () {
+            for (var j = 0; j < bound.length; j++) {
+                bound[j][0].removeEventListener(bound[j][1], bound[j][2], { capture: true });
+            }
+            bound.length = 0;
+        };
+
+        handle.invalidate();
         return handle;
     }
 
@@ -1771,6 +1861,7 @@
 
     var GameUtils = {
         rafInterval: rafInterval, rafClear: rafClear, rafLoop: rafLoop,
+        rafDraw: rafDraw,
         clamp: clamp, lerp: lerp, dist: dist, dist2: dist2,
         rand: rand, randInt: randInt, pick: pick, shuffle: shuffle,
         angleDelta: angleDelta,
@@ -1801,6 +1892,7 @@
     global.rafInterval = rafInterval;
     global.rafClear    = rafClear;
     global.rafLoop     = rafLoop;
+    global.rafDraw     = rafDraw;
     global.GameStore   = Store;
     global.Particles   = Particles;
     global.Shake       = Shake;

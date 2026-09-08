@@ -59,6 +59,27 @@
         ['blackjack',    'Blackjack'],
         ['sopaletras',   'Sopa de Letras'],
         ['hanoi',        'Torres de Hanói'],
+        ['sudoku',       'Sudoku'],
+        ['nonograma',    'Nonograma'],
+        ['solitario',    'Solitario'],
+        ['minigolf',     'Minigolf'],
+        ['bolos',        'Bolos'],
+        ['tron',         'Estelas de Luz'],
+        ['lunar',        'Alunizaje'],
+        ['mastermind',   'Descifra el Código'],
+        ['generala',     'Generala'],
+        ['ciempies',     'Ciempiés'],
+        ['bombas',       'Bombas'],
+        ['domino',       'Dominó'],
+        ['mahjong',      'Mahjong Solitario'],
+        ['tiroalblanco', 'Galería de Tiro'],
+        ['canastas',     'Canastas'],
+        ['lightsout',    'Apaga las Luces'],
+        ['tuberias',     'Tuberías'],
+        ['gomoku',       'Cinco en Raya'],
+        ['futoshiki',    'Futoshiki'],
+        ['mancala',      'Mancala'],
+        ['molino',       'Molino'],
     ];
 
     /* ── Detect current game folder from URL ────────────────────────── */
@@ -74,6 +95,29 @@
             if (GAMES[i][0] === folder) return i;
         }
         return -1;
+    }
+
+    /* ── Sound preference ───────────────────────────────────────────
+       audio.js lleva desde el principio setMuted/isMuted/toggleMute y no los
+       usaba nadie: setenta juegos con sonido y ninguna manera de callarlos sin
+       bajarle el volumen al sistema. El interruptor vive aqui, en el unico
+       fichero que cargan todos, en vez de en cada juego.
+
+       La preferencia se guarda por GameStore, que degrada a memoria cuando el
+       navegador bloquea el almacenamiento — asi que esto no puede lanzar ni
+       dejar la pagina a medias, y como mucho se pierde el ajuste al recargar. */
+    var MUTE_KEY = 'gamesMuted';
+
+    function storedMuted() {
+        if (!window.GameStore) return false;
+        return window.GameStore.getNum(MUTE_KEY, 0) === 1;
+    }
+
+    /* `persist` es falso al arrancar: leer la preferencia no es cambiarla, y
+       reescribirla en cada carga solo sirve para pisarla si algo va mal. */
+    function applyMuted(m, persist) {
+        if (window.GameAudio && window.GameAudio.setMuted) window.GameAudio.setMuted(m);
+        if (persist && window.GameStore) window.GameStore.setNum(MUTE_KEY, m ? 1 : 0);
     }
 
     /* ── Build navigation bar ───────────────────────────────────────── */
@@ -133,6 +177,51 @@
             return el;
         }
 
+        function svgSound() {
+            return '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polygon points="4 9 8 9 13 5 13 19 8 15 4 15" fill="currentColor" stroke-linejoin="round"/><path d="M16.5 8.5a5 5 0 0 1 0 7"/><path d="M19 6a8.5 8.5 0 0 1 0 12"/></svg>';
+        }
+        function svgMuted() {
+            return '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polygon points="4 9 8 9 13 5 13 19 8 15 4 15" fill="currentColor" stroke-linejoin="round"/><line x1="17" y1="9" x2="22" y2="15"/><line x1="22" y1="9" x2="17" y2="15"/></svg>';
+        }
+
+        /* Un <button> de verdad, no el <a> de makeBtn: esto no navega a ningun
+           sitio, y asi trae foco, Enter/Espacio y aria-pressed sin escribirlos. */
+        function makeSoundBtn() {
+            var b = document.createElement('button');
+            var muted = storedMuted();
+            b.id = 'soundBtn';
+            b.type = 'button';
+            b.style.cssText =
+                'color:#8fd3f4;background:none;border:0;padding:0;margin:0;' +
+                'width:28px;height:28px;display:flex;align-items:center;justify-content:center;' +
+                'border-radius:50%;transition:background 0.15s,color 0.15s;cursor:pointer;' +
+                'touch-action:manipulation;-webkit-tap-highlight-color:transparent;flex-shrink:0;';
+            function paint() {
+                b.innerHTML = muted ? svgMuted() : svgSound();
+                b.title = muted ? 'Activar sonido' : 'Silenciar';
+                b.setAttribute('aria-label', b.title);
+                b.setAttribute('aria-pressed', muted ? 'true' : 'false');
+                b.style.color = muted ? 'rgba(143,211,244,0.45)' : '#8fd3f4';
+            }
+            paint();
+            b.addEventListener('click', function () {
+                muted = !muted;
+                applyMuted(muted, true);
+                paint();
+                /* El clic de confirmacion solo cuando se vuelve a oir; al
+                   silenciar, sonar seria contradecir al boton. */
+                if (!muted && window.GameAudio && window.GameAudio.click) window.GameAudio.click();
+            });
+            b.addEventListener('mouseenter', function () {
+                this.style.background = 'rgba(143,211,244,0.18)';
+            });
+            b.addEventListener('mouseleave', function () {
+                this.style.background = '';
+                this.style.color = muted ? 'rgba(143,211,244,0.45)' : '#8fd3f4';
+            });
+            return b;
+        }
+
         // Separator
         function sep() {
             var s = document.createElement('span');
@@ -162,12 +251,20 @@
             next ? (next[1] + ' ▶') : 'Último juego',
             !next
         ));
+        nav.appendChild(sep());
+
+        // Sound
+        nav.appendChild(makeSoundBtn());
 
         document.body.appendChild(nav);
     }
 
     /* ── DOMContentLoaded — nav for all devices ─────────────────────── */
     document.addEventListener('DOMContentLoaded', function () {
+
+        /* El silencio se aplica aunque la barra no llegue a construirse: la
+           preferencia es del jugador, no de esta pantalla. */
+        applyMuted(storedMuted());
 
         /* Navigation */
         var folder = detectFolder();

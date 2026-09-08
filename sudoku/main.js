@@ -607,13 +607,20 @@ function drawPad() {
 
 /* rafLoop, no un rAF a mano: dt viene acotado, así que una pestaña que vuelve
  * de segundo plano no salta el cronómetro de golpe. */
-rafLoop(function () {
-    if (gs.status === 'playing') {
-        gs.elapsed = performance.now() - gs.startMs;
-        hud.set({ time: gs.elapsed });
-    }
+/* Dibujo bajo demanda — ver GU.rafDraw. Entre jugadas la rejilla es una imagen
+ * fija; lo unico que se mueve solo es el cronometro, y ese se lleva su propio
+ * temporizador porque cuatro repintados por segundo bastan para un contador en
+ * segundos. */
+var view = rafDraw(function () {
     draw();
 });
+
+setInterval(function () {
+    if (gs.status !== 'playing') return;
+    gs.elapsed = performance.now() - gs.startMs;
+    hud.set({ time: gs.elapsed });
+    view.invalidate();   /* el reloj se pinta DENTRO del canvas (draw, ~l.452) */
+}, 250);
 
 /* ═══════════════ Botones ═══════════════ */
 

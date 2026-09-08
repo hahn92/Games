@@ -51,4 +51,18 @@ All games use a shared, file-free sound system built on the Web Audio API. Inclu
 
 **Rules:** Never call `GameAudio.*()` inside draw/render functions or loops. One call per event trigger.
 
+## Silenciar
+
+`GameAudio` expone `setMuted(bool)` / `isMuted()` / `toggleMute()`, y quien los usa
+es **`fullscreen-btn.js`**: pone un botón de altavoz en la barra de navegación, o
+sea en los 70 juegos a la vez, y guarda la preferencia en `GameStore` bajo
+`gamesMuted`. Un juego no tiene que hacer nada para tenerlo, y **no debe montar
+su propio interruptor**: dos controles del mismo estado acaban discrepando.
+
+Estuvo desde el principio en `audio.js` y no lo llamaba nadie — setenta juegos con
+sonido y ninguna forma de callarlos sin bajar el volumen del sistema.
+
+El mute vive en `audio.js`, antes del envío al AudioContext, así que silencia
+cualquier `GameAudio.*()` sin que el juego se entere ni tenga que comprobarlo.
+
 The AudioContext is unlocked automatically on the first `touchstart`, `mousedown`, or `keydown` (iOS requirement).

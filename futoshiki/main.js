@@ -431,12 +431,21 @@ function drawIdle() {
     ctx.textAlign = 'left';
 }
 
-rafLoop(function (dt) {
-    if (status === 'playing') elapsed = performance.now() - startMs;
+/* Dibujo bajo demanda — ver GU.rafDraw. */
+var view = rafDraw(function (dt) {
     fx.update(dt);
-    syncHud();
     draw();
+    return fx.count > 0;
 });
+
+/* El cronometro no se pinta en el canvas, sólo en el HUD, así que no necesita
+ * un frame: se refresca cuatro veces por segundo, que es de sobra para un
+ * contador en segundos, y el tablero sigue durmiendo entre jugadas. */
+setInterval(function () {
+    if (status !== 'playing') return;
+    elapsed = performance.now() - startMs;
+    syncHud();
+}, 250);
 
 /* ── Entrada ──────────────────────────────────────────────────────── */
 

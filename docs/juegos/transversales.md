@@ -75,6 +75,7 @@ congelada. Con el HUD compartido refrescar por frame ya no cuesta nada.
 | `Shake` | 22/64 | los demás no tienen sacudida |
 | `GU.swipe` | 21/64 | pong arrastra la pala en continuo y runner tiene zona de mantener pulsado con temporizador: no son gestos |
 | `GU.keys` | 16/64 | los demás usan keydown de flanco, sin estado retenido — ahí no hay tecla que encallar |
+| `GU.rafDraw` | 17/70 | son los juegos por turnos: el resto tiene algo moviéndose en casi todos los frames y no hay nada que ahorrar |
 
 Las cifras de esta tabla salen de un `grep -l`, así que se pueden rehacer en
 cualquier momento y no hace falta fiarse de que estén al día.

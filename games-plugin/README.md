@@ -1,6 +1,6 @@
 # Games Plugin for Claude Code
 
-Plugin para el proyecto de juegos de navegador. Provee skills, agentes y hooks automáticos para crear, validar y mantener los 49 juegos clásicos.
+Plugin para el proyecto de juegos de navegador. Provee skills, agentes y hooks automáticos para crear, validar y mantener los 70 juegos clásicos.
 
 ## Instalación
 
@@ -21,7 +21,7 @@ Todos los skills usan el prefijo `/games:`.
 | `/games:new-game [nombre]` | Crea un nuevo juego completo desde cero (archivos, catalog entry, CLAUDE.md) |
 | `/games:validate-game [nombre]` | Valida todos los criterios de calidad de un juego (o todos si se omite el nombre) |
 | `/games:add-sounds [nombre]` | Integra `GameAudio.*` en un juego específico |
-| `/games:audit-sounds` | Revisa cobertura de sonido en los 49 juegos y lista qué falta |
+| `/games:audit-sounds` | Revisa cobertura de sonido en los 70 juegos y lista qué falta |
 | `/games:check-mobile [nombre]` | Audita layout móvil, canvas scaling y touch handling |
 | `/games:fix-performance [nombre]` | Detecta y corrige anti-patrones de rendimiento en canvas |
 

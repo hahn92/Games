@@ -99,7 +99,7 @@ function newGame() {
     updateModeLabel();
     updateMobileScore();
     GameAudio.start();
-    if (gs.mode === 'ai' && gs.aiColor === 'w') { gs.aiThinking = true; setTimeout(doAiMove, 300); }
+    if (gs.mode === 'ai' && gs.aiColor === 'w') { gs.aiThinking = true; setTimeout(function(){ doAiMove(); view.invalidate(); }, 300); }
 }
 
 /* ── Helpers ── */
@@ -968,7 +968,7 @@ function handleClick(px,py) {
                 else if (captured)                GameAudio.brick();
                 else                              GameAudio.place();
                 if (gs.mode==='ai'&&(gs.status==='playing'||gs.status==='check')&&gs.turn===gs.aiColor) {
-                    gs.aiThinking=true; setTimeout(doAiMove,300);
+                    gs.aiThinking=true; setTimeout(function(){ doAiMove(); view.invalidate(); },300);
                 }
                 return;
             }
@@ -1034,10 +1034,11 @@ GU.buttons('.btn-mode', function () {
 gs.board=makeBoard(); gs.castle=freshCastle(); gs.status='idle';
 updateMobileScore();
 // Throttle to ~60fps on high-refresh screens
-var lastRenderTs = 0;
-requestAnimationFrame(function loop(ts){
-    if (ts - lastRenderTs >= 15) { lastRenderTs = ts; render(); }
-    requestAnimationFrame(loop);
-});
+/* Dibujo bajo demanda — ver GU.rafDraw. Aqui las piezas no se interpolan entre
+ * casillas, asi que entre jugadas el tablero es una imagen fija: repintarlo era
+ * gastar 10 gradientes y 99 operaciones de canvas por frame para no cambiar un
+ * pixel. Lo que no nace de un clic o una tecla es la jugada de la IA, que
+ * invalida ella. */
+var view = GU.rafDraw(function () { render(); });
 
 }());

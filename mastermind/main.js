@@ -322,9 +322,11 @@ function drawIdle() {
 }
 
 /* ── Bucle ────────────────────────────────────────────────────────── */
-rafLoop(function (dt) {
+/* Dibujo bajo demanda — ver GU.rafDraw. */
+var view = rafDraw(function (dt) {
     fx.update(dt);
     draw();
+    return fx.count > 0;
 });
 
 /* ── Entrada ──────────────────────────────────────────────────────── */

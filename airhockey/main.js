@@ -101,8 +101,6 @@ function loadStats() {
 function saveStats() {
     GameStore.setJSON('airhockeyStats', { wins: state.wins });
 }
-loadStats();
-
 var gameHud = GU.hud({
     scorePlayer: scorePlayerEl,
     scoreCpu: scoreCpuEl,
@@ -111,6 +109,12 @@ var gameHud = GU.hud({
         return 'Tú ' + state.scoreP + '  -  ' + state.scoreCpu + ' CPU';
     } }
 });
+
+/* Despues del hud, no antes: loadStats() llama a updateHUD(), y con la llamada
+ * puesta encima `gameHud` todavia valia undefined. El TypeError se llevaba por
+ * delante el resto del fichero — el juego cargaba con el canvas en negro y sin
+ * bucle, que es la trampa de docs/trampas.md en su version dura. */
+loadStats();
 
 function updateHUD() {
     gameHud.set({ scorePlayer: state.scoreP, scoreCpu: state.scoreCpu, wins: state.wins });

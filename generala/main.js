@@ -376,11 +376,14 @@ function drawIdle() {
 }
 
 /* ── Bucle ────────────────────────────────────────────────────────── */
-rafLoop(function (dt) {
+/* Dibujo bajo demanda — ver GU.rafDraw. La tirada de dados y la sacudida son
+ * las dos animaciones que mantienen el bucle vivo. */
+var view = rafDraw(function (dt) {
     if (rollAnim > 0) rollAnim -= dt;
     shake.update(dt);
     fx.update(dt);
     draw();
+    return rollAnim > 0 || shake.active() || fx.count > 0;
 });
 
 /* ── Entrada ──────────────────────────────────────────────────────── */

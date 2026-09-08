@@ -99,7 +99,7 @@ function humanMove(r, c) {
     thinking = true;
     syncHud();
     /* Un respiro antes de responder: instantáneo se lee como un fallo. */
-    setTimeout(aiMove, 260);
+    setTimeout(function () { aiMove(); view.invalidate(); }, 260);
 }
 
 function aiMove() {
@@ -359,9 +359,12 @@ function drawIdle() {
     ctx.textAlign = 'left';
 }
 
-rafLoop(function (dt) {
+/* Dibujo bajo demanda — ver GU.rafDraw. El bucle sigue vivo mientras haya
+ * particulas; la jugada de la IA llega por setTimeout y avisa ella. */
+var view = rafDraw(function (dt) {
     fx.update(dt);
     draw();
+    return fx.count > 0;
 });
 
 /* ── Entrada ──────────────────────────────────────────────────────── */

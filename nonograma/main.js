@@ -621,13 +621,19 @@ function drawRing() {
 
 /* ═══════════════ Bucle ═══════════════ */
 
-rafLoop(function () {
-    if (gs.status === 'playing') {
-        gs.elapsed = performance.now() - gs.startMs;
-        hud.set({ time: gs.elapsed });
-    }
+/* Dibujo bajo demanda — ver GU.rafDraw. */
+var view = rafDraw(function () {
     draw();
 });
+
+/* Este si pinta el cronometro DENTRO del canvas, asi que el tablero tiene que
+ * repintarse mientras corre — pero cuatro veces por segundo, no sesenta. */
+setInterval(function () {
+    if (gs.status !== 'playing') return;
+    gs.elapsed = performance.now() - gs.startMs;
+    hud.set({ time: gs.elapsed });
+    view.invalidate();
+}, 250);
 
 /* ═══════════════ Botones ═══════════════ */
 
