@@ -110,6 +110,16 @@ because games already called them unqualified.
     each frame (blackjack) needs no bookkeeping. Identity is by `id`, and a
     remembered id is NOT forgotten when it is transiently missing — blackjack
     empties its button list entirely while dealing.
+  - **Un juego de arrastrar también entra**, y sin lógica nueva. `solitario` y
+    `sopaletras` se conducen arrastrando —de la carta al montón, de la primera
+    letra a la última— y arrastrar no existe sin ratón: eran los dos juegos que
+    no se podían jugar de ninguna otra forma. El teclado no duplica nada: el
+    cursor recorre las zonas y Enter llama al MISMO `pick`/`drop` (solitario) o
+    escribe los MISMOS `dragStart`/`dragEnd` (sopaletras) que escribe el ratón.
+    El primer Enter coge, el segundo suelta, y `onChange` arrastra lo cogido
+    hasta el cursor mientras te mueves — que es lo que enseña dónde va a caer.
+    Los dos aceptan Escape para soltar sin confirmar: sin salida, un montón
+    levantado por error obliga a soltarlo en cualquier parte.
   - **Visibility follows `:focus-visible`, not focus.** Hiding the ring on
     `mousedown` alone is wrong: clicking a canvas that already has focus fires no
     new `focus` event, so the ring never returns and the arrows drive something

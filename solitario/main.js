@@ -503,6 +503,7 @@ function draw() {
     }
     drawTableau();
     drawDrag();
+    drawCursor();
 }
 
 function drawSlot(r, glyph) {
@@ -560,6 +561,20 @@ function drawDrag() {
         ctx.fill();
         faceOf(d.cards[i]).draw(ctx, x, y);
     }
+}
+
+/* El anillo del cursor de teclado, encima de las cartas: es un indicador de
+ * foco, no decoración del tablero. `cursor` se declara más abajo, así que se
+ * comprueba — el primer frame podría adelantarse. */
+function drawCursor() {
+    if (typeof cursor === 'undefined' || !cursor) return;
+    var t = cursor.target();
+    if (!t) return;
+    ctx.strokeStyle = '#ffd54a';
+    ctx.lineWidth = 3;
+    ctx.beginPath();
+    ctx.roundRect(t.x - 3, t.y - 3, t.w + 6, Math.min(CH, t.h) + 6, 10);
+    ctx.stroke();
 }
 
 function drawIdle() {
@@ -642,6 +657,72 @@ canvas.addEventListener('touchend', function (e) {
     var p = GU.pointerPos(canvas, e);
     drop(p.x, p.y);
 }, { passive: false });
+
+/* ═══════════════ Teclado ═══════════════
+ *
+ * El juego se conduce arrastrando, y arrastrar no existe sin ratón: sin esto,
+ * solitario era de los juegos que no se podían jugar de otra forma.
+ *
+ * No hay lógica nueva. El cursor recorre las trece zonas —mazo, descarte, las
+ * cuatro pilas y las siete columnas— y Enter llama al MISMO `pick` y al MISMO
+ * `drop` que usa el ratón: el primer Enter levanta las cartas y el segundo las
+ * suelta. Las dos formas de jugar no pueden separarse con el tiempo porque son
+ * el mismo camino.
+ *
+ * Mientras hay cartas levantadas, moverse con las flechas arrastra el montón
+ * hasta el cursor (`gs.drag.x/y`), que es lo que hace que se vea a dónde van. */
+function zoneCenter(t) {
+    return { x: t.x + CW / 2, y: t.y + Math.min(CH, t.h) / 2 };
+}
+
+var cursor = GU.canvasCursor(canvas, {
+    label: 'Tablero de solitario. Flechas para moverte, Enter para coger y soltar cartas.',
+    targets: function () {
+        if (gs.status !== 'playing') return [];
+        var out = [], i;
+        var sr = stockRect(), wr = wasteRect();
+        out.push({ x: sr.x, y: sr.y, w: sr.w, h: sr.h, id: 'stock' });
+        out.push({ x: wr.x, y: wr.y, w: wr.w, h: wr.h, id: 'waste' });
+        for (i = 0; i < 4; i++) {
+            var fr = foundRect(i);
+            out.push({ x: fr.x, y: fr.y, w: fr.w, h: fr.h, id: 'f' + i });
+        }
+        for (i = 0; i < 7; i++) {
+            /* El objetivo de una columna es su ÚLTIMA carta, no la columna
+             * entera: es donde hay que soltar y de donde se coge. */
+            var n = gs.tab[i].length;
+            out.push({
+                x: tabX(i),
+                y: n ? tabCardY(i, n - 1) : TAB_Y,
+                w: CW, h: CH, id: 'c' + i
+            });
+        }
+        return out;
+    },
+    activate: function (t) {
+        var c = zoneCenter(t);
+        if (gs.drag) drop(c.x, c.y);
+        else pick(c.x, c.y);
+    },
+    onChange: function (t) {
+        /* Que el montón levantado siga al cursor: si no, las cartas se quedan
+         * donde se cogieron y no hay forma de ver dónde se van a soltar. */
+        if (gs.drag && t) {
+            var c = zoneCenter(t);
+            gs.drag.x = c.x;
+            gs.drag.y = c.y;
+        }
+    }
+});
+
+/* Escape suelta lo cogido en su sitio: sin salida, un montón levantado por
+ * error obliga a soltarlo en cualquier parte. */
+document.addEventListener('keydown', function (e) {
+    if (e.key !== 'Escape' || !gs.drag) return;
+    var d = gs.drag;
+    drop(d.x - d.dx + 1, d.y - d.dy + 1);   /* soltar sobre sí mismo: vuelve */
+    e.preventDefault();
+});
 
 var gameControls = GU.controls({ start: newGame });
 document.getElementById('undoBtn').addEventListener('click', function () { GameAudio.click(); undo(); });

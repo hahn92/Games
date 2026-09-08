@@ -459,6 +459,18 @@ function draw() {
 
     particles.draw(ctx);
 
+    /* El anillo del cursor de teclado, encima de todo: es un indicador de foco,
+     * no decoración del tablero. `cursor` se declara más abajo, así que se
+     * comprueba — el bucle puede adelantarse al primer frame. */
+    if (typeof cursor !== 'undefined' && cursor) {
+        const t = cursor.target();
+        if (t) {
+            ctx.strokeStyle = '#ffd54a';
+            ctx.lineWidth = 3;
+            ctx.strokeRect(t.x + 1, t.y + 1, t.w - 2, t.h - 2);
+        }
+    }
+
     ctx.restore();
 }
 
@@ -502,6 +514,65 @@ function onUp(evt) {
     dragStart = null;
     dragEnd = null;
 }
+
+/* ── Teclado ──────────────────────────────────────────────────────────
+ *
+ * El juego se juega arrastrando de la primera letra a la última, y arrastrar no
+ * existe sin ratón: sin esto, sopaletras no se podía jugar de otra forma.
+ *
+ * No hay lógica nueva: el cursor recorre las letras y Enter marca el principio
+ * y el final de la palabra, poniendo `dragStart`/`dragEnd` — los mismos que
+ * escribe el ratón — y llamando al mismo `checkSelection`. Mientras hay un
+ * principio marcado, moverse actualiza `dragEnd`, así que la línea de selección
+ * se ve crecer igual que arrastrando. */
+var cursor = GU.canvasCursor(canvas, {
+    label: 'Sopa de letras. Flechas para moverte, Enter para marcar el principio y el final de la palabra.',
+    targets: function () {
+        if (!state.running) return [];
+        var out = [];
+        for (var r = 0; r < GRID; r++) {
+            for (var c = 0; c < GRID; c++) {
+                out.push({
+                    x: gridOffX + c * cellSize,
+                    y: gridOffY + r * cellSize,
+                    w: cellSize, h: cellSize,
+                    id: r + '_' + c, r: r, c: c
+                });
+            }
+        }
+        return out;
+    },
+    activate: function (t) {
+        if (!state.running) return;
+        var cell = { r: t.r, c: t.c };
+        if (!dragging) {
+            dragging = true;
+            dragStart = cell;
+            dragEnd = cell;
+        } else {
+            dragEnd = cell;
+            checkSelection();
+            dragging = false;
+            dragStart = null;
+            dragEnd = null;
+        }
+    },
+    onChange: function (t) {
+        /* Con el principio ya marcado, moverse alarga la selección: es lo que
+         * enseña qué palabra se está formando antes de confirmarla. */
+        if (dragging && t) dragEnd = { r: t.r, c: t.c };
+    }
+});
+
+/* Escape cancela la palabra a medias. Sin salida, un principio marcado por
+ * error obliga a confirmar algo. */
+document.addEventListener('keydown', function (e) {
+    if (e.key !== 'Escape' || !dragging) return;
+    dragging = false;
+    dragStart = null;
+    dragEnd = null;
+    e.preventDefault();
+});
 
 canvas.addEventListener('mousedown', onDown);
 canvas.addEventListener('mousemove', onMove);

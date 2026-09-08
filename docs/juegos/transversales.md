@@ -83,3 +83,17 @@ congelada. Con el HUD compartido refrescar por frame ya no cuesta nada.
 
 Las cifras de esta tabla salen de un `grep -l`, así que se pueden rehacer en
 cualquier momento y no hace falta fiarse de que estén al día.
+
+## Juegos que sólo se podían jugar con ratón
+
+Eran diez. `simon` no contaba —sus pads son `<button>` de verdad— y `solitario`
+y `sopaletras` ya llevan cursor de teclado (ver [Toolkit](../toolkit.md)).
+
+Quedan siete: `airhockey`, `billar`, `bubbleshooter`, `canastas`, `catapulta`,
+`minigolf` y `misiles`. Los siete son de **puntería continua**: se apunta a un
+punto cualquiera con el puntero, no se elige entre objetivos discretos, así que
+`GU.canvasCursor` no les sirve — no hay lista de objetivos que recorrer.
+
+Darles teclado no es añadir un cursor, es diseñar otro control: ángulo y
+potencia con las flechas, disparo con Espacio. Es un modo de juego distinto y
+está sin hacer a propósito, no por descuido.
