@@ -79,6 +79,7 @@ congelada. Con el HUD compartido refrescar por frame ya no cuesta nada.
 | `GU.idleScreen` | 10/80 | los diez de la tanda 4; los otros 30 con pantalla de reposo llevan todavía su copia a mano |
 | `GU.minimax` | 2/80 | timbiriche y gatosupremo. Los siete que ya tenían la suya siguen con ella: migrar una IA que funciona es riesgo sin ganancia |
 | `GU.cards` | 1/80 | freecell. solitario, de donde salió, no está migrado por el mismo motivo |
+| `GU.sprite` | 5/80 | bubbleshooter, solitario, spaceinvaders, gemas y billar. El resto no repite el mismo dibujo suficientes veces por frame como para que compense |
 
 Las cifras de esta tabla salen de un `grep -l`, así que se pueden rehacer en
 cualquier momento y no hace falta fiarse de que estén al día.

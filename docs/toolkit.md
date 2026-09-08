@@ -330,9 +330,27 @@ because games already called them unqualified.
   `submit()` persists as a side effect on purpose: splitting the compare from the write
   is how you end up comparing against the value you just stored.
 
-- **`sprite` / `spriteSheet`** — draw once into an offscreen canvas, then blit. This is
-  the single biggest lever available in these games and only bubbleshooter uses it today,
-  where it replaced a live radial gradient per bubble per frame with one `drawImage`.
+- **`sprite` / `spriteSheet`** — draw once into an offscreen canvas, then blit. Es la
+  palanca más grande que hay en estos juegos, y lo medido lo confirma. Los cuatro
+  sitios donde se ha aplicado, con las operaciones de canvas por frame contadas
+  instrumentando el contexto:
+
+  | Juego | Antes | Después | Qué se prerenderizó |
+  |-------|-------|---------|---------------------|
+  | `spaceinvaders` | 1807 | **400** | los 40 aliens: son SEIS dibujos —tres tipos por dos poses— repetidos |
+  | `gemas` | 535 | **93** | las 7 gemas; se fueron de paso 44 `setTransform` por frame |
+  | `billar` | 76 | **33** | las 16 bolas, con su degradado radial y su número |
+  | `bubbleshooter` | — | — | el primero: un degradado radial por burbuja y por frame |
+
+  Lo que hace que un caso sea buen candidato no es que dibuje mucho, sino que
+  dibuje **pocas cosas distintas muchas veces**. En spaceinvaders eso se ve
+  claro: cuarenta aliens, seis dibujos. Y lo que hay que mirar antes de migrar es
+  qué parte cambia por frame — en la nave de ese mismo juego, las llamas laten
+  con `glowPulse` y se quedaron fuera del sprite; meterlas dentro las congela.
+
+  `drawCentered(ctx, x, y, scale)` acepta escala sin coste de `save`/`restore`,
+  que es lo que permite usar sprite en un objeto que crece o encoge — una bola
+  hundiéndose en la tronera, una gema desapareciendo.
   Anything drawn many times from the same shapes is a candidate. The offscreen canvas is
   allocated at device pixel density and the draw callback runs pre-scaled, so sprites stay
   sharp on a phone while both the callback and the blits work in logical pixels — a

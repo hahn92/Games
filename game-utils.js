@@ -1816,8 +1816,18 @@
             draw: function (ctx, x, y) {
                 ctx.drawImage(c, x - pad, y - pad, lw, lh);
             },
-            drawCentered: function (ctx, x, y) {
-                ctx.drawImage(c, x - w / 2 - pad, y - h / 2 - pad, lw, lh);
+            /* `scale` es opcional y NO cuesta un save/restore: se escalan los
+             * argumentos del drawImage en vez de tocar la transformación. Es lo
+             * que necesita cualquier objeto que crezca o encoja —una bola que se
+             * hunde en la tronera, una ficha que aparece— para poder usar sprite
+             * en vez de volver a las formas. */
+            drawCentered: function (ctx, x, y, scale) {
+                if (scale == null || scale === 1) {
+                    ctx.drawImage(c, x - w / 2 - pad, y - h / 2 - pad, lw, lh);
+                    return;
+                }
+                var sw = lw * scale, sh = lh * scale;
+                ctx.drawImage(c, x - sw / 2, y - sh / 2, sw, sh);
             },
             /* Rotated blit. Costs a save/restore, so it is still worth it
              * against rebuilding gradients but not against a bare fillRect. */

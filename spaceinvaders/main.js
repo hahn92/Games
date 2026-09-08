@@ -45,8 +45,6 @@ let animFrameId = null;
 let lastFrameTime = 0;
 
 // Cached player gradient (rebuilt only when playerX changes)
-let playerGrad = null;
-let playerGradX = -1;
 
 // Star layers
 let starsA = [];
@@ -130,8 +128,6 @@ function resetGame() {
 var gameBest = GU.highScore('invadersHighScore');
 
     highScore = gameBest.display(0);
-    playerGrad = null;
-    playerGradX = -1;
 
     spawnWave();
     initStars();
@@ -471,153 +467,309 @@ function getInvaderColor(row) {
 
 // --- Alien draw functions (no shadowBlur — too expensive per-alien) ---
 
-function drawAlienA(x, y, w, h, poseB) {
-    ctx.save();
-    ctx.translate(x + w / 2, y + h / 2);
+function drawAlienA(c, x, y, w, h, poseB) {
+    c.save();
+    c.translate(x + w / 2, y + h / 2);
 
-    ctx.fillStyle = '#00e5ff';
-    ctx.strokeStyle = '#00e5ff';
+    c.fillStyle = '#00e5ff';
+    c.strokeStyle = '#00e5ff';
 
     // Body
-    ctx.beginPath();
-    ctx.roundRect(-w * 0.4, -h * 0.3, w * 0.8, h * 0.6, 3);
-    ctx.fill();
+    c.beginPath();
+    c.roundRect(-w * 0.4, -h * 0.3, w * 0.8, h * 0.6, 3);
+    c.fill();
 
     // Antennas
-    ctx.lineWidth = 1.5;
-    ctx.beginPath();
-    ctx.moveTo(-w * 0.25, -h * 0.3);
-    ctx.lineTo(-w * 0.4, -h * 0.6);
-    ctx.moveTo(w * 0.25, -h * 0.3);
-    ctx.lineTo(w * 0.4, -h * 0.6);
-    ctx.stroke();
-    ctx.beginPath();
-    ctx.arc(-w * 0.4, -h * 0.6, 2, 0, Math.PI * 2);
-    ctx.arc(w * 0.4, -h * 0.6, 2, 0, Math.PI * 2);
-    ctx.fill();
+    c.lineWidth = 1.5;
+    c.beginPath();
+    c.moveTo(-w * 0.25, -h * 0.3);
+    c.lineTo(-w * 0.4, -h * 0.6);
+    c.moveTo(w * 0.25, -h * 0.3);
+    c.lineTo(w * 0.4, -h * 0.6);
+    c.stroke();
+    c.beginPath();
+    c.arc(-w * 0.4, -h * 0.6, 2, 0, Math.PI * 2);
+    c.arc(w * 0.4, -h * 0.6, 2, 0, Math.PI * 2);
+    c.fill();
 
     // Eyes
-    ctx.fillStyle = '#001a1a';
-    ctx.beginPath();
-    ctx.arc(-w * 0.18, -h * 0.05, 3.5, 0, Math.PI * 2);
-    ctx.arc(w * 0.18, -h * 0.05, 3.5, 0, Math.PI * 2);
-    ctx.fill();
+    c.fillStyle = '#001a1a';
+    c.beginPath();
+    c.arc(-w * 0.18, -h * 0.05, 3.5, 0, Math.PI * 2);
+    c.arc(w * 0.18, -h * 0.05, 3.5, 0, Math.PI * 2);
+    c.fill();
 
     // Legs
-    ctx.strokeStyle = '#00e5ff';
-    ctx.lineWidth = 1.5;
+    c.strokeStyle = '#00e5ff';
+    c.lineWidth = 1.5;
     const legSpread = poseB ? 0.5 : 0.35;
     const legY = h * 0.3;
-    ctx.beginPath();
-    ctx.moveTo(-w * 0.35, legY); ctx.lineTo(-w * legSpread, legY + h * 0.25);
-    ctx.moveTo(-w * 0.12, legY); ctx.lineTo(-w * 0.15, legY + h * 0.25);
-    ctx.moveTo(w * 0.12, legY);  ctx.lineTo(w * 0.15, legY + h * 0.25);
-    ctx.moveTo(w * 0.35, legY);  ctx.lineTo(w * legSpread, legY + h * 0.25);
-    ctx.stroke();
+    c.beginPath();
+    c.moveTo(-w * 0.35, legY); c.lineTo(-w * legSpread, legY + h * 0.25);
+    c.moveTo(-w * 0.12, legY); c.lineTo(-w * 0.15, legY + h * 0.25);
+    c.moveTo(w * 0.12, legY);  c.lineTo(w * 0.15, legY + h * 0.25);
+    c.moveTo(w * 0.35, legY);  c.lineTo(w * legSpread, legY + h * 0.25);
+    c.stroke();
 
-    ctx.restore();
+    c.restore();
 }
 
-function drawAlienB(x, y, w, h, poseB) {
-    ctx.save();
-    ctx.translate(x + w / 2, y + h / 2);
+function drawAlienB(c, x, y, w, h, poseB) {
+    c.save();
+    c.translate(x + w / 2, y + h / 2);
 
-    ctx.fillStyle = '#e040fb';
-    ctx.strokeStyle = '#e040fb';
+    c.fillStyle = '#e040fb';
+    c.strokeStyle = '#e040fb';
 
     // Body
-    ctx.beginPath();
-    ctx.ellipse(0, 0, w * 0.4, h * 0.35, 0, 0, Math.PI * 2);
-    ctx.fill();
+    c.beginPath();
+    c.ellipse(0, 0, w * 0.4, h * 0.35, 0, 0, Math.PI * 2);
+    c.fill();
 
     // Claws
     const clawY = poseB ? h * 0.05 : -h * 0.05;
-    ctx.lineWidth = 2;
-    ctx.beginPath();
-    ctx.moveTo(-w * 0.4, 0);    ctx.lineTo(-w * 0.6, clawY);
-    ctx.moveTo(-w * 0.6, clawY); ctx.lineTo(-w * 0.7, clawY - h * 0.2);
-    ctx.moveTo(-w * 0.6, clawY); ctx.lineTo(-w * 0.75, clawY + h * 0.1);
-    ctx.moveTo(w * 0.4, 0);     ctx.lineTo(w * 0.6, clawY);
-    ctx.moveTo(w * 0.6, clawY);  ctx.lineTo(w * 0.7, clawY - h * 0.2);
-    ctx.moveTo(w * 0.6, clawY);  ctx.lineTo(w * 0.75, clawY + h * 0.1);
-    ctx.stroke();
+    c.lineWidth = 2;
+    c.beginPath();
+    c.moveTo(-w * 0.4, 0);    c.lineTo(-w * 0.6, clawY);
+    c.moveTo(-w * 0.6, clawY); c.lineTo(-w * 0.7, clawY - h * 0.2);
+    c.moveTo(-w * 0.6, clawY); c.lineTo(-w * 0.75, clawY + h * 0.1);
+    c.moveTo(w * 0.4, 0);     c.lineTo(w * 0.6, clawY);
+    c.moveTo(w * 0.6, clawY);  c.lineTo(w * 0.7, clawY - h * 0.2);
+    c.moveTo(w * 0.6, clawY);  c.lineTo(w * 0.75, clawY + h * 0.1);
+    c.stroke();
 
     // Eyes
-    ctx.fillStyle = '#fff';
-    ctx.beginPath();
-    ctx.arc(-w * 0.18, -h * 0.08, 5, 0, Math.PI * 2);
-    ctx.arc(w * 0.18, -h * 0.08, 5, 0, Math.PI * 2);
-    ctx.fill();
-    ctx.fillStyle = '#220022';
-    ctx.beginPath();
-    ctx.arc(-w * 0.18, -h * 0.08, 2.5, 0, Math.PI * 2);
-    ctx.arc(w * 0.18, -h * 0.08, 2.5, 0, Math.PI * 2);
-    ctx.fill();
+    c.fillStyle = '#fff';
+    c.beginPath();
+    c.arc(-w * 0.18, -h * 0.08, 5, 0, Math.PI * 2);
+    c.arc(w * 0.18, -h * 0.08, 5, 0, Math.PI * 2);
+    c.fill();
+    c.fillStyle = '#220022';
+    c.beginPath();
+    c.arc(-w * 0.18, -h * 0.08, 2.5, 0, Math.PI * 2);
+    c.arc(w * 0.18, -h * 0.08, 2.5, 0, Math.PI * 2);
+    c.fill();
 
     // Legs
-    ctx.strokeStyle = '#e040fb';
-    ctx.lineWidth = 1.5;
+    c.strokeStyle = '#e040fb';
+    c.lineWidth = 1.5;
     const lY = h * 0.35;
-    ctx.beginPath();
-    ctx.moveTo(-w * 0.25, lY); ctx.lineTo(-w * 0.3, lY + h * 0.2);
-    ctx.moveTo(0, lY);         ctx.lineTo(0, lY + h * 0.2);
-    ctx.moveTo(w * 0.25, lY);  ctx.lineTo(w * 0.3, lY + h * 0.2);
-    ctx.stroke();
+    c.beginPath();
+    c.moveTo(-w * 0.25, lY); c.lineTo(-w * 0.3, lY + h * 0.2);
+    c.moveTo(0, lY);         c.lineTo(0, lY + h * 0.2);
+    c.moveTo(w * 0.25, lY);  c.lineTo(w * 0.3, lY + h * 0.2);
+    c.stroke();
 
-    ctx.restore();
+    c.restore();
 }
 
-function drawAlienC(x, y, w, h, poseB, tentacleOffsets) {
-    ctx.save();
-    ctx.translate(x + w / 2, y + h / 2);
+function drawAlienC(c, x, y, w, h, poseB, tentacleOffsets) {
+    c.save();
+    c.translate(x + w / 2, y + h / 2);
 
     // Body
-    ctx.fillStyle = '#ff6d00';
-    ctx.beginPath();
-    ctx.ellipse(0, -h * 0.05, w * 0.45, h * 0.38, 0, 0, Math.PI * 2);
-    ctx.fill();
+    c.fillStyle = '#ff6d00';
+    c.beginPath();
+    c.ellipse(0, -h * 0.05, w * 0.45, h * 0.38, 0, 0, Math.PI * 2);
+    c.fill();
 
     // Head dome
-    ctx.fillStyle = '#ff9100';
-    ctx.beginPath();
-    ctx.ellipse(0, -h * 0.3, w * 0.3, h * 0.2, 0, Math.PI, Math.PI * 2);
-    ctx.fill();
+    c.fillStyle = '#ff9100';
+    c.beginPath();
+    c.ellipse(0, -h * 0.3, w * 0.3, h * 0.2, 0, Math.PI, Math.PI * 2);
+    c.fill();
 
     // Eyes
-    ctx.fillStyle = '#fff';
-    ctx.beginPath();
-    ctx.arc(-w * 0.18, -h * 0.12, 5, 0, Math.PI * 2);
-    ctx.arc(w * 0.18, -h * 0.12, 5, 0, Math.PI * 2);
-    ctx.fill();
-    ctx.fillStyle = '#300';
-    ctx.beginPath();
-    ctx.arc(-w * 0.18, -h * 0.12, 2.8, 0, Math.PI * 2);
-    ctx.arc(w * 0.18, -h * 0.12, 2.8, 0, Math.PI * 2);
-    ctx.fill();
+    c.fillStyle = '#fff';
+    c.beginPath();
+    c.arc(-w * 0.18, -h * 0.12, 5, 0, Math.PI * 2);
+    c.arc(w * 0.18, -h * 0.12, 5, 0, Math.PI * 2);
+    c.fill();
+    c.fillStyle = '#300';
+    c.beginPath();
+    c.arc(-w * 0.18, -h * 0.12, 2.8, 0, Math.PI * 2);
+    c.arc(w * 0.18, -h * 0.12, 2.8, 0, Math.PI * 2);
+    c.fill();
 
     // Tentacles (pre-computed offsets, no Math.random() in render)
-    ctx.strokeStyle = '#ff6d00';
-    ctx.lineWidth = 2;
+    c.strokeStyle = '#ff6d00';
+    c.lineWidth = 2;
     const curlA = poseB ? h * 0.2 : h * 0.1;
     const curlB = poseB ? h * 0.1 : h * 0.2;
     for (let t = 0; t < 6; t++) {
         const tx = -w * 0.4 + t * (w * 0.8 / 5);
         const curl = t % 2 === 0 ? curlA : curlB;
         const jitter = tentacleOffsets ? tentacleOffsets[t] : (t % 2 === 0 ? 4 : -4);
-        ctx.beginPath();
-        ctx.moveTo(tx, h * 0.3);
-        ctx.quadraticCurveTo(tx + jitter, h * 0.38 + curl / 2, tx, h * 0.38 + curl);
-        ctx.stroke();
+        c.beginPath();
+        c.moveTo(tx, h * 0.3);
+        c.quadraticCurveTo(tx + jitter, h * 0.38 + curl / 2, tx, h * 0.38 + curl);
+        c.stroke();
     }
 
-    ctx.restore();
+    c.restore();
 }
+
+/* Los aliens, prerenderizados: son SEIS dibujos distintos —tres tipos por dos
+ * poses— repetidos hasta cuarenta veces por frame. Medido antes de esto: 517
+ * llamadas de path por frame, la mayor parte de todo lo que dibujaba el juego.
+ *
+ * Que basten seis sprites depende de un detalle: el jitter de los tentáculos del
+ * tipo C es la misma constante para todos los aliens, no uno por bicho. Si algún
+ * día se aleatoriza por alien, la clave del sprite tiene que incluirlo — y ojo
+ * con que siga estando ACOTADA, o se filtra un canvas por alien. */
+var alienSprites = GU.spriteSheet(function (key) {
+    var tipo = key[0];
+    var poseB = key[1] === '1';
+    return GU.sprite(INVADER_WIDTH, INVADER_HEIGHT, function (c, w, h) {
+        if (tipo === 'A') drawAlienA(c, 0, 0, w, h, poseB);
+        else if (tipo === 'B') drawAlienB(c, 0, 0, w, h, poseB);
+        else drawAlienC(c, 0, 0, w, h, poseB, [4, -4, 4, -4, 4, -4]);
+    }, { pad: 4 });
+});
 
 function drawInvader(inv) {
     const poseB = Math.floor(frame / 30) % 2 === 1;
-    if (inv.row <= 1) drawAlienA(inv.x, inv.y, INVADER_WIDTH, INVADER_HEIGHT, poseB);
-    else if (inv.row <= 3) drawAlienB(inv.x, inv.y, INVADER_WIDTH, INVADER_HEIGHT, poseB);
-    else drawAlienC(inv.x, inv.y, INVADER_WIDTH, INVADER_HEIGHT, poseB, inv.tentacleOffsets);
+    const tipo = inv.row <= 1 ? 'A' : (inv.row <= 3 ? 'B' : 'C');
+    alienSprites.get(tipo + (poseB ? '1' : '0')).draw(ctx, inv.x, inv.y);
+}
+
+/* El casco de la nave, prerenderizado. Eran cuatro degradados y una veintena de
+ * paths por frame para dibujar algo que sólo cambia de sitio; el sprite se
+ * construye una vez y luego es un drawImage.
+ *
+ * Lo que NO entra en el sprite son las llamas del motor y el resplandor de las
+ * boquillas: laten con `glowPulse`, o sea cambian en cada frame, y meterlas
+ * dentro congelaría el latido. El padding deja sitio al shadowBlur del fuselaje,
+ * que sí se hornea dentro y así deja de costar por frame.
+ *
+ * Coordenadas locales: SX es el centro y SY/SB el borde de arriba y el de abajo
+ * del casco, que es lo que en el original eran cx, py y by. */
+var PLAYER_PAD = 16;
+var playerSprite = null;
+function getPlayerSprite() {
+    if (playerSprite) return playerSprite;
+    var w = 48, h = PLAYER_HEIGHT + 14;
+    playerSprite = GU.sprite(w, h, function (c, sw, sh) {
+        var SX = sw / 2;
+        var SY = 13;                       /* deja arriba sitio para el cañón */
+        var SB = SY + PLAYER_HEIGHT;
+    // --- Wings (swept-back delta) ---
+    const wingGradL = c.createLinearGradient(SX - 4, SY + 8, SX - 22, SB);
+    wingGradL.addColorStop(0, '#1e8888');
+    wingGradL.addColorStop(1, '#0b3d40');
+    c.fillStyle = wingGradL;
+    c.beginPath();
+    c.moveTo(SX - 6,  SY + 8);
+    c.lineTo(SX - 8,  SB);
+    c.lineTo(SX - 15, SB);
+    c.lineTo(SX - 22, SB - 5);
+    c.closePath();
+    c.fill();
+    c.strokeStyle = 'rgba(38,208,206,0.55)';
+    c.lineWidth = 1;
+    c.beginPath();
+    c.moveTo(SX - 6, SY + 8);
+    c.lineTo(SX - 22, SB - 5);
+    c.stroke();
+
+    const wingGradR = c.createLinearGradient(SX + 4, SY + 8, SX + 22, SB);
+    wingGradR.addColorStop(0, '#1e8888');
+    wingGradR.addColorStop(1, '#0b3d40');
+    c.fillStyle = wingGradR;
+    c.beginPath();
+    c.moveTo(SX + 6,  SY + 8);
+    c.lineTo(SX + 8,  SB);
+    c.lineTo(SX + 15, SB);
+    c.lineTo(SX + 22, SB - 5);
+    c.closePath();
+    c.fill();
+    c.strokeStyle = 'rgba(38,208,206,0.55)';
+    c.beginPath();
+    c.moveTo(SX + 6, SY + 8);
+    c.lineTo(SX + 22, SB - 5);
+    c.stroke();
+
+    // --- Engine pods at wing tips ---
+    c.shadowBlur = 5;
+    c.shadowColor = '#00e5ff';
+    c.fillStyle = '#0d5a5a';
+    c.beginPath();
+    c.ellipse(SX - 17, SB - 4, 6, 4, 0, 0, Math.PI * 2);
+    c.fill();
+    c.beginPath();
+    c.ellipse(SX + 17, SB - 4, 6, 4, 0, 0, Math.PI * 2);
+    c.fill();
+    /* El brillo interior de las boquillas NO va aquí: late con el frame y
+     * dentro del sprite quedaría congelado. Se dibuja en vivo, en drawPlayer. */
+
+    // --- Main fuselage ---
+    var playerGrad = c.createLinearGradient(SX, SY - 2, SX, SB);
+    playerGrad.addColorStop(0,    '#b8eef5');
+    playerGrad.addColorStop(0.22, '#26d0ce');
+    playerGrad.addColorStop(0.7,  '#137070');
+    playerGrad.addColorStop(1,    '#092f30');
+    c.shadowBlur = 12;
+    c.shadowColor = '#26d0ce';
+    c.fillStyle = playerGrad;
+    c.beginPath();
+    c.moveTo(SX,      SY - 2);
+    c.lineTo(SX + 10, SY + 9);
+    c.lineTo(SX + 8,  SB);
+    c.lineTo(SX - 8,  SB);
+    c.lineTo(SX - 10, SY + 9);
+    c.closePath();
+    c.fill();
+
+    // Fuselage center highlight stripe
+    c.fillStyle = 'rgba(255,255,255,0.18)';
+    c.beginPath();
+    c.moveTo(SX,      SY - 2);
+    c.lineTo(SX + 3,  SY + 10);
+    c.lineTo(SX,      SY + 15);
+    c.lineTo(SX - 3,  SY + 10);
+    c.closePath();
+    c.fill();
+
+    // Fuselage side panel lines
+    c.strokeStyle = 'rgba(38,208,206,0.35)';
+    c.lineWidth = 1;
+    c.beginPath(); c.moveTo(SX + 5, SY + 7); c.lineTo(SX + 7, SB - 2); c.stroke();
+    c.beginPath(); c.moveTo(SX - 5, SY + 7); c.lineTo(SX - 7, SB - 2); c.stroke();
+
+    // --- Cockpit dome ---
+    const cg = c.createRadialGradient(SX - 1.5, SY + 4, 0.5, SX, SY + 7, 6);
+    cg.addColorStop(0,   'rgba(225,250,255,1)');
+    cg.addColorStop(0.5, 'rgba(80,210,235,0.85)');
+    cg.addColorStop(1,   'rgba(20,90,130,0.3)');
+    c.shadowBlur = 5;
+    c.shadowColor = '#8fd3f4';
+    c.fillStyle = cg;
+    c.beginPath();
+    c.ellipse(SX, SY + 7, 5, 4, 0, 0, Math.PI * 2);
+    c.fill();
+
+    // --- Cannon ---
+    c.shadowBlur = 9;
+    c.shadowColor = '#76ff03';
+    c.fillStyle = '#76ff03';
+    c.beginPath();
+    c.moveTo(SX - 2,   SY - 2);
+    c.lineTo(SX + 2,   SY - 2);
+    c.lineTo(SX + 1.5, SY - 11);
+    c.lineTo(SX - 1.5, SY - 11);
+    c.closePath();
+    c.fill();
+    // Cannon tip
+    c.fillStyle = '#ccff88';
+    c.shadowBlur = 5;
+    c.beginPath();
+    c.arc(SX, SY - 11, 2.5, 0, Math.PI * 2);
+    c.fill();
+
+
+        c.shadowBlur = 0;
+    }, { pad: PLAYER_PAD });
+    return playerSprite;
 }
 
 function drawPlayer() {
@@ -646,131 +798,22 @@ function drawPlayer() {
     }
     ctx.restore();
 
-    // --- Wings (swept-back delta) ---
-    const wingGradL = ctx.createLinearGradient(cx - 4, py + 8, cx - 22, by);
-    wingGradL.addColorStop(0, '#1e8888');
-    wingGradL.addColorStop(1, '#0b3d40');
-    ctx.fillStyle = wingGradL;
-    ctx.beginPath();
-    ctx.moveTo(cx - 6,  py + 8);
-    ctx.lineTo(cx - 8,  by);
-    ctx.lineTo(cx - 15, by);
-    ctx.lineTo(cx - 22, by - 5);
-    ctx.closePath();
-    ctx.fill();
-    ctx.strokeStyle = 'rgba(38,208,206,0.55)';
-    ctx.lineWidth = 1;
-    ctx.beginPath();
-    ctx.moveTo(cx - 6, py + 8);
-    ctx.lineTo(cx - 22, by - 5);
-    ctx.stroke();
+    /* Sólo el casco es sprite; lo que late con el frame se dibuja en vivo. */
+    getPlayerSprite().draw(ctx, cx - 24, py - 13);
 
-    const wingGradR = ctx.createLinearGradient(cx + 4, py + 8, cx + 22, by);
-    wingGradR.addColorStop(0, '#1e8888');
-    wingGradR.addColorStop(1, '#0b3d40');
-    ctx.fillStyle = wingGradR;
-    ctx.beginPath();
-    ctx.moveTo(cx + 6,  py + 8);
-    ctx.lineTo(cx + 8,  by);
-    ctx.lineTo(cx + 15, by);
-    ctx.lineTo(cx + 22, by - 5);
-    ctx.closePath();
-    ctx.fill();
-    ctx.strokeStyle = 'rgba(38,208,206,0.55)';
-    ctx.beginPath();
-    ctx.moveTo(cx + 6, py + 8);
-    ctx.lineTo(cx + 22, by - 5);
-    ctx.stroke();
-
-    // --- Engine pods at wing tips ---
-    ctx.shadowBlur = 5;
-    ctx.shadowColor = '#00e5ff';
-    ctx.fillStyle = '#0d5a5a';
-    ctx.beginPath();
-    ctx.ellipse(cx - 17, by - 4, 6, 4, 0, 0, Math.PI * 2);
-    ctx.fill();
-    ctx.beginPath();
-    ctx.ellipse(cx + 17, by - 4, 6, 4, 0, 0, Math.PI * 2);
-    ctx.fill();
-    // Nozzle inner glow
-    ctx.fillStyle = `rgba(100,245,255,${0.75 * glowPulse})`;
+    ctx.save();
+    ctx.fillStyle = 'rgba(100,245,255,' + (0.75 * glowPulse).toFixed(2) + ')';
     ctx.shadowBlur = 7;
+    ctx.shadowColor = '#00e5ff';
     ctx.beginPath();
     ctx.ellipse(cx - 17, by - 4, 3, 2, 0, 0, Math.PI * 2);
     ctx.fill();
     ctx.beginPath();
     ctx.ellipse(cx + 17, by - 4, 3, 2, 0, 0, Math.PI * 2);
     ctx.fill();
-
-    // --- Main fuselage ---
-    if (playerGradX !== playerX) {
-        playerGrad = ctx.createLinearGradient(cx, py - 2, cx, by);
-        playerGrad.addColorStop(0,    '#b8eef5');
-        playerGrad.addColorStop(0.22, '#26d0ce');
-        playerGrad.addColorStop(0.7,  '#137070');
-        playerGrad.addColorStop(1,    '#092f30');
-        playerGradX = playerX;
-    }
-    ctx.shadowBlur = 12;
-    ctx.shadowColor = '#26d0ce';
-    ctx.fillStyle = playerGrad;
-    ctx.beginPath();
-    ctx.moveTo(cx,      py - 2);
-    ctx.lineTo(cx + 10, py + 9);
-    ctx.lineTo(cx + 8,  by);
-    ctx.lineTo(cx - 8,  by);
-    ctx.lineTo(cx - 10, py + 9);
-    ctx.closePath();
-    ctx.fill();
-
-    // Fuselage center highlight stripe
-    ctx.fillStyle = 'rgba(255,255,255,0.18)';
-    ctx.beginPath();
-    ctx.moveTo(cx,      py - 2);
-    ctx.lineTo(cx + 3,  py + 10);
-    ctx.lineTo(cx,      py + 15);
-    ctx.lineTo(cx - 3,  py + 10);
-    ctx.closePath();
-    ctx.fill();
-
-    // Fuselage side panel lines
-    ctx.strokeStyle = 'rgba(38,208,206,0.35)';
-    ctx.lineWidth = 1;
-    ctx.beginPath(); ctx.moveTo(cx + 5, py + 7); ctx.lineTo(cx + 7, by - 2); ctx.stroke();
-    ctx.beginPath(); ctx.moveTo(cx - 5, py + 7); ctx.lineTo(cx - 7, by - 2); ctx.stroke();
-
-    // --- Cockpit dome ---
-    const cg = ctx.createRadialGradient(cx - 1.5, py + 4, 0.5, cx, py + 7, 6);
-    cg.addColorStop(0,   'rgba(225,250,255,1)');
-    cg.addColorStop(0.5, 'rgba(80,210,235,0.85)');
-    cg.addColorStop(1,   'rgba(20,90,130,0.3)');
-    ctx.shadowBlur = 5;
-    ctx.shadowColor = '#8fd3f4';
-    ctx.fillStyle = cg;
-    ctx.beginPath();
-    ctx.ellipse(cx, py + 7, 5, 4, 0, 0, Math.PI * 2);
-    ctx.fill();
-
-    // --- Cannon ---
-    ctx.shadowBlur = 9;
-    ctx.shadowColor = '#76ff03';
-    ctx.fillStyle = '#76ff03';
-    ctx.beginPath();
-    ctx.moveTo(cx - 2,   py - 2);
-    ctx.lineTo(cx + 2,   py - 2);
-    ctx.lineTo(cx + 1.5, py - 11);
-    ctx.lineTo(cx - 1.5, py - 11);
-    ctx.closePath();
-    ctx.fill();
-    // Cannon tip
-    ctx.fillStyle = '#ccff88';
-    ctx.shadowBlur = 5;
-    ctx.beginPath();
-    ctx.arc(cx, py - 11, 2.5, 0, Math.PI * 2);
-    ctx.fill();
-
-    ctx.shadowBlur = 0;
+    ctx.restore();
 }
+
 
 function drawBunkers() {
     ctx.fillStyle = '#76ff03';

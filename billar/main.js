@@ -370,11 +370,56 @@ function drawTable() {
     }
 }
 
+/* Las bolas van prerenderizadas. Una bola son un gradiente radial, cuatro arcos
+ * y un texto, y se repintan las dieciséis en cada frame: eran ~960 gradientes
+ * por segundo para dibujar dieciséis cosas que sólo cambian de sitio. El sprite
+ * se construye una vez por (número, color) y luego cada bola es un drawImage.
+ *
+ * La sombra sigue fuera del sprite: va desplazada respecto a la bola y meterla
+ * dentro obligaría a un sprite con padding asimétrico, que es más lío que un
+ * arco. Y el hundirse en la tronera se resuelve con la escala de drawCentered,
+ * sin volver a las formas. */
+var ballSprites = GU.spriteSheet(function (key) {
+    var parts = key.split('|');
+    var num = parseInt(parts[0], 10);
+    var color = parts[1];
+    var r = BALL_R;
+    return GU.sprite(r * 2, r * 2, function (c, w, h) {
+        var cx = w / 2, cy = h / 2;
+        var g = c.createRadialGradient(cx - r * 0.35, cy - r * 0.4, r * 0.15, cx, cy, r);
+        g.addColorStop(0, lighten(color, 70));
+        g.addColorStop(0.5, color);
+        g.addColorStop(1, darken(color, 40));
+        c.beginPath();
+        c.fillStyle = g;
+        c.arc(cx, cy, r, 0, Math.PI * 2);
+        c.fill();
+
+        if (num !== 0) {
+            c.beginPath();
+            c.fillStyle = '#fff';
+            c.arc(cx, cy, r * 0.46, 0, Math.PI * 2);
+            c.fill();
+            c.fillStyle = '#111';
+            c.font = 'bold ' + Math.round(r * 0.7) + 'px sans-serif';
+            c.textAlign = 'center';
+            c.textBaseline = 'middle';
+            c.fillText(String(num), cx, cy + 0.5);
+        }
+
+        c.beginPath();
+        c.fillStyle = 'rgba(255,255,255,0.55)';
+        c.arc(cx - r * 0.32, cy - r * 0.36, r * 0.22, 0, Math.PI * 2);
+        c.fill();
+    });
+});
+
 function drawBalls() {
     for (var i = 0; i < balls.length; i++) {
         var b = balls[i];
         if (b.pocketed && b.sinkScale <= 0) continue;
-        var r = b.r * (b.pocketed ? Math.max(0, b.sinkScale) : 1);
+        var scale = b.pocketed ? Math.max(0, b.sinkScale) : 1;
+        var r = b.r * scale;
         if (r <= 0.5) continue;
 
         /* sombra */
@@ -383,34 +428,7 @@ function drawBalls() {
         ctx.arc(b.x + 2.5, b.y + 3, r, 0, Math.PI * 2);
         ctx.fill();
 
-        /* cuerpo (gradiente radial por bola con offset de luz) */
-        var g = ctx.createRadialGradient(b.x - r * 0.35, b.y - r * 0.4, r * 0.15, b.x, b.y, r);
-        g.addColorStop(0, lighten(b.color, 70));
-        g.addColorStop(0.5, b.color);
-        g.addColorStop(1, darken(b.color, 40));
-        ctx.beginPath();
-        ctx.fillStyle = g;
-        ctx.arc(b.x, b.y, r, 0, Math.PI * 2);
-        ctx.fill();
-
-        /* círculo blanco con número (excepto blanca) */
-        if (b.num !== 0) {
-            ctx.beginPath();
-            ctx.fillStyle = '#fff';
-            ctx.arc(b.x, b.y, r * 0.46, 0, Math.PI * 2);
-            ctx.fill();
-            ctx.fillStyle = '#111';
-            ctx.font = 'bold ' + Math.round(r * 0.7) + 'px sans-serif';
-            ctx.textAlign = 'center';
-            ctx.textBaseline = 'middle';
-            ctx.fillText(String(b.num), b.x, b.y + 0.5);
-        }
-
-        /* brillo especular */
-        ctx.beginPath();
-        ctx.fillStyle = 'rgba(255,255,255,0.55)';
-        ctx.arc(b.x - r * 0.32, b.y - r * 0.36, r * 0.22, 0, Math.PI * 2);
-        ctx.fill();
+        ballSprites.get(b.num + '|' + b.color).drawCentered(ctx, b.x, b.y, scale);
     }
 }
 

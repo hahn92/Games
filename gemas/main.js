@@ -99,20 +99,12 @@
 
     /* ── gradientes cacheados ──────────────────────────────────── */
     var bgGrad = null;
-    var gemGrads = [];        // uno por tipo (centrado en 0,0)
+    /* Los degradados de las gemas vivían aquí, uno por tipo. Ahora se construyen
+     * dentro de su sprite y sólo queda el del fondo. */
     function buildGradients() {
         bgGrad = ctx.createLinearGradient(0, 0, 0, H);
         bgGrad.addColorStop(0, '#140a2a');
         bgGrad.addColorStop(1, '#05061a');
-        gemGrads.length = 0;
-        for (var t = 0; t < NUM_TYPES; t++) {
-            var col = GEM_COLORS[t];
-            var g = ctx.createRadialGradient(-GEM_RADIUS * 0.35, -GEM_RADIUS * 0.4, 0, 0, 0, GEM_RADIUS);
-            g.addColorStop(0, col.light);
-            g.addColorStop(0.55, col.base);
-            g.addColorStop(1, col.dark);
-            gemGrads.push(g);
-        }
     }
 
     /* ── fondo decorativo (pre-calculado, sin Math.random en render) */
@@ -551,57 +543,99 @@
     }
 
     /* ── dibujo de una gema (formas distintas por tipo) ────────── */
-    function pathGem(type, r) {
-        ctx.beginPath();
+    /* Recibe el contexto: se usa con el del canvas y con el del sprite offscreen, y
+     * con `ctx` fijo por dentro no se podía prerenderizar. */
+    function pathGem(c, type, r) {
+        c.beginPath();
         switch (type) {
             case 0: // rombo
-                ctx.moveTo(0, -r);
-                ctx.lineTo(r, 0);
-                ctx.lineTo(0, r);
-                ctx.lineTo(-r, 0);
-                ctx.closePath();
+                c.moveTo(0, -r);
+                c.lineTo(r, 0);
+                c.lineTo(0, r);
+                c.lineTo(-r, 0);
+                c.closePath();
                 break;
             case 1: // círculo
-                ctx.arc(0, 0, r, 0, Math.PI * 2);
+                c.arc(0, 0, r, 0, Math.PI * 2);
                 break;
             case 2: // triángulo
-                ctx.moveTo(0, -r);
-                ctx.lineTo(r * 0.92, r * 0.72);
-                ctx.lineTo(-r * 0.92, r * 0.72);
-                ctx.closePath();
+                c.moveTo(0, -r);
+                c.lineTo(r * 0.92, r * 0.72);
+                c.lineTo(-r * 0.92, r * 0.72);
+                c.closePath();
                 break;
             case 3: // hexágono
                 for (var i = 0; i < 6; i++) {
                     var a = Math.PI / 3 * i - Math.PI / 2;
                     var px = Math.cos(a) * r, py = Math.sin(a) * r;
-                    if (i === 0) ctx.moveTo(px, py); else ctx.lineTo(px, py);
+                    if (i === 0) c.moveTo(px, py); else c.lineTo(px, py);
                 }
-                ctx.closePath();
+                c.closePath();
                 break;
             case 4: // estrella de 5 puntas
                 for (var j = 0; j < 10; j++) {
                     var ra = (j % 2 === 0) ? r : r * 0.48;
                     var ang = (Math.PI / 5) * j - Math.PI / 2;
                     var x2 = Math.cos(ang) * ra, y2 = Math.sin(ang) * ra;
-                    if (j === 0) ctx.moveTo(x2, y2); else ctx.lineTo(x2, y2);
+                    if (j === 0) c.moveTo(x2, y2); else c.lineTo(x2, y2);
                 }
-                ctx.closePath();
+                c.closePath();
                 break;
             case 5: // cuadrado redondeado
                 var sr = r * 0.88, rd = 5;
-                ctx.moveTo(-sr + rd, -sr);
-                ctx.lineTo(sr - rd, -sr);
-                ctx.quadraticCurveTo(sr, -sr, sr, -sr + rd);
-                ctx.lineTo(sr, sr - rd);
-                ctx.quadraticCurveTo(sr, sr, sr - rd, sr);
-                ctx.lineTo(-sr + rd, sr);
-                ctx.quadraticCurveTo(-sr, sr, -sr, sr - rd);
-                ctx.lineTo(-sr, -sr + rd);
-                ctx.quadraticCurveTo(-sr, -sr, -sr + rd, -sr);
-                ctx.closePath();
+                c.moveTo(-sr + rd, -sr);
+                c.lineTo(sr - rd, -sr);
+                c.quadraticCurveTo(sr, -sr, sr, -sr + rd);
+                c.lineTo(sr, sr - rd);
+                c.quadraticCurveTo(sr, sr, sr - rd, sr);
+                c.lineTo(-sr + rd, sr);
+                c.quadraticCurveTo(-sr, sr, -sr, sr - rd);
+                c.lineTo(-sr, -sr + rd);
+                c.quadraticCurveTo(-sr, -sr, -sr + rd, -sr);
+                c.closePath();
                 break;
         }
     }
+
+/* Una gema por tipo, prerenderizada. Eran cinco paths y un setTransform por
+     * gema y por frame: con el tablero lleno, 64 gemas × 5 = más de 300 llamadas
+     * de path en cada frame para dibujar siete dibujos distintos que sólo cambian
+     * de sitio. Ahora cada gema es un drawImage.
+     *
+     * El sprite lleva padding porque la sombra y el brillo se salen del radio;
+     * `drawCentered` lo descuenta solo. Y el gradiente se construye DENTRO del
+     * sprite, así que `gemGrads` ya no hace falta en el bucle de dibujo. */
+    var gemSprites = GU.spriteSheet(function (type) {
+        type = +type;
+        var r = GEM_RADIUS;
+        return GU.sprite(r * 2, r * 2, function (c, w, h) {
+            c.translate(w / 2, h / 2);
+
+            c.fillStyle = 'rgba(0,0,0,0.28)';
+            c.beginPath();
+            c.ellipse(2, r * 0.7, r * 0.75, r * 0.22, 0, 0, Math.PI * 2);
+            c.fill();
+
+            var col = GEM_COLORS[type];
+            var g = c.createRadialGradient(-r * 0.35, -r * 0.4, 0, 0, 0, r);
+            g.addColorStop(0, col.light);
+            g.addColorStop(0.55, col.base);
+            g.addColorStop(1, col.dark);
+            c.fillStyle = g;
+            pathGem(c, type, r);
+            c.fill();
+
+            c.strokeStyle = col.dark;
+            c.lineWidth = 1.5;
+            pathGem(c, type, r);
+            c.stroke();
+
+            c.fillStyle = 'rgba(255,255,255,0.55)';
+            c.beginPath();
+            c.ellipse(-r * 0.35, -r * 0.42, r * 0.26, r * 0.13, -0.6, 0, Math.PI * 2);
+            c.fill();
+        }, { pad: 6 });
+    });
 
     function drawGem(g) {
         var alpha = 1;
@@ -610,37 +644,12 @@
             alpha = 1 - g.fadeT;
             scale = 1 + g.fadeT * 0.35;
         }
-        ctx.setTransform(1, 0, 0, 1, shake.ox + g.x, shake.oy + g.y);
-        if (scale !== 1) ctx.scale(scale, scale);
-        ctx.globalAlpha = alpha;
-
-        var r = GEM_RADIUS;
-
-        // sombra
-        ctx.fillStyle = 'rgba(0,0,0,0.28)';
-        ctx.beginPath();
-        ctx.ellipse(2, r * 0.7, r * 0.75, r * 0.22, 0, 0, Math.PI * 2);
-        ctx.fill();
-
-        // cuerpo
-        ctx.fillStyle = gemGrads[g.type];
-        pathGem(g.type, r);
-        ctx.fill();
-
-        // borde
-        ctx.strokeStyle = GEM_COLORS[g.type].dark;
-        ctx.lineWidth = 1.5;
-        pathGem(g.type, r);
-        ctx.stroke();
-
-        // highlight especular
-        ctx.fillStyle = 'rgba(255,255,255,0.55)';
-        ctx.beginPath();
-        ctx.ellipse(-r * 0.35, -r * 0.42, r * 0.26, r * 0.13, -0.6, 0, Math.PI * 2);
-        ctx.fill();
-
-        ctx.globalAlpha = 1;
-        if (scale !== 1) ctx.setTransform(1, 0, 0, 1, shake.ox, shake.oy);
+        /* Sin setTransform por gema: la posición va en el propio drawImage y el
+         * desplazamiento de la sacudida ya está en la transformación que dejó
+         * render(). */
+        if (alpha !== 1) ctx.globalAlpha = alpha;
+        gemSprites.get(String(g.type)).drawCentered(ctx, g.x, g.y, scale);
+        if (alpha !== 1) ctx.globalAlpha = 1;
     }
 
     /* ── render ────────────────────────────────────────────────── */
