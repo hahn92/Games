@@ -419,17 +419,17 @@ function drawMessage() {
     ctx.textAlign = 'left';
 }
 
+/* La pantalla de reposo la pinta GU.idleScreen: era el mismo bloque de doce
+ * líneas en treinta juegos. */
 function drawIdle() {
-    ctx.fillStyle = 'rgba(5,6,15,0.7)';
-    ctx.fillRect(0, 0, W, H);
-    ctx.fillStyle = '#00e5ff';
-    ctx.font = 'bold 24px Arial';
-    ctx.textAlign = 'center';
-    ctx.fillText('ALUNIZAJE', W / 2, H / 2 - 12);
-    ctx.fillStyle = '#8fd3f4';
-    ctx.font = '15px Arial';
-    ctx.fillText('Posa lento y derecho en la plataforma', W / 2, H / 2 + 16);
-    ctx.textAlign = 'left';
+    GU.idleScreen(ctx, {
+        title: 'ALUNIZAJE',
+        lines: ['Posa lento y derecho en la plataforma'],
+        titleSize: 24,
+        bg: 'rgba(5,6,15,0.7)',
+        color: '#00e5ff',
+        lineColor: '#8fd3f4'
+    });
 }
 
 /* ── Bucle ────────────────────────────────────────────────────────────

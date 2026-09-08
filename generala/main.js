@@ -362,17 +362,15 @@ function drawTable() {
                  (us >= UPPER_BONUS_AT ? '  ¡conseguido! +' + UPPER_BONUS : ''), 30, by + 17);
 }
 
+/* La pantalla de reposo la pinta GU.idleScreen: era el mismo bloque de doce
+ * líneas en treinta juegos. */
 function drawIdle() {
-    ctx.fillStyle = 'rgba(8,23,15,0.8)';
-    ctx.fillRect(0, 0, W, H);
-    ctx.fillStyle = '#ffd54a';
-    ctx.font = 'bold 26px Arial';
-    ctx.textAlign = 'center';
-    ctx.fillText('GENERALA', W / 2, H / 2 - 14);
-    ctx.fillStyle = '#b7c6d6';
-    ctx.font = '15px Arial';
-    ctx.fillText('Cinco dados, tres tiradas, trece casillas', W / 2, H / 2 + 16);
-    ctx.textAlign = 'left';
+    GU.idleScreen(ctx, {
+        title: 'GENERALA',
+        lines: ['Cinco dados, tres tiradas, trece casillas'],
+        bg: 'rgba(8,23,15,0.8)',
+        color: '#ffd54a'
+    });
 }
 
 /* ── Bucle ────────────────────────────────────────────────────────── */

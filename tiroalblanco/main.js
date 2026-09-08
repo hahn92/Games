@@ -297,17 +297,17 @@ function drawAmmoBar() {
     }
 }
 
+/* La pantalla de reposo la pinta GU.idleScreen: era el mismo bloque de doce
+ * líneas en treinta juegos. */
 function drawIdle() {
-    ctx.fillStyle = 'rgba(6,13,24,0.78)';
-    ctx.fillRect(0, 0, W, H);
-    ctx.fillStyle = '#ffd54a';
-    ctx.font = 'bold 25px Arial';
-    ctx.textAlign = 'center';
-    ctx.fillText('GALERÍA DE TIRO', W / 2, H / 2 - 14);
-    ctx.fillStyle = '#8fd3f4';
-    ctx.font = '15px Arial';
-    ctx.fillText('Seis balas, un minuto, y las negras restan', W / 2, H / 2 + 16);
-    ctx.textAlign = 'left';
+    GU.idleScreen(ctx, {
+        title: 'GALERÍA DE TIRO',
+        lines: ['Seis balas, un minuto, y las negras restan'],
+        titleSize: 25,
+        bg: 'rgba(6,13,24,0.78)',
+        color: '#ffd54a',
+        lineColor: '#8fd3f4'
+    });
 }
 
 /* ── Entrada ──────────────────────────────────────────────────────── */

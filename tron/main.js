@@ -382,17 +382,16 @@ function drawDeaths() {
     }
 }
 
+/* La pantalla de reposo la pinta GU.idleScreen: era el mismo bloque de doce
+ * líneas en treinta juegos. */
 function drawIdle() {
-    ctx.fillStyle = 'rgba(5,7,15,0.72)';
-    ctx.fillRect(0, 0, W, H);
-    ctx.fillStyle = '#00e5ff';
-    ctx.font = 'bold 26px Arial';
-    ctx.textAlign = 'center';
-    ctx.fillText('ESTELAS DE LUZ', W / 2, H / 2 - 14);
-    ctx.fillStyle = '#8fd3f4';
-    ctx.font = '15px Arial';
-    ctx.fillText('Pulsa Iniciar y no toques ningún rastro', W / 2, H / 2 + 16);
-    ctx.textAlign = 'left';
+    GU.idleScreen(ctx, {
+        title: 'ESTELAS DE LUZ',
+        lines: ['Pulsa Iniciar y no toques ningún rastro'],
+        bg: 'rgba(5,7,15,0.72)',
+        color: '#00e5ff',
+        lineColor: '#8fd3f4'
+    });
 }
 
 /* ── Bucle de render ──────────────────────────────────────────────────

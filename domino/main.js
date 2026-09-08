@@ -448,17 +448,16 @@ function drawMessage() {
     ctx.textAlign = 'left';
 }
 
+/* La pantalla de reposo la pinta GU.idleScreen: era el mismo bloque de doce
+ * líneas en treinta juegos. */
 function drawIdle() {
-    ctx.fillStyle = 'rgba(12,36,24,0.78)';
-    ctx.fillRect(0, 0, W, H);
-    ctx.fillStyle = '#f4f1ea';
-    ctx.font = 'bold 26px Arial';
-    ctx.textAlign = 'center';
-    ctx.fillText('DOMINÓ', W / 2, H / 2 - 14);
-    ctx.fillStyle = '#8fd3f4';
-    ctx.font = '15px Arial';
-    ctx.fillText('Doble seis contra la máquina', W / 2, H / 2 + 16);
-    ctx.textAlign = 'left';
+    GU.idleScreen(ctx, {
+        title: 'DOMINÓ',
+        lines: ['Doble seis contra la máquina'],
+        bg: 'rgba(12,36,24,0.78)',
+        color: '#f4f1ea',
+        lineColor: '#8fd3f4'
+    });
 }
 
 /* ── Entrada ──────────────────────────────────────────────────────── */

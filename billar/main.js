@@ -490,21 +490,21 @@ function drawHud() {
     }
 }
 
+/* El reposo enseña la mesa montada —con sus bolas— bajo el velo, así que eso se
+ * dibuja primero y GU.idleScreen sólo pone encima el velo y el texto. */
 function drawIdle() {
     ctx.fillStyle = feltGrad;
     ctx.fillRect(0, 0, W, H);
     drawTable();
     drawBalls();
-    ctx.fillStyle = 'rgba(0,0,0,0.55)';
-    ctx.fillRect(0, 0, W, H);
-    ctx.fillStyle = '#8fd3f4';
-    ctx.font = 'bold 34px sans-serif';
-    ctx.textAlign = 'center';
-    ctx.textBaseline = 'middle';
-    ctx.fillText('BILLAR', W / 2, H / 2 - 30);
-    ctx.fillStyle = '#fff';
-    ctx.font = '16px sans-serif';
-    ctx.fillText('Pulsa Iniciar para jugar', W / 2, H / 2 + 14);
+    GU.idleScreen(ctx, {
+        title: 'BILLAR',
+        lines: ['Pulsa Iniciar para jugar'],
+        titleSize: 34,
+        bg: 'rgba(0,0,0,0.55)',
+        lineColor: '#fff',
+        lineSize: 16
+    });
 }
 
 /* ── helpers de color ───────────────────────────────────── */

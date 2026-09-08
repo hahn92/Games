@@ -288,17 +288,15 @@ function drawSource() {
     ctx.fill();
 }
 
+/* La pantalla de reposo la pinta GU.idleScreen: era el mismo bloque de doce
+ * líneas en treinta juegos. */
 function drawIdle() {
-    ctx.fillStyle = 'rgba(10,20,29,0.8)';
-    ctx.fillRect(0, 0, W, H);
-    ctx.fillStyle = '#4fc3f7';
-    ctx.font = 'bold 26px Arial';
-    ctx.textAlign = 'center';
-    ctx.fillText('TUBERÍAS', W / 2, H / 2 - 12);
-    ctx.fillStyle = '#b7c6d6';
-    ctx.font = '15px Arial';
-    ctx.fillText('Gira los tramos hasta que llegue el agua a todos', W / 2, H / 2 + 16);
-    ctx.textAlign = 'left';
+    GU.idleScreen(ctx, {
+        title: 'TUBERÍAS',
+        lines: ['Gira los tramos hasta que llegue el agua a todos'],
+        bg: 'rgba(10,20,29,0.8)',
+        color: '#4fc3f7'
+    });
 }
 
 /* Dibujo bajo demanda — ver GU.rafDraw. */

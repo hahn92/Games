@@ -441,17 +441,17 @@ function drawCluster(cx, cy, n, paint) {
     }
 }
 
+/* La pantalla de reposo la pinta GU.idleScreen: era el mismo bloque de doce
+ * líneas en treinta juegos. */
 function drawIdle() {
-    ctx.fillStyle = 'rgba(10,36,24,0.8)';
-    ctx.fillRect(0, 0, W, H);
-    ctx.fillStyle = '#f6f2e7';
-    ctx.font = 'bold 25px Arial';
-    ctx.textAlign = 'center';
-    ctx.fillText('MAHJONG SOLITARIO', W / 2, H / 2 - 14);
-    ctx.fillStyle = '#8fd3f4';
-    ctx.font = '15px Arial';
-    ctx.fillText('Empareja las fichas libres', W / 2, H / 2 + 16);
-    ctx.textAlign = 'left';
+    GU.idleScreen(ctx, {
+        title: 'MAHJONG SOLITARIO',
+        lines: ['Empareja las fichas libres'],
+        titleSize: 25,
+        bg: 'rgba(10,36,24,0.8)',
+        color: '#f6f2e7',
+        lineColor: '#8fd3f4'
+    });
 }
 
 /* ── Entrada ──────────────────────────────────────────────────────── */

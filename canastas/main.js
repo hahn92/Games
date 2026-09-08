@@ -376,17 +376,16 @@ function drawMessage() {
     ctx.textAlign = 'left';
 }
 
+/* La pantalla de reposo la pinta GU.idleScreen: era el mismo bloque de doce
+ * líneas en treinta juegos. */
 function drawIdle() {
-    ctx.fillStyle = 'rgba(10,17,32,0.78)';
-    ctx.fillRect(0, 0, W, H);
-    ctx.fillStyle = '#ffb066';
-    ctx.font = 'bold 26px Arial';
-    ctx.textAlign = 'center';
-    ctx.fillText('CANASTAS', W / 2, H / 2 - 14);
-    ctx.fillStyle = '#8fd3f4';
-    ctx.font = '15px Arial';
-    ctx.fillText('Arrastra hacia atrás y suelta', W / 2, H / 2 + 16);
-    ctx.textAlign = 'left';
+    GU.idleScreen(ctx, {
+        title: 'CANASTAS',
+        lines: ['Arrastra hacia atrás y suelta'],
+        bg: 'rgba(10,17,32,0.78)',
+        color: '#ffb066',
+        lineColor: '#8fd3f4'
+    });
 }
 
 /* ── Entrada ──────────────────────────────────────────────────────── */

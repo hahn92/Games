@@ -418,17 +418,15 @@ function drawPad() {
     }
 }
 
+/* La pantalla de reposo la pinta GU.idleScreen: era el mismo bloque de doce
+ * líneas en treinta juegos. */
 function drawIdle() {
-    ctx.fillStyle = 'rgba(14,17,32,0.82)';
-    ctx.fillRect(0, 0, W, H);
-    ctx.fillStyle = '#ffd54a';
-    ctx.font = 'bold 26px Arial';
-    ctx.textAlign = 'center';
-    ctx.fillText('FUTOSHIKI', W / 2, H / 2 - 12);
-    ctx.fillStyle = '#b7c6d6';
-    ctx.font = '15px Arial';
-    ctx.fillText('Cuadrado latino con signos < y >', W / 2, H / 2 + 16);
-    ctx.textAlign = 'left';
+    GU.idleScreen(ctx, {
+        title: 'FUTOSHIKI',
+        lines: ['Cuadrado latino con signos < y >'],
+        bg: 'rgba(14,17,32,0.82)',
+        color: '#ffd54a'
+    });
 }
 
 /* Dibujo bajo demanda — ver GU.rafDraw. */

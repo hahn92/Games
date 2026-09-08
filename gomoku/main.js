@@ -346,17 +346,16 @@ function drawWinLine() {
     ctx.stroke();
 }
 
+/* La pantalla de reposo la pinta GU.idleScreen: era el mismo bloque de doce
+ * líneas en treinta juegos. */
 function drawIdle() {
-    ctx.fillStyle = 'rgba(30,20,5,0.75)';
-    ctx.fillRect(0, 0, W, H);
-    ctx.fillStyle = '#ffd54a';
-    ctx.font = 'bold 26px Arial';
-    ctx.textAlign = 'center';
-    ctx.fillText('CINCO EN RAYA', W / 2, H / 2 - 12);
-    ctx.fillStyle = '#f0e2c0';
-    ctx.font = '15px Arial';
-    ctx.fillText('Alinea cinco antes que la máquina', W / 2, H / 2 + 16);
-    ctx.textAlign = 'left';
+    GU.idleScreen(ctx, {
+        title: 'CINCO EN RAYA',
+        lines: ['Alinea cinco antes que la máquina'],
+        bg: 'rgba(30,20,5,0.75)',
+        color: '#ffd54a',
+        lineColor: '#f0e2c0'
+    });
 }
 
 /* Dibujo bajo demanda — ver GU.rafDraw. El bucle sigue vivo mientras haya

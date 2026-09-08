@@ -652,18 +652,18 @@ function rollText(rolls, f) {
     return out.join(' ');
 }
 
+/* La pantalla de reposo la pinta GU.idleScreen: era el mismo bloque de doce
+ * líneas en treinta juegos. */
 function drawIdle() {
-    ctx.textAlign = 'center';
-    ctx.textBaseline = 'middle';
-    ctx.fillStyle = 'rgba(10,16,32,0.72)';
-    ctx.fillRect(0, H / 2 - 70, W, 140);
-    ctx.fillStyle = '#8fd3f4';
-    ctx.font = 'bold 30px sans-serif';
-    ctx.fillText('BOLOS', W / 2, H / 2 - 30);
-    ctx.fillStyle = '#cfe0f5';
-    ctx.font = '15px sans-serif';
-    ctx.fillText('Pulsa Iniciar y luego Espacio o toca:', W / 2, H / 2 + 6);
-    ctx.fillText('puntería → fuerza → efecto', W / 2, H / 2 + 30);
+    GU.idleScreen(ctx, {
+        title: 'BOLOS',
+        lines: ['Pulsa Iniciar y luego Espacio o toca:',
+                'puntería → fuerza → efecto'],
+        titleSize: 30,
+        bg: 'rgba(10,16,32,0.72)',
+        lineColor: '#cfe0f5',
+        band: true
+    });
 }
 
 /* Los tres medidores comparten dibujo: sólo cambian etiqueta, rango y color. */

@@ -437,17 +437,16 @@ function drawEnemies() {
     }
 }
 
+/* La pantalla de reposo la pinta GU.idleScreen: era el mismo bloque de doce
+ * líneas en treinta juegos. */
 function drawIdle() {
-    ctx.fillStyle = 'rgba(10,16,32,0.78)';
-    ctx.fillRect(0, 0, W, H);
-    ctx.fillStyle = '#ffd54a';
-    ctx.font = 'bold 26px Arial';
-    ctx.textAlign = 'center';
-    ctx.fillText('BOMBAS', W / 2, H / 2 - 14);
-    ctx.fillStyle = '#8fd3f4';
-    ctx.font = '15px Arial';
-    ctx.fillText('Revienta a todos y no te pilles tú', W / 2, H / 2 + 16);
-    ctx.textAlign = 'left';
+    GU.idleScreen(ctx, {
+        title: 'BOMBAS',
+        lines: ['Revienta a todos y no te pilles tú'],
+        bg: 'rgba(10,16,32,0.78)',
+        color: '#ffd54a',
+        lineColor: '#8fd3f4'
+    });
 }
 
 /* ── Entrada ──────────────────────────────────────────────────────── */

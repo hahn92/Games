@@ -308,17 +308,17 @@ function drawPalette() {
 
 function palX(i) { return 40 + i * ((W - 80) / (COLORS.length - 1)); }
 
+/* La pantalla de reposo la pinta GU.idleScreen: era el mismo bloque de doce
+ * líneas en treinta juegos. */
 function drawIdle() {
-    ctx.fillStyle = 'rgba(10,12,22,0.78)';
-    ctx.fillRect(0, 0, W, H);
-    ctx.fillStyle = '#00e5ff';
-    ctx.font = 'bold 25px Arial';
-    ctx.textAlign = 'center';
-    ctx.fillText('DESCIFRA EL CÓDIGO', W / 2, H / 2 - 14);
-    ctx.fillStyle = '#8fd3f4';
-    ctx.font = '15px Arial';
-    ctx.fillText('Cuatro colores, diez intentos', W / 2, H / 2 + 16);
-    ctx.textAlign = 'left';
+    GU.idleScreen(ctx, {
+        title: 'DESCIFRA EL CÓDIGO',
+        lines: ['Cuatro colores, diez intentos'],
+        titleSize: 25,
+        bg: 'rgba(10,12,22,0.78)',
+        color: '#00e5ff',
+        lineColor: '#8fd3f4'
+    });
 }
 
 /* ── Bucle ────────────────────────────────────────────────────────── */

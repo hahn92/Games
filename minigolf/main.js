@@ -533,18 +533,18 @@ function drawHud() {
     ctx.fillText(fmtRel(gs.total), W - 12, 17);
 }
 
+/* La pantalla de reposo la pinta GU.idleScreen: era el mismo bloque de doce
+ * líneas en treinta juegos. */
 function drawIdle() {
-    ctx.textAlign = 'center';
-    ctx.textBaseline = 'middle';
-    ctx.fillStyle = 'rgba(8,20,12,0.72)';
-    ctx.fillRect(0, H / 2 - 70, W, 140);
-    ctx.fillStyle = '#8fd3f4';
-    ctx.font = 'bold 30px sans-serif';
-    ctx.fillText('MINIGOLF', W / 2, H / 2 - 30);
-    ctx.fillStyle = '#e8e8ea';
-    ctx.font = '15px sans-serif';
-    ctx.fillText('Arrastra desde la bola hacia atrás', W / 2, H / 2 + 6);
-    ctx.fillText('y suelta, como un tirachinas', W / 2, H / 2 + 30);
+    GU.idleScreen(ctx, {
+        title: 'MINIGOLF',
+        lines: ['Arrastra desde la bola hacia atrás',
+                'y suelta, como un tirachinas'],
+        titleSize: 30,
+        bg: 'rgba(8,20,12,0.72)',
+        lineColor: '#e8e8ea',
+        band: true
+    });
 }
 
 function drawMsg() {

@@ -368,3 +368,28 @@ h1 {
     font-weight: bold;
     text-align: center;
 }
+
+/* ── Movimiento reducido ──────────────────────────────────────────────
+ *
+ * Quien lo pide en su sistema no quiere que la interfaz se mueva: las
+ * transiciones de los botones, el fundido de los popups, el temblor de un
+ * error. Como todos los juegos importan esta hoja, basta declararlo aquí una
+ * vez para los ochenta.
+ *
+ * Es 0.01ms y NO `animation: none`, y la diferencia importa: con `none` el
+ * navegador no dispara `animationend` ni `transitionend`, y hay tres sitios que
+ * los escuchan para limpiar —el `+puntos` flotante de 2048 se queda pegado en
+ * pantalla para siempre, y la clase `bump` de memorama no se quita nunca. Con
+ * una duración mínima el evento llega igual y el movimiento no se ve.
+ *
+ * Lo que esto NO toca es el juego en sí: se dibuja en canvas y ahí el
+ * movimiento es el contenido, no decoración. Quitarlo dejaría un tablero
+ * inmóvil, que no es "menos movimiento" sino "sin juego". */
+@media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+        scroll-behavior: auto !important;
+    }
+}

@@ -431,17 +431,16 @@ function drawMessage() {
     ctx.textAlign = 'left';
 }
 
+/* La pantalla de reposo la pinta GU.idleScreen: era el mismo bloque de doce
+ * líneas en treinta juegos. */
 function drawIdle() {
-    ctx.fillStyle = 'rgba(58,36,17,0.82)';
-    ctx.fillRect(0, 0, W, H);
-    ctx.fillStyle = '#ffd54a';
-    ctx.font = 'bold 26px Arial';
-    ctx.textAlign = 'center';
-    ctx.fillText('MANCALA', W / 2, H / 2 - 10);
-    ctx.fillStyle = '#e8d8b8';
-    ctx.font = '15px Arial';
-    ctx.fillText('Siembra, captura y encadena turnos extra', W / 2, H / 2 + 18);
-    ctx.textAlign = 'left';
+    GU.idleScreen(ctx, {
+        title: 'MANCALA',
+        lines: ['Siembra, captura y encadena turnos extra'],
+        bg: 'rgba(58,36,17,0.82)',
+        color: '#ffd54a',
+        lineColor: '#e8d8b8'
+    });
 }
 
 /* Dibujo bajo demanda — ver GU.rafDraw. */

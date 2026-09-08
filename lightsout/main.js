@@ -232,17 +232,16 @@ function drawCell(r, c) {
     }
 }
 
+/* La pantalla de reposo la pinta GU.idleScreen: era el mismo bloque de doce
+ * líneas en treinta juegos. */
 function drawIdle() {
-    ctx.fillStyle = 'rgba(11,9,22,0.8)';
-    ctx.fillRect(0, 0, W, H);
-    ctx.fillStyle = '#ffd54a';
-    ctx.font = 'bold 25px Arial';
-    ctx.textAlign = 'center';
-    ctx.fillText('APAGA LAS LUCES', W / 2, H / 2 - 12);
-    ctx.fillStyle = '#b7c6d6';
-    ctx.font = '15px Arial';
-    ctx.fillText('Cada pulsación cambia la casilla y sus vecinas', W / 2, H / 2 + 16);
-    ctx.textAlign = 'left';
+    GU.idleScreen(ctx, {
+        title: 'APAGA LAS LUCES',
+        lines: ['Cada pulsación cambia la casilla y sus vecinas'],
+        titleSize: 25,
+        bg: 'rgba(11,9,22,0.8)',
+        color: '#ffd54a'
+    });
 }
 
 /* Arrancado aquí abajo, fuera de sí mismo: un bucle que sólo se referencia
