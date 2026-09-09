@@ -133,6 +133,21 @@ Aquí sólo lo que no es evidente leyendo el código.
   `isFree` deja de tener sentido, porque su idea de "pegada al lado" es
   exactamente una distancia de 2. Salió al mirar una captura: las 58 fichas
   amontonadas en un cuarto del tablero.
+- **Las fichas van prerenderizadas.** Son 144 en pantalla y sólo 27 dibujos
+  distintos —tres palos por nueve números—, así que el tablero entero sale de 54
+  sprites como mucho, contando el estado libre/bloqueada. Medido con el contexto
+  instrumentado: **820 operaciones de canvas por repintado, ahora 123**, y de
+  esas 116 son los blits de las fichas.
+
+  El borde de selección y el de la pista se quedan FUERA del sprite: cambian
+  solos —la pista parpadea— y afectan a una o dos fichas, así que meterlos dentro
+  multiplicaría los sprites por tres para ahorrarse dos trazos.
+
+  Un aviso de método: medir esto desde la consola del navegador, contando
+  operaciones por frame mientras se mueve el cursor, da un número **engañoso**
+  —salió que la versión nueva gastaba más—, porque el juego vive en un IIFE y no
+  hay forma de saber cuántas fichas ha repintado cada frame. La comparación buena
+  es la de siempre: la misma sonda, el mismo arranque, antes y después.
 - Al teclado sólo se le ofrecen las fichas **libres**: navegar por las
   bloqueadas no lleva a ninguna parte y multiplicaría por cuatro los pasos.
 

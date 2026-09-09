@@ -376,58 +376,86 @@ function draw() {
     if (gamePhase === 'idle') drawIdle();
 }
 
+/* Una ficha prerenderizada por (dibujo, libre o bloqueada). Son 144 fichas en
+ * pantalla y sólo 27 dibujos distintos —tres palos por nueve números—, así que
+ * el tablero entero sale de 54 sprites como mucho. Antes eran ~820 operaciones
+ * de canvas en cada repintado: dos rectángulos redondeados, un borde y hasta
+ * nueve figuras de la cara, por ficha.
+ *
+ * El BORDE de selección y el de la pista se quedan fuera del sprite: cambian
+ * solos —la pista parpadea— y afectan a una o dos fichas, así que meterlos
+ * dentro multiplicaría los sprites por tres para ahorrarse dos trazos. */
+var tileSprites = GU.spriteSheet(function (key) {
+    var parts = key.split(':');
+    var suit = parts[0], n = +parts[1], free = parts[2] === '1';
+    var kind = { suit: suit, n: n };
+    return GU.sprite(TW + 4, TH + 4, function (c) {
+        c.fillStyle = '#9c9384';
+        roundRectIn(c, 3, 3, TW, TH, 5);
+        c.fill();
+
+        c.fillStyle = free ? '#f6f2e7' : '#cdc7b8';
+        roundRectIn(c, 0, 0, TW, TH, 5);
+        c.fill();
+        c.strokeStyle = '#a49b8b';
+        c.lineWidth = 1;
+        c.stroke();
+
+        drawFace(c, 0, 0, kind);
+    });
+});
+
+/* GU.roundRectPath dibuja en el contexto que se le pase; este envoltorio existe
+ * sólo para no repetir la llamada. */
+function roundRectIn(c, x, y, w, h, r) { GU.roundRectPath(c, x, y, w, h, r); }
+
 function drawTile(t) {
     var p = tilePos(t);
     var free = isFree(t, tiles);
     var isSel = tiles[selected] === t;
     var isHint = hintPair && hintT > 0 && (hintPair[0] === t || hintPair[1] === t);
 
-    /* Canto: da el relieve sin sombras, que serían carísimas por ficha. */
-    ctx.fillStyle = '#9c9384';
-    GU.roundRectPath(ctx, p.x + 3, p.y + 3, TW, TH, 5);
-    ctx.fill();
+    tileSprites.get(t.kind.suit + ':' + t.kind.n + ':' + (free ? '1' : '0'))
+               .draw(ctx, p.x, p.y);
 
-    ctx.fillStyle = free ? '#f6f2e7' : '#cdc7b8';
-    GU.roundRectPath(ctx, p.x, p.y, TW, TH, 5);
-    ctx.fill();
-
-    ctx.strokeStyle = isSel ? '#00e5ff' : isHint ? '#ffd54a' : '#a49b8b';
-    ctx.lineWidth = (isSel || isHint) ? 2.5 : 1;
-    ctx.stroke();
-
-    drawFace(p.x, p.y, t.kind);
+    if (isSel || isHint) {
+        ctx.strokeStyle = isSel ? '#00e5ff' : '#ffd54a';
+        ctx.lineWidth = 2.5;
+        GU.roundRectPath(ctx, p.x, p.y, TW, TH, 5);
+        ctx.stroke();
+    }
 }
 
 /* Cara de la ficha: el palo decide la forma y el número cuántas se dibujan. */
-function drawFace(x, y, kind) {
+function drawFace(c, x, y, kind) {
     var cx = x + TW / 2, cy = y + TH / 2;
     if (kind.suit === 'circ') {
-        ctx.fillStyle = '#1f6fb2';
-        drawCluster(cx, cy, kind.n, function (px, py, r) {
-            ctx.beginPath(); ctx.arc(px, py, r, 0, Math.PI * 2); ctx.fill();
+        c.fillStyle = '#1f6fb2';
+        drawCluster(c, cx, cy, kind.n, function (px, py, r) {
+            c.beginPath(); c.arc(px, py, r, 0, Math.PI * 2); c.fill();
         });
     } else if (kind.suit === 'bam') {
-        ctx.fillStyle = '#2f8f3f';
-        drawCluster(cx, cy, kind.n, function (px, py, r) {
-            ctx.fillRect(px - r * 0.45, py - r * 1.3, r * 0.9, r * 2.6);
+        c.fillStyle = '#2f8f3f';
+        drawCluster(c, cx, cy, kind.n, function (px, py, r) {
+            c.fillRect(px - r * 0.45, py - r * 1.3, r * 0.9, r * 2.6);
         });
     } else {
-        ctx.fillStyle = '#b03a2e';
-        drawCluster(cx, cy, kind.n, function (px, py, r) {
-            ctx.fillRect(px - r * 1.2, py - r * 0.35, r * 2.4, r * 0.7);
+        c.fillStyle = '#b03a2e';
+        drawCluster(c, cx, cy, kind.n, function (px, py, r) {
+            c.fillRect(px - r * 1.2, py - r * 0.35, r * 2.4, r * 0.7);
         });
     }
     /* El número, en pequeño abajo: sin él, distinguir un 7 de un 8 de un
      * vistazo es imposible en este tamaño. */
-    ctx.fillStyle = '#4a4438';
-    ctx.font = 'bold 9px monospace';
-    ctx.textAlign = 'center';
-    ctx.fillText(String(kind.n), cx, y + TH - 4);
-    ctx.textAlign = 'left';
+    c.fillStyle = '#4a4438';
+    c.font = 'bold 9px monospace';
+    c.textAlign = 'center';
+    c.fillText(String(kind.n), cx, y + TH - 4);
+    c.textAlign = 'left';
 }
 
 /* Coloca n marcas en rejilla centrada. */
-function drawCluster(cx, cy, n, paint) {
+function drawCluster(c, cx, cy, n, paint) {
     var cols = n <= 3 ? 1 : (n <= 6 ? 2 : 3);
     var rows = Math.ceil(n / cols);
     var r = n <= 3 ? 4.4 : n <= 6 ? 3.6 : 3;

@@ -349,6 +349,7 @@ because games already called them unqualified.
   |-------|-------|---------|---------------------|
   | `spaceinvaders` | 1807 | **400** | los 40 aliens: son SEIS dibujos —tres tipos por dos poses— repetidos |
   | `gemas` | 535 | **93** | las 7 gemas; se fueron de paso 44 `setTransform` por frame |
+  | `mahjong` | 820 | **123** | las 144 fichas, que salen de 27 dibujos |
   | `billar` | 76 | **33** | las 16 bolas, con su degradado radial y su número |
   | `frogger` | 4245 | **633** | el fondo, los troncos, los coches y las tortugas — ver su nota |
   | `runner` | 1030 | **296** | las tres capas de montañas, en una tira que se rehace cada varios miles de frames |
