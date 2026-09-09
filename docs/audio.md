@@ -65,4 +65,20 @@ sonido y ninguna forma de callarlos sin bajar el volumen del sistema.
 El mute vive en `audio.js`, antes del envío al AudioContext, así que silencia
 cualquier `GameAudio.*()` sin que el juego se entere ni tenga que comprobarlo.
 
+**Cómo se comprueba que el sonido suena de verdad.** Chrome headless no tiene
+audio, así que ahí no se puede saber: hay que abrirlo en un navegador y contar
+los osciladores que se crean, envolviendo `AudioContext.prototype.createOscillator`
+y su `start()`. Es lo que de verdad suena. Medido así, con una partida en curso:
+
+| | Osciladores |
+|---|---|
+| jugando con sonido | 13 en los primeros segundos |
+| tras pulsar silencio | **0** en tres segundos de partida, y 0 al forzar cuatro sonidos a mano |
+| al volver a activarlo | 8 con tres sonidos |
+
+Y un `new AudioContext().state` debe salir `'running'` tras el primer gesto: si
+sale `'suspended'`, los osciladores arrancan pero no se oye nada, que es el fallo
+clásico en iOS. La preferencia viaja entre juegos —se eligió el silencio en
+breakout y pacman arrancó callado— porque vive en `GameStore`, no en la página.
+
 The AudioContext is unlocked automatically on the first `touchstart`, `mousedown`, or `keydown` (iOS requirement).
