@@ -9,6 +9,22 @@ Juegos de acción directa y reflejos sobre canvas.
 - Death: `deathAngle` + `deathVY` spin-fall animation + `screenShake` (14 frames)
 - Touch: tap = jump, hold left 38% of canvas > 130ms = move left
 
+- **Las montañas del fondo van en una tira cacheada**, no trazadas cada frame.
+  Eran tres capas con un vértice cada 4 px sobre 800 de ancho: 468 operaciones de
+  canvas por frame, la mitad de todo lo que dibujaba el juego (1030 → 296).
+
+  No se pueden hacer cíclicas como las ondas de frogger: el perfil es la suma de
+  tres senos con periodos que no son múltiplos entre sí, así que no hay un trozo
+  que se repita. Lo que sí se puede es aprovechar que **se desplazan lentísimo**
+  —el parallax más rápido es 0,22, menos de un píxel por frame—: se dibuja una
+  tira del doble de ancho que la pantalla y se va desplazando dentro; sólo hay
+  que rehacerla cuando el desplazamiento se come el margen, cada varios miles de
+  frames.
+
+  La caché guarda **también el color**, porque el tema cambia de día a noche y si
+  no una montaña se quedaría con el color anterior hasta la siguiente
+  regeneración.
+
 ## Frogger (`frogger/`)
 - Frog is canvas-drawn with `drawFrogShape(cx, cy, r, moving, pose)`. No emoji. It is built as ONE
   continuous bezier silhouette via `frogBodyPath()` (snout → cheeks → pinched waist → hips → rump),

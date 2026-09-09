@@ -549,22 +549,57 @@ function initBgStars() {
     }
 }
 
-function drawMtnLayer(scrollMul, p0, p1, p2, a0, a1, a2, baseRatio, col) {
+/* Las tres capas de montañas se trazaban punto a punto en cada frame: un vértice
+ * cada 4 px sobre 800 de ancho, por tres capas, eran 468 operaciones de canvas
+ * por frame — la mitad de todo lo que dibujaba el juego.
+ *
+ * No se pueden hacer cíclicas como las ondas de frogger: el perfil es la suma de
+ * tres senos con periodos que no son múltiplos entre sí (280, 430 y 640), así
+ * que no hay un trozo que se repita. Pero se desplazan lentísimo —el parallax
+ * más rápido es 0,22, o sea menos de un píxel por frame— así que se dibuja una
+ * tira del DOBLE de ancho que la pantalla y se va desplazando dentro; sólo hay
+ * que rehacerla cuando el desplazamiento se come el margen, cada varios miles de
+ * frames.
+ *
+ * La caché guarda también el color, porque el tema cambia de día a noche y una
+ * montaña con el color anterior se quedaría pegada. */
+var mtnCache = [];
+function drawMtnLayer(idx, scrollMul, p0, p1, p2, a0, a1, a2, baseRatio, col) {
     var gYf = GROUND_Y + PLAYER_SIZE;
     var wx  = bgX * scrollMul;
-    ctx.fillStyle = col;
-    ctx.beginPath();
-    ctx.moveTo(0, HEIGHT);
-    for (var px = 0; px <= WIDTH + 4; px += 4) {
-        var wX = px + wx;
-        var h  = Math.sin(wX / p0 * Math.PI * 2) * a0
-               + Math.sin(wX / p1 * Math.PI * 2 + 1.7) * a1
-               + Math.sin(wX / p2 * Math.PI * 2 + 3.4) * a2;
-        ctx.lineTo(px, gYf * baseRatio + h);
+    var c = mtnCache[idx];
+
+    if (!c || c.col !== col || wx < c.base || wx - c.base > WIDTH) {
+        var cv = (c && c.canvas) || document.createElement('canvas');
+        var dpr = Math.min(window.devicePixelRatio || 1, 2);
+        var sw = WIDTH * 2;
+        if (cv.width !== Math.round(sw * dpr) || cv.height !== Math.round(HEIGHT * dpr)) {
+            cv.width  = Math.round(sw * dpr);
+            cv.height = Math.round(HEIGHT * dpr);
+        }
+        var g = cv.getContext('2d');
+        g.setTransform(dpr, 0, 0, dpr, 0, 0);
+        g.clearRect(0, 0, sw, HEIGHT);
+        g.fillStyle = col;
+        g.beginPath();
+        g.moveTo(0, HEIGHT);
+        for (var px = 0; px <= sw + 4; px += 4) {
+            var wX = px + wx;
+            var h  = Math.sin(wX / p0 * Math.PI * 2) * a0
+                   + Math.sin(wX / p1 * Math.PI * 2 + 1.7) * a1
+                   + Math.sin(wX / p2 * Math.PI * 2 + 3.4) * a2;
+            g.lineTo(px, gYf * baseRatio + h);
+        }
+        g.lineTo(sw, HEIGHT);
+        g.closePath();
+        g.fill();
+        c = mtnCache[idx] = { canvas: cv, base: wx, col: col, dpr: dpr };
     }
-    ctx.lineTo(WIDTH, HEIGHT);
-    ctx.closePath();
-    ctx.fill();
+
+    /* El recorte va en píxeles reales del canvas origen, no lógicos. */
+    var off = (wx - c.base) * c.dpr;
+    ctx.drawImage(c.canvas, off, 0, WIDTH * c.dpr, HEIGHT * c.dpr,
+                  0, 0, WIDTH, HEIGHT);
 }
 
 function drawCloudShape(c, th) {
@@ -652,9 +687,9 @@ function drawBackground() {
     }
 
     // Montañas — 3 capas de paralaje
-    drawMtnLayer(0.04, 280, 430, 640,  14,  9,  5,  0.66, th.mF);
-    drawMtnLayer(0.10, 200, 310, 460,  26, 16,  9,  0.76, th.mM);
-    drawMtnLayer(0.22, 130, 200, 310,  36, 22, 13,  0.84, th.mN);
+    drawMtnLayer(0, 0.04, 280, 430, 640,  14,  9,  5,  0.66, th.mF);
+    drawMtnLayer(1, 0.10, 200, 310, 460,  26, 16,  9,  0.76, th.mM);
+    drawMtnLayer(2, 0.22, 130, 200, 310,  36, 22, 13,  0.84, th.mN);
 
     // Nubes
     for (var ci = 0; ci < clouds.length; ci++) drawCloudShape(clouds[ci], th);
