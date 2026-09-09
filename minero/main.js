@@ -356,63 +356,79 @@ function endGame() {
 }
 
 /* ──────────────────────── Render ────────────────────────────────── */
+/* El fondo —cielo, estrellas, luna, tierra y sus vetas— no cambia nunca y se
+ * repintaba entero en cada frame: 352 de las 407 operaciones de canvas por
+ * frame del juego. Se pinta una vez en un sprite y cada frame es un blit.
+ *
+ * El contexto del sprite se llama `sc` y no `g` por un motivo concreto: los
+ * degradados de dentro declaran su propia `var g`, y con el mismo nombre la
+ * declaración interna sombrea al contexto —`var` se iza al principio de la
+ * función— y queda `undefined` justo donde se le pide createLinearGradient. Es
+ * el mismo fallo silencioso que documenta asteroids en docs/juegos/accion.md. */
+var bgSprite = null;
 function drawBackground() {
+    if (!bgSprite) {
+        bgSprite = GU.sprite(WIDTH, HEIGHT, function (sc) {
+
     // cielo
-    ctx.fillStyle = gMemo('sky', function () {
-        var g = ctx.createLinearGradient(0, 0, 0, GROUND_Y);
+    sc.fillStyle = (function () {
+        var g = sc.createLinearGradient(0, 0, 0, GROUND_Y);
         g.addColorStop(0, '#0f1f44');
         g.addColorStop(1, '#3d5d99');
         return g;
-    });
-    ctx.fillRect(0, 0, WIDTH, GROUND_Y);
+    }());
+    sc.fillRect(0, 0, WIDTH, GROUND_Y);
     // estrellas (deterministas)
-    ctx.fillStyle = 'rgba(255,255,255,0.55)';
+    sc.fillStyle = 'rgba(255,255,255,0.55)';
     for (var i = 0; i < 22; i++) {
         var sx = (i * 47) % WIDTH;
         var sy = (i * 29) % (GROUND_Y - 20) + 4;
         var ss = (i % 4 === 0) ? 2 : 1;
-        ctx.fillRect(sx, sy, ss, ss);
+        sc.fillRect(sx, sy, ss, ss);
     }
     // luna
-    ctx.fillStyle = '#fbe89d';
-    ctx.beginPath();
-    ctx.arc(WIDTH - 42, 32, 14, 0, Math.PI * 2);
-    ctx.fill();
-    ctx.fillStyle = '#0f1f44';
-    ctx.beginPath();
-    ctx.arc(WIDTH - 36, 28, 12, 0, Math.PI * 2);
-    ctx.fill();
+    sc.fillStyle = '#fbe89d';
+    sc.beginPath();
+    sc.arc(WIDTH - 42, 32, 14, 0, Math.PI * 2);
+    sc.fill();
+    sc.fillStyle = '#0f1f44';
+    sc.beginPath();
+    sc.arc(WIDTH - 36, 28, 12, 0, Math.PI * 2);
+    sc.fill();
 
     // tierra
-    ctx.fillStyle = gMemo('dirt', function () {
-        var g = ctx.createLinearGradient(0, GROUND_Y, 0, HEIGHT);
+    sc.fillStyle = (function () {
+        var g = sc.createLinearGradient(0, GROUND_Y, 0, HEIGHT);
         g.addColorStop(0, '#6a3d1e');
         g.addColorStop(0.15, '#4a2a12');
         g.addColorStop(1, '#1a0f08');
         return g;
-    });
-    ctx.fillRect(0, GROUND_Y, WIDTH, HEIGHT - GROUND_Y);
+    }());
+    sc.fillRect(0, GROUND_Y, WIDTH, HEIGHT - GROUND_Y);
 
     // hierba
-    ctx.fillStyle = '#3d7a2e';
-    ctx.fillRect(0, GROUND_Y - 4, WIDTH, 5);
-    ctx.fillStyle = '#2d5a1f';
+    sc.fillStyle = '#3d7a2e';
+    sc.fillRect(0, GROUND_Y - 4, WIDTH, 5);
+    sc.fillStyle = '#2d5a1f';
     for (var g2 = 0; g2 < WIDTH; g2 += 6) {
-        ctx.fillRect(g2, GROUND_Y - 6, 2, 3);
+        sc.fillRect(g2, GROUND_Y - 6, 2, 3);
     }
     // granitos de tierra (deterministas)
-    ctx.fillStyle = 'rgba(0,0,0,0.22)';
+    sc.fillStyle = 'rgba(0,0,0,0.22)';
     for (var di = 0; di < 55; di++) {
         var dx = (di * 71 + 13) % WIDTH;
         var dy = GROUND_Y + 14 + (di * 83 + 7) % (HEIGHT - GROUND_Y - 28);
-        ctx.fillRect(dx, dy, 2, 2);
+        sc.fillRect(dx, dy, 2, 2);
     }
-    ctx.fillStyle = 'rgba(255,200,140,0.07)';
+    sc.fillStyle = 'rgba(255,200,140,0.07)';
     for (var si = 0; si < 30; si++) {
         var sxr = (si * 53 + 11) % WIDTH;
         var syr = GROUND_Y + 24 + (si * 37 + 17) % (HEIGHT - GROUND_Y - 40);
-        ctx.fillRect(sxr, syr, 2, 2);
+        sc.fillRect(sxr, syr, 2, 2);
     }
+        });
+    }
+    bgSprite.draw(ctx, 0, 0);
 }
 
 function drawMiner() {

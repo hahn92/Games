@@ -351,6 +351,9 @@ because games already called them unqualified.
   | `gemas` | 535 | **93** | las 7 gemas; se fueron de paso 44 `setTransform` por frame |
   | `billar` | 76 | **33** | las 16 bolas, con su degradado radial y su número |
   | `frogger` | 4245 | **633** | el fondo, los troncos, los coches y las tortugas — ver su nota |
+  | `runner` | 1030 | **296** | las tres capas de montañas, en una tira que se rehace cada varios miles de frames |
+  | `cosecha` | 528 | **215** | las nueve parcelas, que son el mismo dibujo nueve veces |
+  | `minero` | 407 | **233** | el fondo entero: cielo, estrellas, luna y tierra no cambian nunca |
   | `bubbleshooter` | — | — | el primero: un degradado radial por burbuja y por frame |
 
   Lo que hace que un caso sea buen candidato no es que dibuje mucho, sino que
@@ -358,6 +361,14 @@ because games already called them unqualified.
   claro: cuarenta aliens, seis dibujos. Y lo que hay que mirar antes de migrar es
   qué parte cambia por frame — en la nave de ese mismo juego, las llamas laten
   con `glowPulse` y se quedaron fuera del sprite; meterlas dentro las congela.
+
+  Una trampa concreta al mover código a un sprite: si el callback recibe el
+  contexto como `g` y dentro hay un `var g = ctx.createLinearGradient(...)`, la
+  declaración interna **sombrea el parámetro** —`var` se iza al principio de la
+  función— y el contexto queda `undefined` justo donde se le pide el degradado.
+  Pasó al migrar `minero`. Es el mismo fallo silencioso que documenta asteroids
+  en [Disparos](./juegos/accion.md); los sprites de `minero` y `cosecha` llaman
+  `sc` a su contexto por eso.
 
   `drawCentered(ctx, x, y, scale)` acepta escala sin coste de `save`/`restore`,
   que es lo que permite usar sprite en un objeto que crece o encoge — una bola

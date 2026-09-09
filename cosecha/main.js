@@ -428,43 +428,76 @@ function drawCoinIcon(x, y, r) {
     ctx.stroke();
 }
 
-function drawPlotBase(x, y, w, h, hover) {
+/* Las nueve parcelas son el mismo dibujo —sombra, tierra con degradado, borde
+ * iluminado, surcos y contorno— repetido nueve veces por frame: 198 de las 528
+ * operaciones de canvas por frame del juego. Se prerenderiza una por tamaño y
+ * estado.
+ *
+ * El contexto se llama `sc` porque el degradado de dentro declara su propia
+ * `var g`; ver la nota de minero. */
+var plotSprites = GU.spriteSheet(function (key) {
+    var parts = key.split(':');
+    var w = +parts[0], h = +parts[1], hover = parts[2] === '1';
+    return GU.sprite(w, h, function (sc) {
+        var X = 0, Y = 0;
+
     // sombra bajo el terreno
-    ctx.fillStyle = 'rgba(0,0,0,0.35)';
-    roundRect(x + 2, y + 4, w, h, 10); ctx.fill();
+    sc.fillStyle = 'rgba(0,0,0,0.35)';
+    roundRectIn(sc, X + 2, Y + 4, w, h, 10); sc.fill();
 
     // fondo tierra
-    /* gradiente vertical: la x no influye, y la `y` es la de la rejilla */
-    ctx.fillStyle = gMemo('plot:' + y + ':' + h + ':' + hover, function () {
-        var g = ctx.createLinearGradient(0, y, 0, y + h);
+    /* gradiente vertical: la X no influye, Y la `Y` es la de la rejilla */
+    sc.fillStyle = (function () {
+        var g = sc.createLinearGradient(0, Y, 0, Y + h);
         g.addColorStop(0, hover ? COL.plotHover : COL.soil0);
         g.addColorStop(1, COL.soil1);
         return g;
-    });
-    roundRect(x, y, w, h, 10); ctx.fill();
+    }());
+    roundRectIn(sc, X, Y, w, h, 10); sc.fill();
 
     // borde superior iluminado
-    ctx.strokeStyle = 'rgba(255,220,160,0.18)';
-    ctx.lineWidth = 1.5;
-    ctx.beginPath();
-    ctx.moveTo(x + 8, y + 2);
-    ctx.lineTo(x + w - 8, y + 2);
-    ctx.stroke();
+    sc.strokeStyle = 'rgba(255,220,160,0.18)';
+    sc.lineWidth = 1.5;
+    sc.beginPath();
+    sc.moveTo(X + 8, Y + 2);
+    sc.lineTo(X + w - 8, Y + 2);
+    sc.stroke();
 
     // surcos — cache simple
-    ctx.strokeStyle = 'rgba(0,0,0,0.22)';
-    ctx.lineWidth = 1;
+    sc.strokeStyle = 'rgba(0,0,0,0.22)';
+    sc.lineWidth = 1;
     for (var i = 1; i < 4; i++) {
-        var ly = y + h * (i / 4);
-        ctx.beginPath();
-        ctx.moveTo(x + 6, ly); ctx.lineTo(x + w - 6, ly);
-        ctx.stroke();
+        var ly = Y + h * (i / 4);
+        sc.beginPath();
+        sc.moveTo(X + 6, ly); sc.lineTo(X + w - 6, ly);
+        sc.stroke();
     }
 
     // borde externo
-    ctx.strokeStyle = '#2d1808';
-    ctx.lineWidth = 2;
-    roundRect(x, y, w, h, 10); ctx.stroke();
+    sc.strokeStyle = '#2d1808';
+    sc.lineWidth = 2;
+    roundRectIn(sc, X, Y, w, h, 10); sc.stroke();
+    }, { pad: 6 });          /* la sombra cae fuera del rectángulo */
+});
+
+/* roundRect() del juego dibuja siempre en `ctx`; dentro de un sprite hace falta
+ * poder decirle en cuál. */
+function roundRectIn(c, x, y, w, h, r) {
+    c.beginPath();
+    c.moveTo(x + r, y);
+    c.lineTo(x + w - r, y);
+    c.quadraticCurveTo(x + w, y, x + w, y + r);
+    c.lineTo(x + w, y + h - r);
+    c.quadraticCurveTo(x + w, y + h, x + w - r, y + h);
+    c.lineTo(x + r, y + h);
+    c.quadraticCurveTo(x, y + h, x, y + h - r);
+    c.lineTo(x, y + r);
+    c.quadraticCurveTo(x, y, x + r, y);
+    c.closePath();
+}
+
+function drawPlotBase(x, y, w, h, hover) {
+    plotSprites.get(w + ':' + h + ':' + (hover ? '1' : '0')).draw(ctx, x, y);
 }
 
 function drawPlant(cx, cy, seed, progress, mature, timeAcc) {
