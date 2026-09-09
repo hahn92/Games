@@ -190,6 +190,42 @@ function eventoFetch(url, opts) {
     check('no llama a skipWaiting: la version nueva espera a la siguiente visita',
         ent7.sandbox._skipWaiting !== true);
 
+    /* ── 8. La version, al dia ──────────────────────────────────────
+     *
+     * No es una prueba de logica: mira el historial. Si algun fichero del
+     * esqueleto se ha tocado DESPUES del ultimo cambio de VERSION, quien ya
+     * tenga el worker instalado recibira el HTML nuevo —que va por red— con el
+     * CSS y el JS viejos hasta la segunda carga. Paso de verdad entre la v1 y
+     * la v2, con tres publicaciones sin tocarla, y no hay forma de notarlo
+     * mirando el codigo. */
+    console.log('\n8. version al dia');
+    try {
+        const { execSync } = require('child_process');
+        const sw = fs.readFileSync(path.join(__dirname, 'sw.js'), 'utf8');
+        const esqueleto = (sw.match(/var ESQUELETO = \[([\s\S]*?)\]/) || [, ''])[1]
+            .split(',').map(t => t.trim().replace(/^'\.\//, '').replace(/'$/, ''))
+            .filter(f => f && f !== '.' && f !== './');
+        const fecha = (rev, file) => {
+            try {
+                return +execSync(`git log -1 --format=%ct ${rev} -- ${file}`,
+                                 { cwd: __dirname, stdio: ['ignore', 'pipe', 'ignore'] }).toString().trim();
+            } catch (e) { return 0; }
+        };
+        /* Cuando se toco VERSION por ultima vez: el ultimo commit de sw.js sirve,
+         * porque este fichero solo se toca para eso o para cambiar la logica. */
+        const swTime = fecha('HEAD', 'sw.js');
+        const viejos = esqueleto.filter(f => f && fecha('HEAD', f) > swTime);
+        if (!swTime) {
+            console.log('  --   sin git: no se puede comprobar');
+        } else {
+            check('ningun fichero del esqueleto es mas nuevo que sw.js' +
+                  (viejos.length ? ' (sube VERSION: ' + viejos.join(', ') + ')' : ''),
+                  viejos.length === 0);
+        }
+    } catch (e) {
+        console.log('  --   sin git: no se puede comprobar');
+    }
+
     console.log('\n' + pass + ' pasan, ' + fail + ' fallan');
     process.exit(fail ? 1 : 0);
 }());

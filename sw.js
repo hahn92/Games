@@ -24,7 +24,12 @@
  * una espera y con datos a quien a lo mejor sólo quería jugar al Snake.
  */
 
-var VERSION = 'v1';
+/* Súbela cuando cambie cualquier fichero del esqueleto. Es lo que dispara la
+ * caché nueva y el borrado de la vieja; si no se sube, quien ya tenía el worker
+ * recibe el HTML nuevo (va por red) con el CSS y el JS viejos hasta la segunda
+ * carga. Pasó entre la v1 y esta: se publicaron tres cambios sin tocarla.
+ * `node sw.test.js` lo comprueba y avisa. */
+var VERSION = 'v2';
 var CACHE = 'juegos-' + VERSION;
 
 /* El esqueleto: lo que necesita el catálogo para arrancar, y los ficheros que

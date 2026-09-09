@@ -171,7 +171,14 @@ propio catálogo (el `data-game` de cada tarjeta), así que un juego nuevo entra
 solo sin tocar nada.
 
 **Al publicar un cambio hay que subir `VERSION` en `sw.js`.** Es lo que dispara
-la instalación de la caché nueva y el borrado de la anterior.
+la instalación de la caché nueva y el borrado de la anterior. Si no se sube,
+quien ya tenga el worker instalado recibe el HTML nuevo —que va por red— con el
+CSS y el JavaScript viejos hasta la segunda carga.
+
+Es fácil olvidarlo: pasó entre la v1 y la v2, con tres publicaciones seguidas
+sin tocarla, y no hay forma de notarlo mirando el código. Por eso `node
+sw.test.js` lo comprueba: mira el historial de git y falla si algún fichero del
+esqueleto es más reciente que `sw.js`.
 
 Las pruebas están en `sw.test.js` (`node sw.test.js`), con dobles de `caches` y
 `fetch` — un service worker es de las pocas cosas de este proyecto que puede
