@@ -52,6 +52,38 @@ Remaining per-game conventions:
 - Bottom-anchored elements use `bottom: calc(20px + env(safe-area-inset-bottom))` for iPhone notch safety
 - Touch controls (`.touch-controls`, `.touch-cols`) are **hidden globally** via `styles.css` with `display: none !important`; all games use swipe/tap gestures on canvas instead
 
+## Probar el tacto sin un móvil
+
+Los gestos se pueden disparar de verdad desde la consola, con `TouchEvent` y
+objetos `Touch` — que es exactamente lo que recibe `GU.swipe` en un teléfono:
+
+```js
+function ev(tipo, x, y) {
+    var t = new Touch({ identifier: 1, target: cvs, clientX: x, clientY: y,
+                        pageX: x, pageY: y, screenX: x, screenY: y });
+    return new TouchEvent(tipo, {
+        touches: tipo === 'touchend' ? [] : [t],
+        targetTouches: tipo === 'touchend' ? [] : [t],
+        changedTouches: [t], bubbles: true, cancelable: true
+    });
+}
+```
+
+Dos cosas que hay que acertar o la prueba miente:
+
+- **Las coordenadas van en píxeles de PANTALLA, no de canvas.** En móvil el
+  canvas se escala con `style.width`, así que hay que multiplicar por
+  `rect.width / canvas.width` — es lo mismo que hace `GU.pointerPos` al revés.
+- **Un arrastre que no mueve nada no significa que el tacto falle.** La primera
+  prueba en solitario no movió ninguna carta y parecía roto; en realidad el
+  destino elegido a ojo no era legal. Se distingue soltando el gesto a medias:
+  con `touchstart` + `touchmove` y sin `touchend`, si la carta se ve levantada
+  siguiendo al dedo, el tacto funciona y lo que falló fue el destino.
+
+Comprobado así: el swipe de 2048 mueve las fichas, y en solitario la carta se
+levanta y sigue al dedo. Con ratón, el arrastre completo sube el as a su
+fundación y el contador de movimientos avanza.
+
 ## Navigation bar (`fullscreen-btn.js`)
 
 **Every game MUST include the inter-game navigation bar.** It is provided by `fullscreen-btn.js`, which renders the navigation bar on all devices (and the fullscreen/landscape button on mobile). There are no exceptions — any new or existing game without it is considered incomplete.
