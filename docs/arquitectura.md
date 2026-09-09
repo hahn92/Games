@@ -33,6 +33,7 @@ Or open `index.html` (root or per-game) directly in a browser.
 | `favicon.svg` | Shared favicon, referenced relatively (`./favicon.svg` from root, `../favicon.svg` from a game) |
 | `sw.js` | Service worker: hace que la colección funcione **sin conexión**. Lo registra `fullscreen-btn.js` (los 80 juegos) y el propio catálogo. Ver "Sin conexión" abajo |
 | `manifest.webmanifest` | Manifiesto de aplicación instalable: nombre, iconos y colores |
+| `icon-192.png`, `icon-512.png` | Los iconos que exige la instalación. **Chrome no instala una app cuyos iconos sean sólo SVG**, por muy válido que sea el manifiesto: pide al menos un PNG de 192 y otro de 512. Se generan rasterizando `favicon.svg` con el propio Chrome (`--screenshot` sobre una página que lo muestra al tamaño exacto), así que no hay que mantener dos dibujos |
 | `main.js` | Catalog filter, search and pagination with shareable URLs |
 | `thumbnails.js` | Cargador de miniaturas: pide `thumbnails/<carpeta>.js` la primera vez que la tarjeta de ese juego entra en pantalla. Una función de dibujo por juego, cada una en su fichero — ver "Miniaturas del catálogo" en [Rendimiento](./rendimiento.md) |
 | `thumbnails/` | Una miniatura por juego, cargada bajo demanda |
@@ -182,3 +183,18 @@ no se puede comprobar con el arnés de siempre: hay que abrirlo en un navegador
 de verdad. Comprobado así, apagando el servidor y recargando: el catálogo con
 sus miniaturas, un juego ya visitado, y —tras pulsar el botón— los ochenta,
 incluido uno que no se había abierto nunca.
+
+
+### Instalar como aplicación
+
+Los cinco criterios que pide Chrome se cumplen y están comprobados uno a uno:
+origen seguro (o `localhost`), `<link rel="manifest">`, service worker con
+manejador de `fetch`, `display: standalone` e **iconos PNG de 192 y 512**. Ese
+último faltaba —el manifiesto sólo declaraba el SVG— y es un requisito duro: sin
+él la instalación no se ofrece nunca.
+
+Lo que NO se puede comprobar por automatización es el evento
+`beforeinstallprompt`: Chrome lo suprime en sesiones controladas y además exige
+cierta interacción previa con el sitio, así que su ausencia no demuestra nada. La
+comprobación de verdad son dos clics en **DevTools → Application → Manifest**,
+que lista los errores de instalabilidad si los hay.
