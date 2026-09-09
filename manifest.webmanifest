@@ -1,0 +1,27 @@
+{
+  "name": "Catálogo de Videojuegos JS/CSS",
+  "short_name": "Juegos",
+  "description": "80 videojuegos clásicos jugables en el navegador, hechos con JavaScript, HTML5 Canvas y CSS puro. Sin instalación y sin conexión.",
+  "start_url": "./index.html",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#181818",
+  "theme_color": "#181818",
+  "lang": "es",
+  "categories": ["games", "entertainment"],
+  "icons": [
+    {
+      "src": "./favicon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    },
+    {
+      "src": "./favicon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "maskable"
+    }
+  ]
+}

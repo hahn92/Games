@@ -19,6 +19,10 @@
     <meta name="twitter:title" content="Catálogo de Videojuegos JS/CSS">
     <meta name="twitter:description" content="80 videojuegos clásicos jugables en el navegador, hechos con JavaScript, HTML5 Canvas y CSS puro.">
 
+    <link rel="manifest" href="./manifest.webmanifest">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="Juegos">
     <link rel="stylesheet" href="styles.css">
 
     <!-- Google tag (gtag.js) -->
@@ -763,6 +767,15 @@
     </main>
     <script src="./game-utils.js"></script>
     <script src="./thumbnails.js"></script>
+    <script>
+    /* El catálogo no carga fullscreen-btn.js —esa barra es de las páginas de
+       juego—, así que aquí el worker se registra a mano. Ver sw.js. */
+    if ('serviceWorker' in navigator && location.protocol !== 'file:') {
+        window.addEventListener('load', function () {
+            navigator.serviceWorker.register('./sw.js').catch(function () {});
+        });
+    }
+    </script>
     <script src="./main.js"></script>
 </body>
 </html>

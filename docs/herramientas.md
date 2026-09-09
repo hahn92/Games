@@ -3,7 +3,8 @@
 ## Pruebas
 
 ```bash
-node game-utils.test.js
+node game-utils.test.js    # el toolkit
+node sw.test.js            # el service worker
 ```
 
 Lo único del repo que se puede comprobar sin navegador. Cubre las piezas de

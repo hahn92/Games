@@ -107,6 +107,37 @@
         return -1;
     }
 
+    /* ── Sin conexión ───────────────────────────────────────────────
+       El service worker se registra desde aquí porque este es el único fichero
+       que cargan los ochenta juegos y el catálogo: así da igual por dónde entre
+       alguien —un juego suelto compartido por enlace, por ejemplo—, la próxima
+       vez lo tendrá guardado.
+
+       La ruta se calcula desde la ubicación de ESTE script, no desde la página:
+       un juego vive en /snake/ y el worker en la raíz, y un './sw.js' desde ahí
+       apuntaría a /snake/sw.js. El `scope` en la raíz es lo que le deja
+       responder por todos los juegos y no sólo por la carpeta desde la que se
+       registró.
+
+       Si algo falla —protocolo file://, el navegador no lo soporta, el usuario
+       lo tiene bloqueado— no pasa nada: el sitio funciona igual, sólo que
+       necesitando red. */
+    function registrarSW() {
+        if (!('serviceWorker' in navigator)) return;
+        if (location.protocol === 'file:') return;
+        var base = document.currentScript && document.currentScript.src;
+        if (!base) {
+            var scripts = document.getElementsByTagName('script');
+            for (var i = scripts.length - 1; i >= 0; i--) {
+                if (/fullscreen-btn\.js/.test(scripts[i].src)) { base = scripts[i].src; break; }
+            }
+        }
+        if (!base) return;
+        var raiz = base.replace(/fullscreen-btn\.js.*$/, '');
+        navigator.serviceWorker.register(raiz + 'sw.js', { scope: raiz })
+            .catch(function () { /* sin conexión offline, pero el sitio va */ });
+    }
+
     /* ── Sound preference ───────────────────────────────────────────
        audio.js lleva desde el principio setMuted/isMuted/toggleMute y no los
        usaba nadie: setenta juegos con sonido y ninguna manera de callarlos sin
@@ -275,6 +306,8 @@
         /* El silencio se aplica aunque la barra no llegue a construirse: la
            preferencia es del jugador, no de esta pantalla. */
         applyMuted(storedMuted());
+
+        registrarSW();
 
         /* Navigation */
         var folder = detectFolder();
