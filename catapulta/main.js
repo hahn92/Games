@@ -5,6 +5,10 @@
 var canvas = document.getElementById('catapultaCanvas');
 var ctx = canvas.getContext('2d');
 
+/* Memo de degradados del toolkit: los que no dependen de la posición se
+ * construyen una vez. Ver GU.gradientMemo. */
+var gMemo = GU.gradientMemo();
+
 var WIDTH  = canvas.width;    // 360
 var HEIGHT = canvas.height;   // 560
 
@@ -615,19 +619,25 @@ function drawTopBar() {
     ctx.textAlign = 'left'; ctx.textBaseline = 'middle';
     ctx.fillText('Nv ' + level + '  Pts ' + score, 8, 13);
 
-    // ammo dots
+    /* Puntos de munición. Llevaban un degradado radial CADA UNO y en cada
+     * frame —hasta quince por frame para pintar unos puntitos de cuatro píxeles,
+     * más que todo el resto del juego junto— porque la posición estaba metida en
+     * el degradado. Ahora se construye uno solo, en el origen, y cada punto se
+     * dibuja con translate: es el mismo patrón que el tablero de chess. */
     var ax = 132;
+    var ammoGrad = gMemo('ammo', function () {
+        var g = ctx.createRadialGradient(-1, -1, 0.5, 0, 0, 4);
+        g.addColorStop(0, '#e0d4b5');
+        g.addColorStop(1, '#7a6450');
+        return g;
+    });
     for (var i = 0; i < SHOTS_PER_LVL; i++) {
+        ctx.translate(ax + i * 13, 13);
         ctx.beginPath();
-        ctx.arc(ax + i * 13, 13, 4, 0, Math.PI * 2);
-        if (i < shotsLeft) {
-            var rg = ctx.createRadialGradient(ax + i * 13 - 1, 12, 0.5, ax + i * 13, 13, 4);
-            rg.addColorStop(0, '#e0d4b5'); rg.addColorStop(1, '#7a6450');
-            ctx.fillStyle = rg;
-        } else {
-            ctx.fillStyle = 'rgba(255,255,255,0.18)';
-        }
+        ctx.arc(0, 0, 4, 0, Math.PI * 2);
+        ctx.fillStyle = i < shotsLeft ? ammoGrad : 'rgba(255,255,255,0.18)';
         ctx.fill();
+        ctx.translate(-(ax + i * 13), -13);
     }
 
     // wind arrow
@@ -819,76 +829,95 @@ function drawBlocks() {
         }
         var x = b.x + ox, y = b.y + oy;
 
+        /* Todo el bloque se dibuja en coordenadas LOCALES desde su esquina
+         * superior izquierda. Hace falta para poder cachear el degradado: un
+         * degradado guarda las coordenadas que tenía al CREARSE, así que uno
+         * construido en el origen sólo cae donde debe si la transformación lo
+         * lleva. Se deshace con la traslación inversa en vez de save/restore,
+         * que cuesta más y esto corre por bloque y por frame. */
+        ctx.translate(x, y);
+
         if (b.type === 'tnt') {
             // red crate
             ctx.fillStyle = '#b8342a';
-            ctx.fillRect(x, y, b.w, b.h);
+            ctx.fillRect(0, 0, b.w, b.h);
             ctx.fillStyle = '#8e231c';
-            ctx.fillRect(x, y + b.h - 4, b.w, 4);
+            ctx.fillRect(0, b.h - 4, b.w, 4);
             // plank cross
             ctx.strokeStyle = '#5e1812'; ctx.lineWidth = 2;
             ctx.beginPath();
-            ctx.moveTo(x, y); ctx.lineTo(x + b.w, y + b.h);
-            ctx.moveTo(x + b.w, y); ctx.lineTo(x, y + b.h);
+            ctx.moveTo(0, 0); ctx.lineTo(b.w, b.h);
+            ctx.moveTo(b.w, 0); ctx.lineTo(0, b.h);
             ctx.stroke();
             // TNT label
             ctx.fillStyle = '#ffe08a';
-            ctx.fillRect(x + 3, y + b.h / 2 - 4, b.w - 6, 8);
+            ctx.fillRect(3, b.h / 2 - 4, b.w - 6, 8);
             ctx.fillStyle = '#7a1f17';
             ctx.font = 'bold 7px monospace';
             ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-            ctx.fillText('TNT', x + b.w / 2, y + b.h / 2 + 0.5);
+            ctx.fillText('TNT', b.w / 2, b.h / 2 + 0.5);
             ctx.textAlign = 'left'; ctx.textBaseline = 'alphabetic';
             // blinking fuse light
             var fl = 0.5 + 0.5 * Math.sin(b.fuse);
             ctx.fillStyle = 'rgba(255,' + Math.floor(120 + fl * 120) + ',40,' + (0.6 + fl * 0.4) + ')';
-            ctx.beginPath(); ctx.arc(x + b.w - 4, y + 4, 2.5, 0, Math.PI * 2); ctx.fill();
+            ctx.beginPath(); ctx.arc(b.w - 4, 4, 2.5, 0, Math.PI * 2); ctx.fill();
         } else if (b.type === 'wood') {
-            var wg = ctx.createLinearGradient(x, y, x, y + b.h);
-            wg.addColorStop(0, 'hsl(30,42%,' + (54 + b.shade) + '%)');
-            wg.addColorStop(1, 'hsl(28,46%,' + (34 + b.shade) + '%)');
-            ctx.fillStyle = wg;
-            ctx.fillRect(x, y, b.w, b.h);
+            /* Vertical y en coordenadas locales: (0,0)-(0,alto). El degradado
+             * sólo depende del alto y del tono, y ninguno cambia en la vida del
+             * bloque, así que se guarda EN EL BLOQUE y muere con él. Meter la
+             * posición en una caché global la haría crecer sin límite, porque
+             * los bloques se mueven con la física. */
+            if (!b.__grad) {
+                b.__grad = ctx.createLinearGradient(0, 0, 0, b.h);
+                b.__grad.addColorStop(0, 'hsl(30,42%,' + (54 + b.shade) + '%)');
+                b.__grad.addColorStop(1, 'hsl(28,46%,' + (34 + b.shade) + '%)');
+            }
+            ctx.fillStyle = b.__grad;
+            ctx.fillRect(0, 0, b.w, b.h);
             // plank lines
             ctx.strokeStyle = 'rgba(60,38,18,0.5)'; ctx.lineWidth = 1;
             ctx.beginPath();
-            ctx.moveTo(x, y + b.h * 0.5); ctx.lineTo(x + b.w, y + b.h * 0.5);
+            ctx.moveTo(0, b.h * 0.5); ctx.lineTo(b.w, b.h * 0.5);
             ctx.stroke();
             ctx.fillStyle = 'rgba(255,255,255,0.12)';
-            ctx.fillRect(x, y, b.w, 2);
+            ctx.fillRect(0, 0, b.w, 2);
             // bolts
             ctx.fillStyle = '#3a2614';
-            ctx.beginPath(); ctx.arc(x + 4, y + 4, 1.5, 0, Math.PI * 2); ctx.fill();
-            ctx.beginPath(); ctx.arc(x + b.w - 4, y + 4, 1.5, 0, Math.PI * 2); ctx.fill();
+            ctx.beginPath(); ctx.arc(4, 4, 1.5, 0, Math.PI * 2); ctx.fill();
+            ctx.beginPath(); ctx.arc(b.w - 4, 4, 1.5, 0, Math.PI * 2); ctx.fill();
         } else {
             // stone block with brick seams
-            var sg = ctx.createLinearGradient(x, y, x, y + b.h);
-            sg.addColorStop(0, 'hsl(210,12%,' + (66 + b.shade) + '%)');
-            sg.addColorStop(1, 'hsl(212,14%,' + (40 + b.shade) + '%)');
-            ctx.fillStyle = sg;
-            ctx.fillRect(x, y, b.w, b.h);
+            if (!b.__grad) {
+                b.__grad = ctx.createLinearGradient(0, 0, 0, b.h);
+                b.__grad.addColorStop(0, 'hsl(210,12%,' + (66 + b.shade) + '%)');
+                b.__grad.addColorStop(1, 'hsl(212,14%,' + (40 + b.shade) + '%)');
+            }
+            ctx.fillStyle = b.__grad;
+            ctx.fillRect(0, 0, b.w, b.h);
             ctx.fillStyle = 'rgba(255,255,255,0.14)';
-            ctx.fillRect(x, y, b.w, 2);
+            ctx.fillRect(0, 0, b.w, 2);
             ctx.fillStyle = 'rgba(30,40,48,0.6)';
-            ctx.fillRect(x, y + b.h - 3, b.w, 3);
+            ctx.fillRect(0, b.h - 3, b.w, 3);
             ctx.strokeStyle = 'rgba(40,52,60,0.55)'; ctx.lineWidth = 1;
             ctx.beginPath();
-            ctx.moveTo(x, y + b.h * 0.5); ctx.lineTo(x + b.w, y + b.h * 0.5);
-            ctx.moveTo(x + b.w * 0.5, y); ctx.lineTo(x + b.w * 0.5, y + b.h * 0.5);
-            ctx.moveTo(x + b.w * 0.3, y + b.h * 0.5); ctx.lineTo(x + b.w * 0.3, y + b.h);
-            ctx.moveTo(x + b.w * 0.7, y + b.h * 0.5); ctx.lineTo(x + b.w * 0.7, y + b.h);
+            ctx.moveTo(0, b.h * 0.5); ctx.lineTo(b.w, b.h * 0.5);
+            ctx.moveTo(b.w * 0.5, 0); ctx.lineTo(b.w * 0.5, b.h * 0.5);
+            ctx.moveTo(b.w * 0.3, b.h * 0.5); ctx.lineTo(b.w * 0.3, b.h);
+            ctx.moveTo(b.w * 0.7, b.h * 0.5); ctx.lineTo(b.w * 0.7, b.h);
             ctx.stroke();
         }
 
         // outline
         ctx.strokeStyle = 'rgba(0,0,0,0.3)'; ctx.lineWidth = 1;
-        ctx.strokeRect(x + 0.5, y + 0.5, b.w - 1, b.h - 1);
+        ctx.strokeRect(0.5, 0.5, b.w - 1, b.h - 1);
 
         // hit flash
         if (b.flash > 0) {
             ctx.fillStyle = 'rgba(255,255,255,' + (b.flash * 2.5) + ')';
-            ctx.fillRect(x, y, b.w, b.h);
+            ctx.fillRect(0, 0, b.w, b.h);
         }
+
+        ctx.translate(-x, -y);
     }
 }
 
