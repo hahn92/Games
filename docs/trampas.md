@@ -99,6 +99,28 @@ done
 Los clics importan: un error que sólo salta al interactuar no aparece si el
 barrido se limita a cargar la página.
 
+### Su primo, `status`, que hoy funciona de milagro
+
+**24 juegos declaran `var status`**, y `window.status` existe: es una propiedad
+heredada de los tiempos en que se escribía en la barra de estado del navegador.
+A diferencia de `history`, ésta **sí** se puede escribir… pero convierte a
+cadena todo lo que le pongas:
+
+```js
+var status = 'idle';   // 'idle'   — bien
+status = 3;            // '3'      — string, no número
+status = null;         // 'null'   — string, y por tanto TRUTHY
+```
+
+Comprobado: los 24 asignan siempre cadenas literales (`'idle'`, `'playing'`,
+`'over'`), así que funcionan. Pero el día que alguien escriba `status = null`
+para decir «sin estado», el `if (!status)` de al lado será falso y no habrá
+error en ninguna consola.
+
+No se ha renombrado en los 24 porque el fallo no se materializa en ninguno y el
+cambio no es gratis. **En un juego nuevo, llama a esa variable de otra forma**
+—`phase`, `gameState`— o al menos no le asignes nunca algo que no sea texto.
+
 ## Never call `adjustMobileLayout()` by hand
 
 Several games register their own `resize` listener beside the one
