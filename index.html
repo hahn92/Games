@@ -39,6 +39,10 @@
     <header>
         <h1>Catálogo de Videojuegos JS/CSS</h1>
         <p>Explora y juega a los mejores videojuegos creados con JavaScript y CSS</p>
+        <!-- El botón sólo aparece si el navegador tiene service worker: sin él no
+             hay nada que guardar, y un botón que no hace nada es peor que ninguno. -->
+        <button id="offlineBtn" type="button" hidden>Guardar los 80 para jugar sin conexión</button>
+        <div id="offlineMsg" class="offline-msg" role="status" aria-live="polite"></div>
     </header>
     <main>
         <section class="games-grid">
@@ -775,6 +779,71 @@
             navigator.serviceWorker.register('./sw.js').catch(function () {});
         });
     }
+
+    /* ── Guardar los ochenta de golpe ─────────────────────────────────
+     *
+     * Sin esto, «sin conexión» sólo vale para lo que ya hayas abierto: el worker
+     * guarda cada juego cuando lo visitas. Eso está bien para el uso normal —
+     * nadie quiere bajarse 3 MB por entrar a mirar— pero es justo lo contrario
+     * de lo que hace falta antes de un viaje, que es cuando se decide llevarse
+     * los juegos.
+     *
+     * La lista sale del propio catálogo (`data-game` de cada tarjeta), así que
+     * un juego nuevo entra solo. Se piden por lotes: 320 peticiones a la vez
+     * saturan la conexión y el navegador las encola igual, sólo que sin poder
+     * enseñar por dónde va. */
+    (function () {
+        var btn = document.getElementById('offlineBtn');
+        var msg = document.getElementById('offlineMsg');
+        if (!btn || !('serviceWorker' in navigator) || !('caches' in window)) return;
+        if (location.protocol === 'file:') return;
+        btn.hidden = false;
+
+        function ficheros() {
+            var out = [];
+            var cards = document.querySelectorAll('canvas[data-game]');
+            for (var i = 0; i < cards.length; i++) {
+                var g = cards[i].getAttribute('data-game');
+                out.push('./' + g + '/index.html', './' + g + '/main.js',
+                         './' + g + '/styles.css', './thumbnails/' + g + '.js');
+            }
+            return out;
+        }
+
+        btn.addEventListener('click', function () {
+            var lista = ficheros();
+            var hechos = 0, fallos = 0;
+            btn.disabled = true;
+            msg.textContent = 'Guardando… 0 de ' + lista.length;
+
+            caches.open('juegos-v1').then(function (c) {
+                var i = 0;
+                function lote() {
+                    if (i >= lista.length) {
+                        msg.textContent = fallos
+                            ? ('Guardados ' + hechos + ' de ' + lista.length + ' (' + fallos + ' no se pudieron)')
+                            : ('Listo: los ' + (lista.length / 4) + ' juegos están guardados. Ya puedes jugar sin conexión.');
+                        btn.disabled = false;
+                        btn.textContent = 'Volver a guardar';
+                        return;
+                    }
+                    var trozo = lista.slice(i, i + 8);
+                    i += 8;
+                    Promise.all(trozo.map(function (u) {
+                        return c.add(new Request(u, { cache: 'reload' }))
+                                .then(function () { hechos++; }, function () { fallos++; });
+                    })).then(function () {
+                        msg.textContent = 'Guardando… ' + (hechos + fallos) + ' de ' + lista.length;
+                        lote();
+                    });
+                }
+                lote();
+            }).catch(function () {
+                msg.textContent = 'No se pudo guardar. ¿Hay conexión?';
+                btn.disabled = false;
+            });
+        });
+    }());
     </script>
     <script src="./main.js"></script>
 </body>

@@ -162,6 +162,13 @@ compartidos, unos 150 KB—. Los juegos se guardan **a medida que se abren**: lo
 331 ficheros del sitio son 3 MB, y bajárselos enteros en la primera visita
 castiga con una espera y con datos a quien a lo mejor sólo quería jugar al Snake.
 
+Eso deja un hueco: «sin conexión» sólo valdría para lo ya visitado, que es justo
+lo contrario de lo que hace falta **antes** de un viaje. Por eso el catálogo
+lleva un botón **«Guardar los 80 para jugar sin conexión»** que los baja todos a
+petición, por lotes de ocho y con el progreso a la vista. La lista sale del
+propio catálogo (el `data-game` de cada tarjeta), así que un juego nuevo entra
+solo sin tocar nada.
+
 **Al publicar un cambio hay que subir `VERSION` en `sw.js`.** Es lo que dispara
 la instalación de la caché nueva y el borrado de la anterior.
 
@@ -169,3 +176,9 @@ Las pruebas están en `sw.test.js` (`node sw.test.js`), con dobles de `caches` y
 `fetch` — un service worker es de las pocas cosas de este proyecto que puede
 dejar el sitio roto para quien ya lo ha visitado, así que las tres decisiones de
 arriba están fijadas ahí.
+
+**Chrome headless se cuelga al registrar un service worker**, así que esa parte
+no se puede comprobar con el arnés de siempre: hay que abrirlo en un navegador
+de verdad. Comprobado así, apagando el servidor y recargando: el catálogo con
+sus miniaturas, un juego ya visitado, y —tras pulsar el botón— los ochenta,
+incluido uno que no se había abierto nunca.

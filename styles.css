@@ -404,3 +404,27 @@ h1 {
         scroll-behavior: auto !important;
     }
 }
+
+/* ── Guardar para jugar sin conexión ──────────────────────────────────
+   El botón vive en la cabecera del catálogo y sólo se muestra si el
+   navegador soporta service workers. Ver sw.js. */
+#offlineBtn {
+    margin-top: 1rem;
+    padding: 0.55rem 1.2rem;
+    font-size: 0.95rem;
+    font-weight: bold;
+    color: var(--primary-color);
+    background: rgba(143,211,244,0.10);
+    border: 1px solid rgba(143,211,244,0.45);
+    border-radius: 999px;
+    cursor: pointer;
+    transition: background 0.18s, color 0.18s;
+}
+#offlineBtn:hover:not(:disabled) { background: rgba(143,211,244,0.22); color: #fff; }
+#offlineBtn:disabled { opacity: 0.55; cursor: default; }
+.offline-msg {
+    min-height: 1.2em;
+    margin-top: 0.5rem;
+    font-size: 0.9rem;
+    color: var(--text-muted);
+}
