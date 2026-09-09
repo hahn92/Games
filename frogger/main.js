@@ -158,7 +158,129 @@ function getFrogPixel() {
     };
 }
 
+/* La mitad de abajo del fondo —mediana, bordillos, hierba, carretera con sus
+ * líneas y su textura, y la franja de salida— no cambia NUNCA, y se repintaba en
+ * cada frame. Son bucles largos: una brizna de hierba cada 7 px y otra cada 6,
+ * más la textura del asfalto. Medido con el contexto instrumentado,
+ * `drawBackground` gastaba 2004 operaciones de canvas por frame, casi la mitad
+ * de las 4245 del juego entero.
+ *
+ * Ahora se pinta una vez en un sprite y cada frame es un `drawImage`. Lo que sí
+ * se mueve —los nenúfares que rebotan, las ondas del agua y las bandas
+ * cáusticas— sigue dibujándose en vivo encima; ninguna de esas franjas se
+ * solapa con esta, así que el resultado es idéntico. */
+var staticBg = null;
+function getStaticBg() {
+    if (staticBg) return staticBg;
+    staticBg = GU.sprite(W, H, function (c) {
+    // Median row 5 (safety strip with patterned curb)
+    c.fillStyle = '#4caf50';
+    c.fillRect(0, CELL * 5, W, CELL);
+    // Curb stripes on top/bottom edges
+    var curbW = 10;
+    for (var cb = 0; cb < W; cb += curbW * 2) {
+        c.fillStyle = 'rgba(255,255,255,0.55)';
+        c.fillRect(cb, CELL * 5, curbW, 4);
+        c.fillRect(cb, CELL * 6 - 4, curbW, 4);
+    }
+    // Grass blade detail
+    c.save();
+    c.strokeStyle = 'rgba(56,130,40,0.5)';
+    c.lineWidth = 1;
+    for (var gLine = 3; gLine < W; gLine += 7) {
+        c.beginPath();
+        c.moveTo(gLine, CELL * 6 - 4);
+        c.lineTo(gLine - 2, CELL * 5 + CELL * 0.5);
+        c.stroke();
+    }
+    c.restore();
+
+    // Road rows 6-10
+    c.fillStyle = '#3a3a3a';
+    c.fillRect(0, CELL * 6, W, CELL * 5);
+    // Road edge lines (yellow solid)
+    c.strokeStyle = '#ffd54f';
+    c.lineWidth = 2;
+    c.setLineDash([]);
+    c.beginPath();
+    c.moveTo(0, CELL * 6 + 1); c.lineTo(W, CELL * 6 + 1);
+    c.stroke();
+    c.beginPath();
+    c.moveTo(0, CELL * 11 - 1); c.lineTo(W, CELL * 11 - 1);
+    c.stroke();
+    // Dashed center dividers
+    c.strokeStyle = '#757575';
+    c.lineWidth = 1.5;
+    c.setLineDash([14, 10]);
+    for (var r = 7; r <= 10; r++) {
+        c.beginPath();
+        c.moveTo(0, r * CELL); c.lineTo(W, r * CELL);
+        c.stroke();
+    }
+    c.setLineDash([]);
+    // Asphalt texture (subtle horizontal lines)
+    c.strokeStyle = 'rgba(255,255,255,0.04)';
+    c.lineWidth = 1;
+    for (var ar = 0; ar < 5; ar++) {
+        c.beginPath();
+        c.moveTo(0, CELL * 6 + ar * CELL + CELL * 0.5);
+        c.lineTo(W, CELL * 6 + ar * CELL + CELL * 0.5);
+        c.stroke();
+    }
+
+    // Start row 11 (grass strip with texture)
+    c.fillStyle = '#33691e';
+    c.fillRect(0, CELL * 11, W, CELL);
+    // Grass blades
+    c.strokeStyle = 'rgba(56,120,30,0.6)';
+    c.lineWidth = 1;
+    for (var gs2 = 4; gs2 < W; gs2 += 6) {
+        c.beginPath();
+        c.moveTo(gs2, CELL * 12);
+        c.lineTo(gs2 - 2, CELL * 11 + CELL * 0.4);
+        c.stroke();
+    }
+    });
+    return staticBg;
+}
+
+/* Un periodo completo de la sinusoide de las ondas: 2*PI/0.06. La tira mide
+ * W + ese periodo, que es lo que permite tomar cualquier ventana de ancho W sin
+ * salirse y que el desplazamiento sea cíclico. */
+var RIPPLE_PERIOD = Math.ceil(2 * Math.PI / 0.06);
+var RIPPLE_H = 12;
+var rippleStrip = null;
+function getRippleStrip() {
+    if (rippleStrip) return rippleStrip;
+    var sw = W + RIPPLE_PERIOD;
+    rippleStrip = document.createElement('canvas');
+    /* A densidad de pantalla, como los sprites del toolkit: una tira a 1x se ve
+     * borrosa en un móvil, y aquí el blit la estira al mismo tamaño. */
+    var dpr = Math.min(window.devicePixelRatio || 1, 2);
+    rippleStrip.width = Math.round(sw * dpr);
+    rippleStrip.height = Math.round(RIPPLE_H * dpr);
+    /* El recorte de drawImage va en pixeles REALES del canvas origen, no en
+     * unidades logicas, asi que hay que guardar la densidad para multiplicar
+     * despues. Sin esto se dibuja un cuarto de la tira estirado al ancho
+     * entero. */
+    rippleStrip.__dpr = dpr;
+    var c = rippleStrip.getContext('2d');
+    c.scale(dpr, dpr);
+    c.strokeStyle = 'rgba(100,180,255,0.18)';
+    c.lineWidth = 1.5;
+    c.beginPath();
+    for (var x = 0; x <= sw; x += 4) {
+        var y = RIPPLE_H / 2 + Math.sin(x * 0.06) * 2.5;
+        if (x === 0) c.moveTo(x, y); else c.lineTo(x, y);
+    }
+    c.stroke();
+    return rippleStrip;
+}
+
 function drawBackground() {
+    /* Todo lo que no cambia va en un sprite; ver getStaticBg(). */
+    getStaticBg().draw(ctx, 0, 0);
+
     // Goal row
     ctx.fillStyle = '#1a237e';
     ctx.fillRect(0, 0, W, CELL);
@@ -237,25 +359,30 @@ function drawBackground() {
     ctx.fillStyle = '#1565c0';
     ctx.fillRect(0, CELL, W, CELL * 4);
 
-    // Water ripples — sinusoidal lines at low opacity
-    ctx.save();
-    ctx.strokeStyle = 'rgba(100,180,255,0.18)';
-    ctx.lineWidth = 1.5;
+    /* Las ondas del agua, desde una tira prerenderizada.
+     *
+     * Se trazaban punto a punto: un vértice cada 4 px sobre 560 de ancho son 141
+     * por onda, y hay tres ondas en cada una de las cuatro filas de río —1692
+     * `lineTo` por frame, la operación más repetida del juego con diferencia.
+     *
+     * Pero las doce son LA MISMA curva: misma amplitud y misma frecuencia, sólo
+     * cambia dónde empieza. Así que se dibuja una vez una tira de ancho
+     * W + un periodo y cada onda es un `drawImage` de la ventana que le toca —
+     * doce blits en vez de mil setecientos vértices. El desplazamiento es
+     * cíclico porque la tira lleva un periodo entero de margen: al pasarse,
+     * vuelve al principio sin que se note el corte. */
+    var wave = getRippleStrip();
     for (var r = 1; r <= 4; r++) {
         var baseY = r * CELL + CELL * 0.4;
         var waveOffset = (frame * 0.8) % (W / 2);
-        for (var wave = 0; wave < 3; wave++) {
-            ctx.beginPath();
-            var yOff = wave * (CELL * 0.25);
-            for (var wx = 0; wx <= W; wx += 4) {
-                var wy = baseY + yOff + Math.sin((wx + waveOffset * (wave + 1)) * 0.06) * 2.5;
-                if (wx === 0) ctx.moveTo(wx, wy);
-                else ctx.lineTo(wx, wy);
-            }
-            ctx.stroke();
+        for (var wi = 0; wi < 3; wi++) {
+            var yOff = wi * (CELL * 0.25);
+            var sx = (waveOffset * (wi + 1)) % RIPPLE_PERIOD;
+            var k = wave.__dpr;
+            ctx.drawImage(wave, sx * k, 0, W * k, RIPPLE_H * k,
+                          0, baseY + yOff - RIPPLE_H / 2, W, RIPPLE_H);
         }
     }
-    ctx.restore();
 
     // Caustic light columns (animated vertical shimmer bands)
     ctx.save();
@@ -276,73 +403,6 @@ function drawBackground() {
     }
     ctx.restore();
 
-    // Median row 5 (safety strip with patterned curb)
-    ctx.fillStyle = '#4caf50';
-    ctx.fillRect(0, CELL * 5, W, CELL);
-    // Curb stripes on top/bottom edges
-    var curbW = 10;
-    for (var cb = 0; cb < W; cb += curbW * 2) {
-        ctx.fillStyle = 'rgba(255,255,255,0.55)';
-        ctx.fillRect(cb, CELL * 5, curbW, 4);
-        ctx.fillRect(cb, CELL * 6 - 4, curbW, 4);
-    }
-    // Grass blade detail
-    ctx.save();
-    ctx.strokeStyle = 'rgba(56,130,40,0.5)';
-    ctx.lineWidth = 1;
-    for (var gLine = 3; gLine < W; gLine += 7) {
-        ctx.beginPath();
-        ctx.moveTo(gLine, CELL * 6 - 4);
-        ctx.lineTo(gLine - 2, CELL * 5 + CELL * 0.5);
-        ctx.stroke();
-    }
-    ctx.restore();
-
-    // Road rows 6-10
-    ctx.fillStyle = '#3a3a3a';
-    ctx.fillRect(0, CELL * 6, W, CELL * 5);
-    // Road edge lines (yellow solid)
-    ctx.strokeStyle = '#ffd54f';
-    ctx.lineWidth = 2;
-    ctx.setLineDash([]);
-    ctx.beginPath();
-    ctx.moveTo(0, CELL * 6 + 1); ctx.lineTo(W, CELL * 6 + 1);
-    ctx.stroke();
-    ctx.beginPath();
-    ctx.moveTo(0, CELL * 11 - 1); ctx.lineTo(W, CELL * 11 - 1);
-    ctx.stroke();
-    // Dashed center dividers
-    ctx.strokeStyle = '#757575';
-    ctx.lineWidth = 1.5;
-    ctx.setLineDash([14, 10]);
-    for (var r = 7; r <= 10; r++) {
-        ctx.beginPath();
-        ctx.moveTo(0, r * CELL); ctx.lineTo(W, r * CELL);
-        ctx.stroke();
-    }
-    ctx.setLineDash([]);
-    // Asphalt texture (subtle horizontal lines)
-    ctx.strokeStyle = 'rgba(255,255,255,0.04)';
-    ctx.lineWidth = 1;
-    for (var ar = 0; ar < 5; ar++) {
-        ctx.beginPath();
-        ctx.moveTo(0, CELL * 6 + ar * CELL + CELL * 0.5);
-        ctx.lineTo(W, CELL * 6 + ar * CELL + CELL * 0.5);
-        ctx.stroke();
-    }
-
-    // Start row 11 (grass strip with texture)
-    ctx.fillStyle = '#33691e';
-    ctx.fillRect(0, CELL * 11, W, CELL);
-    // Grass blades
-    ctx.strokeStyle = 'rgba(56,120,30,0.6)';
-    ctx.lineWidth = 1;
-    for (var gs2 = 4; gs2 < W; gs2 += 6) {
-        ctx.beginPath();
-        ctx.moveTo(gs2, CELL * 12);
-        ctx.lineTo(gs2 - 2, CELL * 11 + CELL * 0.4);
-        ctx.stroke();
-    }
 }
 
 /* Un tronco gastaba cinco degradados por frame (reflejo, cuerpo, brillo y los
@@ -396,19 +456,79 @@ function logCapGrad(capR) {
 }
 
 // Tope del tronco: sección con anillos. cx,cy es su centro.
-function drawLogCap(cx, cy, capR) {
-    ctx.translate(cx, cy);
-    ctx.fillStyle = logCapGrad(capR);
-    ctx.beginPath(); ctx.arc(0, 0, capR, 0, Math.PI * 2); ctx.fill();
-    // anillos concéntricos
-    ctx.strokeStyle = 'rgba(40,15,5,0.4)'; ctx.lineWidth = 1;
-    for (var ring = 1; ring <= 3; ring++) {
-        ctx.beginPath(); ctx.arc(0, 0, capR * (ring / 4), 0, Math.PI * 2); ctx.stroke();
+/* Un tronco, prerenderizado por tamaño. Son ~10 troncos en pantalla y cada uno
+ * gastaba tres rellenos con degradado, dos topes con sus anillos y una veta cada
+ * 8 px: 1205 operaciones de canvas por frame para tres formas distintas —los
+ * troncos sólo vienen en tres tamaños.
+ *
+ * Se parte en tres sprites porque el brillo y el reflejo LATEN: su forma no
+ * cambia, pero su opacidad sí, con `sin(frame)`. Horneados dentro del cuerpo se
+ * quedarían fijos; sueltos, cada uno es un blit con su `globalAlpha`. */
+var logSprites = GU.spriteSheet(function (key) {
+    var parts = key.split(':');
+    var kind = parts[0], ow = +parts[1], oh = +parts[2];
+    var capR = oh / 2;
+
+    if (kind === 'refl') {
+        /* El reflejo cae por debajo del tronco, así que el sprite es más alto y
+         * se dibuja desplazado hacia arriba al blitear. */
+        return GU.sprite(ow, oh + 4 + capR, function (c) {
+            c.fillStyle = logReflGrad(oh);
+            c.beginPath();
+            c.arc(capR, oh + 4, capR, 0, Math.PI, false);
+            c.arc(ow - capR, oh + 4, capR, Math.PI, 0, false);
+            c.closePath();
+            c.fill();
+        });
     }
-    // punto de luz
-    ctx.fillStyle = 'rgba(255,255,255,0.22)';
-    ctx.beginPath(); ctx.arc(-capR * 0.3, -capR * 0.3, capR * 0.25, 0, Math.PI * 2); ctx.fill();
-    ctx.translate(-cx, -cy);
+
+    if (kind === 'shine') {
+        return GU.sprite(ow, oh, function (c) {
+            c.fillStyle = logShineGrad(oh);
+            c.beginPath();
+            c.arc(capR, capR, capR, Math.PI / 2, -Math.PI / 2, true);
+            c.arc(ow - capR, capR, capR, -Math.PI / 2, Math.PI / 2, false);
+            c.closePath();
+            c.fill();
+        });
+    }
+
+    /* Cuerpo: relleno cilíndrico, vetas y los dos topes con sus anillos. */
+    return GU.sprite(ow, oh, function (c) {
+        c.fillStyle = logBodyGrad(oh);
+        c.beginPath();
+        c.arc(capR, capR, capR, Math.PI / 2, -Math.PI / 2, true);
+        c.arc(ow - capR, capR, capR, -Math.PI / 2, Math.PI / 2, false);
+        c.closePath();
+        c.fill();
+
+        c.strokeStyle = 'rgba(40,20,8,0.35)';
+        c.lineWidth = 1;
+        for (var g = capR + 8; g < ow - capR; g += 8) {
+            c.beginPath();
+            c.moveTo(g, 4);
+            c.lineTo(g, oh - 4);
+            c.stroke();
+        }
+
+        capInto(c, capR, capR, capR);
+        capInto(c, ow - capR, capR, capR);
+    });
+});
+
+/* El tope, dibujado en el contexto que se le pase: el del sprite o el del
+ * canvas. Antes sólo sabía dibujar en `ctx`. */
+function capInto(c, cx, cy, capR) {
+    c.translate(cx, cy);
+    c.fillStyle = logCapGrad(capR);
+    c.beginPath(); c.arc(0, 0, capR, 0, Math.PI * 2); c.fill();
+    c.strokeStyle = 'rgba(40,15,5,0.4)'; c.lineWidth = 1;
+    for (var ring = 1; ring <= 3; ring++) {
+        c.beginPath(); c.arc(0, 0, capR * (ring / 4), 0, Math.PI * 2); c.stroke();
+    }
+    c.fillStyle = 'rgba(255,255,255,0.22)';
+    c.beginPath(); c.arc(-capR * 0.3, -capR * 0.3, capR * 0.25, 0, Math.PI * 2); c.fill();
+    c.translate(-cx, -cy);
 }
 
 function drawLogs() {
@@ -418,68 +538,103 @@ function drawLogs() {
         for (var i = 0; i < lane.objects.length; i++) {
             var o = lane.objects[i];
             if (o.turtle) { drawTurtleGroup(o, r); continue; }
-            // Gentle bobbing per log (phase computed in updateLanes)
             var bob = o.bob || 0;
             var oy = r * CELL + 4 + bob;
-            var oh = o.h;
-            var ow = o.w;
-            var capR = oh / 2;
+            var key = ':' + o.w + ':' + o.h;
+            var capR = o.h / 2;
 
-            /* Todo el tronco se dibuja en coordenadas locales desde su esquina
-             * superior izquierda. Se restaura con la traslación inversa: esto
-             * corre por cada tronco y por frame, y el par save/restore cuesta
-             * más que deshacerlo a mano. */
-            ctx.translate(o.x, oy);
-
-            // Water reflection (lighter strip below log)
+            /* El reflejo late: la forma va en el sprite y la opacidad aquí. */
             ctx.globalAlpha = 0.18 + 0.06 * Math.sin(frame * 0.05 + i);
-            ctx.fillStyle = logReflGrad(oh);
-            ctx.beginPath();
-            ctx.arc(capR, oh + 4, capR, 0, Math.PI, false);
-            ctx.arc(ow - capR, oh + 4, capR, Math.PI, 0, false);
-            ctx.closePath();
-            ctx.fill();
+            logSprites.get('refl' + key).draw(ctx, o.x, oy);
 
-            // Log body with cylindrical gradient
             ctx.globalAlpha = 1;
-            ctx.fillStyle = logBodyGrad(oh);
-            ctx.beginPath();
-            ctx.arc(capR, capR, capR, Math.PI / 2, -Math.PI / 2, true);
-            ctx.arc(ow - capR, capR, capR, -Math.PI / 2, Math.PI / 2, false);
-            ctx.closePath();
-            ctx.fill();
+            logSprites.get('body' + key).draw(ctx, o.x, oy);
 
-            // Wet top highlight (specular)
             ctx.globalAlpha = 0.28 + 0.10 * Math.sin(frame * 0.06 + i * 1.3);
-            ctx.fillStyle = logShineGrad(oh);
-            ctx.beginPath();
-            ctx.arc(capR, capR, capR, Math.PI / 2, -Math.PI / 2, true);
-            ctx.arc(ow - capR, capR, capR, -Math.PI / 2, Math.PI / 2, false);
-            ctx.closePath();
-            ctx.fill();
+            logSprites.get('shine' + key).draw(ctx, o.x, oy);
             ctx.globalAlpha = 1;
-
-            // Wood grain lines on body
-            ctx.strokeStyle = 'rgba(40,20,8,0.35)';
-            ctx.lineWidth = 1;
-            for (var g = capR + 8; g < ow - capR; g += 8) {
-                ctx.beginPath();
-                ctx.moveTo(g, 4);
-                ctx.lineTo(g, oh - 4);
-                ctx.stroke();
-            }
-
-            ctx.translate(-o.x, -oy);
-
-            // End caps — tree rings cross-section
-            drawLogCap(o.x + capR, oy + capR, capR);
-            drawLogCap(o.x + ow - capR, oy + capR, capR);
         }
     }
 }
 
 // Grupo de tortugas: caparazón con patrón, aletas remando, cabeza según
 // dirección. Parpadean antes de sumergirse y se ven tenues bajo el agua.
+/* El cuerpo de la tortuga —caparazón con su degradado, borde, escamas, cabeza y
+ * cola— no depende del frame: sólo miran a un lado o a otro. Son dos sprites.
+ *
+ * Las aletas SÍ reman con `sin(frame)`, así que se quedan dibujándose en vivo:
+ * son cuatro elipses contra las ~40 operaciones del cuerpo, incluido un
+ * degradado radial por tortuga y por frame que era de lo más caro del juego. */
+var turtleSprites = GU.spriteSheet(function (key) {
+    var hd = +key;
+    var R = CELL * 0.30;
+    var size = R * 2.6;                 /* deja sitio a la cabeza y a la cola */
+    return GU.sprite(size, size, function (c, w, h) {
+        var CX = w / 2, CY = h / 2;
+        /* head */
+        c.fillStyle = '#66a04d';
+        c.beginPath();
+        c.ellipse(CX + hd * R * 1.02, CY, R * 0.30, R * 0.24, 0, 0, Math.PI * 2);
+        c.fill();
+        c.fillStyle = '#0f0f0f';
+        c.beginPath();
+        c.arc(CX + hd * R * 1.12, CY - R * 0.10, R * 0.07, 0, Math.PI * 2);
+        c.fill();
+        c.beginPath();
+        c.arc(CX + hd * R * 1.12, CY + R * 0.10, R * 0.07, 0, Math.PI * 2);
+        c.fill();
+
+        /* tail */
+        c.fillStyle = '#4f7c3a';
+        c.beginPath();
+        c.moveTo(CX - hd * R * 0.92, CY - R * 0.12);
+        c.lineTo(CX - hd * R * 1.24, CY);
+        c.lineTo(CX - hd * R * 0.92, CY + R * 0.12);
+        c.closePath();
+        c.fill();
+
+        /* shell: domed carapace with a clear rim */
+        var shg = c.createRadialGradient(CX - R * 0.28, CY - R * 0.34, R * 0.05, CX, CY, R);
+        shg.addColorStop(0, '#9ccc65');
+        shg.addColorStop(0.55, '#5f9236');
+        shg.addColorStop(1, '#33601c');
+        c.fillStyle = shg;
+        c.beginPath();
+        c.ellipse(CX, CY, R, R * 0.86, 0, 0, Math.PI * 2);
+        c.fill();
+        c.strokeStyle = '#2a4d16';
+        c.lineWidth = 1.4;
+        c.stroke();
+
+        /* rim separating carapace from scutes */
+        c.strokeStyle = 'rgba(40,80,22,0.55)';
+        c.lineWidth = 1;
+        c.beginPath();
+        c.ellipse(CX, CY, R * 0.70, R * 0.58, 0, 0, Math.PI * 2);
+        c.stroke();
+
+        /* five central scutes — a simple readable pattern, not a grid */
+        c.fillStyle = 'rgba(40,84,20,0.30)';
+        for (var sc = -1; sc <= 1; sc++) {
+            c.beginPath();
+            c.ellipse(CX + sc * R * 0.40, CY, R * 0.17, R * 0.28, 0, 0, Math.PI * 2);
+            c.fill();
+        }
+        c.beginPath();
+        c.ellipse(CX, CY - R * 0.40, R * 0.15, R * 0.13, 0, 0, Math.PI * 2);
+        c.fill();
+        c.beginPath();
+        c.ellipse(CX, CY + R * 0.40, R * 0.15, R * 0.13, 0, 0, Math.PI * 2);
+        c.fill();
+
+        /* wet highlight */
+        c.fillStyle = 'rgba(255,255,255,0.22)';
+        c.beginPath();
+        c.ellipse(CX - R * 0.30, CY - R * 0.36, R * 0.26, R * 0.14, -0.4, 0, Math.PI * 2);
+        c.fill();
+    });
+});
+
 function drawTurtleGroup(o, r) {
     var st = turtleState(o);
     var lane = lanes[r];
@@ -491,13 +646,14 @@ function drawTurtleGroup(o, r) {
 
     ctx.save();
     ctx.globalAlpha = alpha;
+    var body = turtleSprites.get(String(lane.dir));
     for (var k = 0; k < o.n; k++) {
         var cx = o.x + unit * (k + 0.5), cy = oy;
         var paddle = Math.sin(frame * 0.18 + k * 1.1) * 2.4;
         var hd = lane.dir;
         var R = CELL * 0.30;
 
-        /* flippers — front pair rows forward, rear pair trails */
+        /* Aletas: delanteras reman hacia delante, traseras van a rastras. */
         ctx.fillStyle = '#4f7c3a';
         ctx.beginPath();
         ctx.ellipse(cx + hd * R * 0.52, cy - R * 0.74 + paddle * 0.5, R * 0.42, R * 0.20, hd * -0.7, 0, Math.PI * 2);
@@ -512,67 +668,7 @@ function drawTurtleGroup(o, r) {
         ctx.ellipse(cx - hd * R * 0.60, cy + R * 0.66 + paddle * 0.4, R * 0.34, R * 0.17, hd * -0.6, 0, Math.PI * 2);
         ctx.fill();
 
-        /* head */
-        ctx.fillStyle = '#66a04d';
-        ctx.beginPath();
-        ctx.ellipse(cx + hd * R * 1.02, cy, R * 0.30, R * 0.24, 0, 0, Math.PI * 2);
-        ctx.fill();
-        ctx.fillStyle = '#0f0f0f';
-        ctx.beginPath();
-        ctx.arc(cx + hd * R * 1.12, cy - R * 0.10, R * 0.07, 0, Math.PI * 2);
-        ctx.fill();
-        ctx.beginPath();
-        ctx.arc(cx + hd * R * 1.12, cy + R * 0.10, R * 0.07, 0, Math.PI * 2);
-        ctx.fill();
-
-        /* tail */
-        ctx.fillStyle = '#4f7c3a';
-        ctx.beginPath();
-        ctx.moveTo(cx - hd * R * 0.92, cy - R * 0.12);
-        ctx.lineTo(cx - hd * R * 1.24, cy);
-        ctx.lineTo(cx - hd * R * 0.92, cy + R * 0.12);
-        ctx.closePath();
-        ctx.fill();
-
-        /* shell: domed carapace with a clear rim */
-        var shg = ctx.createRadialGradient(cx - R * 0.28, cy - R * 0.34, R * 0.05, cx, cy, R);
-        shg.addColorStop(0, '#9ccc65');
-        shg.addColorStop(0.55, '#5f9236');
-        shg.addColorStop(1, '#33601c');
-        ctx.fillStyle = shg;
-        ctx.beginPath();
-        ctx.ellipse(cx, cy, R, R * 0.86, 0, 0, Math.PI * 2);
-        ctx.fill();
-        ctx.strokeStyle = '#2a4d16';
-        ctx.lineWidth = 1.4;
-        ctx.stroke();
-
-        /* rim separating carapace from scutes */
-        ctx.strokeStyle = 'rgba(40,80,22,0.55)';
-        ctx.lineWidth = 1;
-        ctx.beginPath();
-        ctx.ellipse(cx, cy, R * 0.70, R * 0.58, 0, 0, Math.PI * 2);
-        ctx.stroke();
-
-        /* five central scutes — a simple readable pattern, not a grid */
-        ctx.fillStyle = 'rgba(40,84,20,0.30)';
-        for (var sc = -1; sc <= 1; sc++) {
-            ctx.beginPath();
-            ctx.ellipse(cx + sc * R * 0.40, cy, R * 0.17, R * 0.28, 0, 0, Math.PI * 2);
-            ctx.fill();
-        }
-        ctx.beginPath();
-        ctx.ellipse(cx, cy - R * 0.40, R * 0.15, R * 0.13, 0, 0, Math.PI * 2);
-        ctx.fill();
-        ctx.beginPath();
-        ctx.ellipse(cx, cy + R * 0.40, R * 0.15, R * 0.13, 0, 0, Math.PI * 2);
-        ctx.fill();
-
-        /* wet highlight */
-        ctx.fillStyle = 'rgba(255,255,255,0.22)';
-        ctx.beginPath();
-        ctx.ellipse(cx - R * 0.30, cy - R * 0.36, R * 0.26, R * 0.14, -0.4, 0, Math.PI * 2);
-        ctx.fill();
+        body.drawCentered(ctx, cx, cy);
     }
     ctx.restore();
 }
@@ -580,6 +676,129 @@ function drawTurtleGroup(o, r) {
 /* Cars, seen from above: tapered nose, inset roof, glass only where glass
  * belongs (windscreen / rear window / side slits), wheels peeking past the
  * flanks, and a cast shadow so they sit on the asphalt instead of floating. */
+/* Un coche, prerenderizado. No dependen del frame en absoluto —ni laten ni se
+ * animan, sólo se mueven— así que el coche entero cabe en un sprite con clave
+ * (color, ancho, alto, sentido). Eran 835 operaciones de canvas por frame para
+ * una decena de coches que salen de unos pocos moldes. */
+var carSprites = GU.spriteSheet(function (key) {
+    var parts = key.split(':');
+    var color = parts[0], ow = +parts[1], oh = +parts[2], dir = +parts[3];
+    return GU.sprite(ow, oh, function (c) {
+        var X = 0, Y = 0;
+                                            var cy = Y + oh / 2;
+        // nose/tail in world x
+        var nose = dir > 0 ? X + ow : X;
+        var tail = dir > 0 ? X : X + ow;
+        var sgn  = dir > 0 ? 1 : -1;
+
+        /* ── cast shadow ── */
+        c.fillStyle = 'rgba(0,0,0,0.30)';
+        c.beginPath();
+        c.roundRect(X + 2, Y + oh * 0.30, ow, oh * 0.86, oh * 0.30);
+        c.fill();
+
+        /* ── wheels (behind the body, peeking past both flanks) ── */
+        c.fillStyle = '#141414';
+        var axle = [0.24, 0.76];
+        for (var a = 0; a < 2; a++) {
+            var wx = X + ow * axle[a] - oh * 0.15;
+            c.beginPath();
+            c.roundRect(wx, Y - oh * 0.07, oh * 0.30, oh * 0.20, 1.5);
+            c.fill();
+            c.beginPath();
+            c.roundRect(wx, Y + oh - oh * 0.13, oh * 0.30, oh * 0.20, 1.5);
+            c.fill();
+        }
+
+        /* ── body: tapered nose, squarer tail ── */
+        c.fillStyle = gMemo('car:' + Y + ':' + oh + ':' + color, function () {
+            var g = c.createLinearGradient(0, Y, 0, Y + oh);
+            g.addColorStop(0, shade(color, 54));
+            g.addColorStop(0.42, color);
+            g.addColorStop(1, shade(color, -58));
+            return g;
+        });
+        c.beginPath();
+        c.moveTo(tail + sgn * oh * 0.16, Y);
+        c.lineTo(nose - sgn * oh * 0.40, Y);
+        // rounded nose
+        c.quadraticCurveTo(nose, Y, nose, cy);
+        c.quadraticCurveTo(nose, Y + oh, nose - sgn * oh * 0.40, Y + oh);
+        c.lineTo(tail + sgn * oh * 0.16, Y + oh);
+        // squarer tail
+        c.quadraticCurveTo(tail, Y + oh, tail, cy);
+        c.quadraticCurveTo(tail, Y, tail + sgn * oh * 0.16, Y);
+        c.closePath();
+        c.fill();
+        c.strokeStyle = 'rgba(0,0,0,0.30)';
+        c.lineWidth = 0.9;
+        c.stroke();
+
+        /* ── roof: inset panel in a darker tint of the body ── */
+        var roofX = dir > 0 ? X + ow * 0.20 : X + ow * 0.30;
+        var roofW = ow * 0.50;
+        c.fillStyle = shade(color, -26);
+        c.beginPath();
+        c.roundRect(roofX, Y + oh * 0.17, roofW, oh * 0.66, oh * 0.16);
+        c.fill();
+
+        /* ── glass ── */
+        var glass = 'rgba(168,214,246,0.82)';
+        // windscreen: angled strip at the front of the roof
+        c.fillStyle = glass;
+        c.beginPath();
+        var wsX = dir > 0 ? roofX + roofW : roofX;
+        c.moveTo(wsX, Y + oh * 0.20);
+        c.lineTo(wsX + sgn * oh * 0.30, Y + oh * 0.31);
+        c.lineTo(wsX + sgn * oh * 0.30, Y + oh * 0.69);
+        c.lineTo(wsX, Y + oh * 0.80);
+        c.closePath();
+        c.fill();
+        // rear window: shorter strip at the back of the roof
+        c.fillStyle = 'rgba(150,196,230,0.70)';
+        c.beginPath();
+        var rwX = dir > 0 ? roofX : roofX + roofW;
+        c.moveTo(rwX, Y + oh * 0.24);
+        c.lineTo(rwX - sgn * oh * 0.20, Y + oh * 0.33);
+        c.lineTo(rwX - sgn * oh * 0.20, Y + oh * 0.67);
+        c.lineTo(rwX, Y + oh * 0.76);
+        c.closePath();
+        c.fill();
+        // side window slits along the roof edges
+        c.fillStyle = 'rgba(60,80,95,0.55)';
+        c.fillRect(roofX + roofW * 0.16, Y + oh * 0.20, roofW * 0.66, oh * 0.09);
+        c.fillRect(roofX + roofW * 0.16, Y + oh * 0.71, roofW * 0.66, oh * 0.09);
+
+        /* ── roof highlight ── */
+        c.fillStyle = 'rgba(255,255,255,0.13)';
+        c.fillRect(roofX + roofW * 0.10, Y + oh * 0.33, roofW * 0.80, oh * 0.11);
+
+        /* ── lights ── */
+        // headlights
+        c.fillStyle = '#fffde7';
+        c.beginPath();
+        c.ellipse(nose - sgn * oh * 0.16, Y + oh * 0.24, oh * 0.10, oh * 0.13, 0, 0, Math.PI * 2);
+        c.fill();
+        c.beginPath();
+        c.ellipse(nose - sgn * oh * 0.16, Y + oh * 0.76, oh * 0.10, oh * 0.13, 0, 0, Math.PI * 2);
+        c.fill();
+        // taillights
+        c.fillStyle = '#e53935';
+        c.beginPath();
+        c.roundRect(tail + (dir > 0 ? 1 : -oh * 0.20 - 1), Y + oh * 0.13, oh * 0.20, oh * 0.22, 1.5);
+        c.fill();
+        c.beginPath();
+        c.roundRect(tail + (dir > 0 ? 1 : -oh * 0.20 - 1), Y + oh * 0.65, oh * 0.20, oh * 0.22, 1.5);
+        c.fill();
+
+        /* ── mirrors ── */
+        c.fillStyle = shade(color, -70);
+        var mx = dir > 0 ? roofX + roofW * 0.94 : roofX + roofW * 0.06 - oh * 0.16;
+        c.fillRect(mx, Y - oh * 0.09, oh * 0.16, oh * 0.10);
+        c.fillRect(mx, Y + oh * 0.99, oh * 0.16, oh * 0.10);
+    }, { pad: 6 });   /* la sombra y las ruedas se salen del cuerpo */
+});
+
 function drawCars() {
     for (var r = 6; r <= 10; r++) {
         var lane = lanes[r];
@@ -587,119 +806,8 @@ function drawCars() {
         for (var i = 0; i < lane.objects.length; i++) {
             var o = lane.objects[i];
             var oy = r * CELL + 5;
-            var ow = o.w, oh = o.h - 2;
-            var dir = lane.dir;
-            var cy = oy + oh / 2;
-            // nose/tail in world x
-            var nose = dir > 0 ? o.x + ow : o.x;
-            var tail = dir > 0 ? o.x : o.x + ow;
-            var sgn  = dir > 0 ? 1 : -1;
-
-            /* ── cast shadow ── */
-            ctx.fillStyle = 'rgba(0,0,0,0.30)';
-            ctx.beginPath();
-            ctx.roundRect(o.x + 2, oy + oh * 0.30, ow, oh * 0.86, oh * 0.30);
-            ctx.fill();
-
-            /* ── wheels (behind the body, peeking past both flanks) ── */
-            ctx.fillStyle = '#141414';
-            var axle = [0.24, 0.76];
-            for (var a = 0; a < 2; a++) {
-                var wx = o.x + ow * axle[a] - oh * 0.15;
-                ctx.beginPath();
-                ctx.roundRect(wx, oy - oh * 0.07, oh * 0.30, oh * 0.20, 1.5);
-                ctx.fill();
-                ctx.beginPath();
-                ctx.roundRect(wx, oy + oh - oh * 0.13, oh * 0.30, oh * 0.20, 1.5);
-                ctx.fill();
-            }
-
-            /* ── body: tapered nose, squarer tail ── */
-            ctx.fillStyle = gMemo('car:' + oy + ':' + oh + ':' + o.color, function () {
-                var g = ctx.createLinearGradient(0, oy, 0, oy + oh);
-                g.addColorStop(0, shade(o.color, 54));
-                g.addColorStop(0.42, o.color);
-                g.addColorStop(1, shade(o.color, -58));
-                return g;
-            });
-            ctx.beginPath();
-            ctx.moveTo(tail + sgn * oh * 0.16, oy);
-            ctx.lineTo(nose - sgn * oh * 0.40, oy);
-            // rounded nose
-            ctx.quadraticCurveTo(nose, oy, nose, cy);
-            ctx.quadraticCurveTo(nose, oy + oh, nose - sgn * oh * 0.40, oy + oh);
-            ctx.lineTo(tail + sgn * oh * 0.16, oy + oh);
-            // squarer tail
-            ctx.quadraticCurveTo(tail, oy + oh, tail, cy);
-            ctx.quadraticCurveTo(tail, oy, tail + sgn * oh * 0.16, oy);
-            ctx.closePath();
-            ctx.fill();
-            ctx.strokeStyle = 'rgba(0,0,0,0.30)';
-            ctx.lineWidth = 0.9;
-            ctx.stroke();
-
-            /* ── roof: inset panel in a darker tint of the body ── */
-            var roofX = dir > 0 ? o.x + ow * 0.20 : o.x + ow * 0.30;
-            var roofW = ow * 0.50;
-            ctx.fillStyle = shade(o.color, -26);
-            ctx.beginPath();
-            ctx.roundRect(roofX, oy + oh * 0.17, roofW, oh * 0.66, oh * 0.16);
-            ctx.fill();
-
-            /* ── glass ── */
-            var glass = 'rgba(168,214,246,0.82)';
-            // windscreen: angled strip at the front of the roof
-            ctx.fillStyle = glass;
-            ctx.beginPath();
-            var wsX = dir > 0 ? roofX + roofW : roofX;
-            ctx.moveTo(wsX, oy + oh * 0.20);
-            ctx.lineTo(wsX + sgn * oh * 0.30, oy + oh * 0.31);
-            ctx.lineTo(wsX + sgn * oh * 0.30, oy + oh * 0.69);
-            ctx.lineTo(wsX, oy + oh * 0.80);
-            ctx.closePath();
-            ctx.fill();
-            // rear window: shorter strip at the back of the roof
-            ctx.fillStyle = 'rgba(150,196,230,0.70)';
-            ctx.beginPath();
-            var rwX = dir > 0 ? roofX : roofX + roofW;
-            ctx.moveTo(rwX, oy + oh * 0.24);
-            ctx.lineTo(rwX - sgn * oh * 0.20, oy + oh * 0.33);
-            ctx.lineTo(rwX - sgn * oh * 0.20, oy + oh * 0.67);
-            ctx.lineTo(rwX, oy + oh * 0.76);
-            ctx.closePath();
-            ctx.fill();
-            // side window slits along the roof edges
-            ctx.fillStyle = 'rgba(60,80,95,0.55)';
-            ctx.fillRect(roofX + roofW * 0.16, oy + oh * 0.20, roofW * 0.66, oh * 0.09);
-            ctx.fillRect(roofX + roofW * 0.16, oy + oh * 0.71, roofW * 0.66, oh * 0.09);
-
-            /* ── roof highlight ── */
-            ctx.fillStyle = 'rgba(255,255,255,0.13)';
-            ctx.fillRect(roofX + roofW * 0.10, oy + oh * 0.33, roofW * 0.80, oh * 0.11);
-
-            /* ── lights ── */
-            // headlights
-            ctx.fillStyle = '#fffde7';
-            ctx.beginPath();
-            ctx.ellipse(nose - sgn * oh * 0.16, oy + oh * 0.24, oh * 0.10, oh * 0.13, 0, 0, Math.PI * 2);
-            ctx.fill();
-            ctx.beginPath();
-            ctx.ellipse(nose - sgn * oh * 0.16, oy + oh * 0.76, oh * 0.10, oh * 0.13, 0, 0, Math.PI * 2);
-            ctx.fill();
-            // taillights
-            ctx.fillStyle = '#e53935';
-            ctx.beginPath();
-            ctx.roundRect(tail + (dir > 0 ? 1 : -oh * 0.20 - 1), oy + oh * 0.13, oh * 0.20, oh * 0.22, 1.5);
-            ctx.fill();
-            ctx.beginPath();
-            ctx.roundRect(tail + (dir > 0 ? 1 : -oh * 0.20 - 1), oy + oh * 0.65, oh * 0.20, oh * 0.22, 1.5);
-            ctx.fill();
-
-            /* ── mirrors ── */
-            ctx.fillStyle = shade(o.color, -70);
-            var mx = dir > 0 ? roofX + roofW * 0.94 : roofX + roofW * 0.06 - oh * 0.16;
-            ctx.fillRect(mx, oy - oh * 0.09, oh * 0.16, oh * 0.10);
-            ctx.fillRect(mx, oy + oh * 0.99, oh * 0.16, oh * 0.10);
+            carSprites.get(o.color + ':' + o.w + ':' + (o.h - 2) + ':' + lane.dir)
+                      .draw(ctx, o.x, oy);
         }
     }
 }

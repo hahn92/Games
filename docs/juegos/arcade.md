@@ -39,6 +39,39 @@ Juegos de acción directa y reflejos sobre canvas.
 - Hop animation: `frogHop` tween with parabolic arc; logs/turtles bob (`o.bob`) and the frog inherits the bob while riding
 - Idle tongue flick on safe rows (5, 11) every ~300 frames
 
+- **Casi todo está prerenderizado, y por qué cada cosa donde está.** Era el juego
+  más caro del catálogo con diferencia: **4245 operaciones de canvas por frame**,
+  diez veces el siguiente. Ahora son **633**. El reparto, medido envolviendo cada
+  función `draw*` y contando las llamadas al contexto:
+
+  | | Antes | Ahora | Qué se hizo |
+  |---|-------|-------|-------------|
+  | `drawBackground` | 2004 | 200 | la mitad de abajo (carretera, hierba, bordillos) es un sprite; las ondas del agua, una tira |
+  | `drawLogs` | 1205 | 217 | tronco por tamaño, en tres sprites |
+  | `drawCars` | 835 | — | el coche entero, por (color, tamaño, sentido) |
+  | `drawTurtleGroup` | 786 | 201 | el cuerpo; las aletas siguen en vivo |
+
+  Lo que decidió cada corte fue **qué depende del frame**:
+
+  - Las **ondas del agua** eran 1692 `lineTo` por frame —un vértice cada 4 px,
+    tres ondas, cuatro filas— y las doce son la MISMA curva desplazada. Se dibuja
+    una tira de ancho `W + un periodo` y cada onda es un `drawImage` de su
+    ventana. El periodo de margen es lo que hace que el desplazamiento sea
+    cíclico sin que se vea el corte.
+  - Los **troncos** van en tres sprites y no en uno porque el reflejo y el brillo
+    laten: su forma no cambia, su opacidad sí. Horneados dentro del cuerpo se
+    quedarían fijos; sueltos, cada uno es un blit con su `globalAlpha`.
+  - Las **tortugas** se parten por lo mismo: caparazón, cabeza y cola son un
+    sprite por sentido, y las cuatro aletas siguen dibujándose en vivo porque
+    reman con `sin(frame)`.
+  - Los **coches** no dependen del frame en absoluto, así que caben enteros en un
+    sprite.
+
+  Y un detalle del `drawImage` con recorte: las coordenadas del origen van en
+  **píxeles reales** del canvas fuente, no en unidades lógicas. Como la tira de
+  las ondas se dibuja a densidad de pantalla, hay que multiplicar por el `dpr`
+  guardado; sin eso se ve un cuarto de la tira estirado al ancho entero.
+
 ## Pacman (`pacman/`)
 - Movement is **cell-target**, not free: pac and every ghost commit to a
   `targetRow/targetCol` one cell away and interpolate toward its centre. Turning is
