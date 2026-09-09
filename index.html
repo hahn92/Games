@@ -39,11 +39,20 @@
     <header>
         <h1>Catálogo de Videojuegos JS/CSS</h1>
         <p>Explora y juega a los mejores videojuegos creados con JavaScript y CSS</p>
-        <!-- El botón sólo aparece si el navegador tiene service worker: sin él no
-             hay nada que guardar, y un botón que no hace nada es peor que ninguno. -->
-        <button id="offlineBtn" type="button" hidden>Guardar los 80 para jugar sin conexión</button>
+        <!-- El botón sólo se usa si el navegador tiene service worker: sin él no
+             hay nada que guardar, y un botón que no hace nada es peor que ninguno.
+             Pero se oculta con `visibility`, no con `hidden`: `hidden` no ocupa
+             sitio, así que al mostrarlo empujaba el catálogo entero hacia abajo
+             —un salto de diseño de 0,254, el mayor problema de rendimiento de la
+             página—. Con visibility el hueco ya está reservado desde el principio. -->
+        <button id="offlineBtn" type="button" class="oculto">Guardar los 80 para jugar sin conexión</button>
         <div id="offlineMsg" class="offline-msg" role="status" aria-live="polite"></div>
     </header>
+    <!-- El buscador y los filtros los rellena main.js, pero el hueco tiene que
+         estar en el HTML: creando el contenedor desde JS, aparecía DESPUÉS del
+         primer pintado y empujaba el catálogo entero hacia abajo. Era la mitad
+         del salto de diseño de la página. -->
+    <div class="catalog-controls" id="catalogControls"></div>
     <main>
         <section class="games-grid">
             <div class="game-card">
@@ -797,7 +806,7 @@
         var msg = document.getElementById('offlineMsg');
         if (!btn || !('serviceWorker' in navigator) || !('caches' in window)) return;
         if (location.protocol === 'file:') return;
-        btn.hidden = false;
+        btn.classList.remove('oculto');
 
         function ficheros() {
             var out = [];

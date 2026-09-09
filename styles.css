@@ -96,6 +96,13 @@ h1 {
     display: flex;
     flex-direction: column;
     gap: 0.75rem;
+    /* Altura reservada: el contenido lo mete main.js, y sin esto la barra nace
+       con cero de alto y el catálogo salta hacia abajo cuando se llena. Son las
+       dos filas reales —buscador y filtros— medidas en el navegador. En pantalla
+       estrecha los filtros ocupan más líneas, y por eso es `min-height` y no
+       `height`: puede crecer, pero no encoger por debajo del hueco. */
+    min-height: 116px;
+    box-sizing: border-box;
 }
 .controls-top {
     display: flex;
@@ -420,6 +427,9 @@ h1 {
     cursor: pointer;
     transition: background 0.18s, color 0.18s;
 }
+/* `visibility` y no `display`/`hidden`: el hueco se reserva desde el primer
+   pintado, así que mostrar el botón no mueve nada de sitio. */
+#offlineBtn.oculto { visibility: hidden; }
 #offlineBtn:hover:not(:disabled) { background: rgba(143,211,244,0.22); color: #fff; }
 #offlineBtn:disabled { opacity: 0.55; cursor: default; }
 .offline-msg {

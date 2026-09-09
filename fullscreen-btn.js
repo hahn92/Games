@@ -192,9 +192,18 @@
             var el = disabled ? document.createElement('span') : document.createElement('a');
             if (!disabled) el.href = href;
             el.title = title;
-            /* el contenido es un SVG sin texto: sin aria-label el enlace se
-               anuncia solo por su URL */
-            el.setAttribute('aria-label', title);
+            if (disabled) {
+                /* Un <span> sin rol NO admite aria-label: la especificación lo
+                   prohíbe en elementos genéricos, y Lighthouse lo marca. Esta
+                   flecha apagada —el primer juego no tiene anterior, el último
+                   no tiene siguiente— no lleva a ningún sitio, así que lo
+                   correcto es que un lector de pantalla no la anuncie siquiera. */
+                el.setAttribute('aria-hidden', 'true');
+            } else {
+                /* el contenido es un SVG sin texto: sin aria-label el enlace se
+                   anuncia solo por su URL */
+                el.setAttribute('aria-label', title);
+            }
             el.innerHTML = html;
             el.style.cssText =
                 'color:' + (disabled ? 'rgba(143,211,244,0.25)' : '#8fd3f4') + ';' +
@@ -266,6 +275,7 @@
         // Separator
         function sep() {
             var s = document.createElement('span');
+            s.setAttribute('aria-hidden', 'true');   /* decoración, no contenido */
             s.style.cssText =
                 'width:1px;height:18px;background:rgba(143,211,244,0.18);flex-shrink:0;margin:0 1px;';
             return s;

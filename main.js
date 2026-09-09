@@ -46,17 +46,25 @@
     allCards.forEach(function (card) { catSet[card.dataset.category] = true; });
     var categories = ['Todos'].concat(Object.keys(catSet).sort());
 
-    /* ── Inject controls HTML before <main> ── */
+    /* ── Controls: se rellena el hueco que ya está en el HTML ──
+     *
+     * El contenedor NO se crea aquí. Creándolo e insertándolo antes de <main>
+     * aparecía después del primer pintado y empujaba el catálogo hacia abajo:
+     * la mitad del salto de diseño que medía Lighthouse. Ahora el hueco existe
+     * desde el HTML, con su altura reservada por CSS, y esto sólo lo llena. */
     var main = document.querySelector('main');
-    var controlsDiv = document.createElement('div');
-    controlsDiv.className = 'catalog-controls';
+    var controlsDiv = document.getElementById('catalogControls');
+    if (!controlsDiv) {           /* por si alguien reutiliza main.js sin el hueco */
+        controlsDiv = document.createElement('div');
+        controlsDiv.className = 'catalog-controls';
+        main.parentNode.insertBefore(controlsDiv, main);
+    }
     controlsDiv.innerHTML =
         '<div class="controls-top">' +
             '<input type="search" class="search-input" id="catalogSearch" placeholder="Buscar juego..." aria-label="Buscar juego por nombre" autocomplete="off">' +
             '<span class="results-count" id="resultsCount"></span>' +
         '</div>' +
         '<div class="filter-btns" id="filterBtns"></div>';
-    main.parentNode.insertBefore(controlsDiv, main);
 
     /* ── Inject pagination HTML after the grid ── */
     var paginationDiv = document.createElement('div');
