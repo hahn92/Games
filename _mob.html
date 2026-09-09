@@ -1,0 +1,42 @@
+<body style="margin:0;background:#111">
+<pre id="o" style="color:#0f0;background:#000;font-size:11px;margin:0"></pre>
+<iframe id="f" width="390" height="760" style="border:0;display:block"></iframe>
+<script>
+/* Chrome headless no abre ventanas de menos de 500 px de ancho, asi que el
+   movil se emula con un iframe de 390: dentro, innerWidth vale 390 y
+   MobileLayout entra en su rama de movil igual que en un telefono. */
+var q=new URLSearchParams(location.search);
+var f=document.getElementById('f'), o=document.getElementById('o');
+f.src='./'+q.get('game')+'/index.html';
+f.addEventListener('load',function(){
+ var d=f.contentDocument, w=f.contentWindow;
+ var errs=[];
+ w.addEventListener('error', function(e){ errs.push(e.message); });
+ if(q.get('play')){ var b=d.getElementById('startBtn'); if(b){ errs.push('startBtn: disabled='+b.disabled); b.click(); } else errs.push('SIN startBtn'); }
+ w.setTimeout(function(){
+   /* Nueve juegos son de DOM y no tienen canvas: sin esta guarda, la sonda
+      falla y parece que el juego esta roto. */
+   var c=d.querySelector('canvas');
+   var r=c?c.getBoundingClientRect():{width:0,height:0,left:0,right:0,top:0,bottom:0};
+   var doc=d.documentElement;
+   var nav=d.getElementById('gameNavBar');
+   var ms=d.getElementById('mobileScore');
+   var navR = nav?nav.getBoundingClientRect():null;
+   var msR  = ms?ms.getBoundingClientRect():null;
+   var solapa = (navR&&msR&&msR.top<navR.bottom&&msR.left<navR.right&&msR.right>navR.left);
+   o.textContent=JSON.stringify({
+     solapaBarraMarcador: !!solapa,
+     barra: navR?[Math.round(navR.left),Math.round(navR.top),Math.round(navR.right),Math.round(navR.bottom)]:null,
+     marcador: msR?[Math.round(msR.left),Math.round(msR.top),Math.round(msR.right),Math.round(msR.bottom)]:null,
+     vw:w.innerWidth, vh:w.innerHeight,
+     cw:Math.round(r.width), ch:Math.round(r.height),
+     izq:Math.round(r.left), der:Math.round(r.right),
+     arr:Math.round(r.top), aba:Math.round(r.bottom),
+     scrollX:doc.scrollWidth-w.innerWidth,
+     notas: errs,
+     nav: nav?Math.round(nav.getBoundingClientRect().bottom):null,
+     score: (ms&&ms.offsetParent!==null)?Math.round(ms.getBoundingClientRect().top):null
+   });
+ },900);
+});
+</script></body>

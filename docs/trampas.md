@@ -1,8 +1,8 @@
 # Trampas conocidas
 
-Cuatro formas de romper un juego sin que se note. Tres no dan error en consola;
-la cuarta lo da, y aun así el juego parece que simplemente no ha arrancado.
-Todas costaron tiempo una vez.
+Cinco formas de romper un juego sin que se note. Tres no dan error en consola;
+las otras dos lo dan, y aun así el juego parece que simplemente no ha arrancado
+o que le falla otra cosa. Todas costaron tiempo una vez.
 
 ## Critical: Never use emoji on canvas
 
@@ -39,6 +39,26 @@ When touching a game's loop, confirm the render entry point is actually reached:
   and take a screenshot. Reading pixels back with `getImageData` from a parent
   frame is **not** trustworthy: it returned all-black for games that were plainly
   rendering on screen.
+
+## El primer frame puede llegar antes que la partida
+
+`freecell` repartía bien y el tapete salía **vacío en el móvil**: se veían las
+celdas y las cuatro pilas, y ni una carta en las columnas.
+
+Su `draw()` hace `cols[c].length`, y `cols` nacía como `[]`. En el escritorio no
+se notaba porque el clic en Iniciar llega antes del primer frame; en el móvil
+`MobileLayout` dispara un `resize` nada más cargar, que pide un repintado
+**antes** de que nadie haya repartido. La excepción salta a media función, así
+que lo dibujado hasta esa línea se ve y lo de después no — que es justo lo que
+hacía parecer que el reparto fallaba.
+
+Un juego que dibuje desde una estructura que se llena al empezar la partida
+tiene que poder dibujarse VACÍO. `2048` ya lo hacía por esto mismo: su tablero
+se inicializa lleno de ceros porque el `render()` del final del fichero corre al
+cargar. Ahora `freecell` nace con sus ocho columnas creadas.
+
+El móvil es donde sale, así que conviene mirarlo ahí: un iframe de 390 px con UA
+de iPhone basta, porque Chrome headless no abre ventanas de menos de 500.
 
 ## Un juego usado antes de asignarse muere entero y en silencio
 

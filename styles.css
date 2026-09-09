@@ -362,11 +362,22 @@ h1 {
     background: rgba(36,36,36,0.85);
     color: var(--text-muted);
     font-size: 0.9rem;
-    padding: 0.6rem 1rem;
+    /* El hueco de la izquierda es para la barra de navegación, que va fija
+       arriba a la izquierda y ocupa hasta los 157 px. Sin él la barra se come el
+       principio del texto: en un móvil se leía «…tos · 0/52 subidas» en vez de
+       «12 movimientos · 0/52 subidas», y le pasaba a los ochenta juegos. Con el
+       hueco, el texto se centra en el espacio que queda de verdad. */
+    padding: 0.6rem 1rem 0.6rem 152px;
+    box-sizing: border-box;
     border-radius: 12px;
     box-shadow: 0 2px 8px rgba(0,0,0,0.15);
     font-weight: bold;
     text-align: center;
+    /* Una línea larga se recorta con puntos suspensivos en vez de desbordar por
+       debajo y empujar el canvas. */
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 
 /* ── Movimiento reducido ──────────────────────────────────────────────

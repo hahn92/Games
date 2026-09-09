@@ -30,7 +30,14 @@ var COLS = 8, CELLS = 4;
 var TOP = 16;
 var FAN = 24;                    // separación vertical dentro de una columna
 
-var cols = [];                   // 8 arrays de cartas
+/* Las ocho columnas nacen ya creadas, aunque vacías. El primer `draw()` puede
+ * correr ANTES de que Iniciar reparta —en móvil lo hace siempre, porque
+ * MobileLayout dispara un resize que pide repintado nada más cargar— y con
+ * `cols` a [] la línea `cols[c].length` explota. La excepción salta a media
+ * función: se pintaban las celdas y las pilas, y el tapete se quedaba sin
+ * cartas. Mismo criterio que el board de 2048, que se inicializa lleno de ceros
+ * por esto mismo. */
+var cols = [[], [], [], [], [], [], [], []];
 var cells = [];                  // 4 huecos: carta o null
 var found = { C: -1, D: -1, T: -1, P: -1 };   // rango subido por palo, -1 vacío
 var sel = null;                  // {zone:'col'|'cell', i, ci}

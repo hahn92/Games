@@ -42,7 +42,11 @@ The module handles, once, for every game:
 Remaining per-game conventions:
 
 - **Canvas height offset ≤ 50px** — touch button panels are hidden globally via CSS; no large space reservation needed
-- `#mobileScore` (absolute positioned) shows score overlay; uses `left: 5px; right: 5px` to stretch safely
+- `#mobileScore` (absolute positioned) shows score overlay; uses `left: 5px; right: 5px` to stretch safely.
+  Lleva **152 px de padding a la izquierda**: la barra de navegación va fija arriba a la izquierda
+  y ocupa hasta los 157, así que sin ese hueco se come el principio del texto. En un móvil se leía
+  «…tos · 0/52 subidas» en vez de «12 movimientos · 0/52 subidas», y le pasaba a los ochenta juegos.
+  Si algún día la barra cambia de ancho, ese padding va con ella
 - `#mobileStartBtn` overlays the canvas on initial load
 - `fullscreen-btn.js` adds a floating ⛶ button (bottom-right) that triggers `requestFullscreen()` + `screen.orientation.lock('landscape')` (Android) or full-screen without lock (iOS)
 - Bottom-anchored elements use `bottom: calc(20px + env(safe-area-inset-bottom))` for iPhone notch safety
