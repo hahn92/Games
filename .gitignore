@@ -1,0 +1,12 @@
+# Ficheros de trabajo de las mediciones: sondas que se inyectan en un juego para
+# contar operaciones de canvas, arneses de móvil y de rotación. Se generan, se
+# usan y se borran, pero se han colado en tres commits ya.
+#
+# `_harness.html` SÍ va versionado y por eso está exceptuado: es la herramienta
+# documentada en docs/herramientas.md para mirar un juego en marcha.
+_*.html
+!_harness.html
+*/_medido.html
+*/_movil.html
+
+.DS_Store
