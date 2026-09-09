@@ -32,7 +32,10 @@ var VN = N * DOTS;               // líneas verticales:   N filas × (N+1)
 var YOU = 0, AI = 1;
 var gs = null;
 var turn = YOU;
-var status = 'idle';             // idle | playing | over
+/* `gamePhase`, no `status`: `window.status` existe y es escribible, pero
+ * CONVIERTE A CADENA todo lo que se le asigne — `status = null` se queda en
+ * la cadena 'null', que es truthy. Ver docs/trampas.md. */
+var gamePhase = 'idle';             // idle | playing | over
 var wins = GameStore.getNum('timbiricheWins', 0);
 var thinking = false;
 
@@ -176,7 +179,7 @@ function aiDepth() {
 }
 
 function aiTurn() {
-    if (status !== 'playing' || turn !== AI) return;
+    if (gamePhase !== 'playing' || turn !== AI) return;
     var res = ai.best(gs, AI, aiDepth());
     thinking = false;
     if (!res.move) { finish(); view.invalidate(); return; }
@@ -201,7 +204,7 @@ function aiTurn() {
 function newGame() {
     gs = newState();
     turn = YOU;
-    status = 'playing';
+    gamePhase = 'playing';
     thinking = false;
     fx.clear();
     msg.clear();
@@ -226,7 +229,7 @@ function celebrate(who) {
 }
 
 function humanMove(mv) {
-    if (status !== 'playing' || turn !== YOU || thinking) return;
+    if (gamePhase !== 'playing' || turn !== YOU || thinking) return;
     var closed = place(gs, mv, YOU);
     GameAudio[closed ? 'score' : 'click']();
     if (closed) celebrate(YOU);
@@ -244,7 +247,7 @@ function humanMove(mv) {
 }
 
 function finish() {
-    status = 'over';
+    gamePhase = 'over';
     var y = gs.score[YOU], a = gs.score[AI];
     if (y > a) {
         wins++;
@@ -350,7 +353,7 @@ function draw() {
         ctx.textBaseline = 'middle';
         ctx.font = 'bold 17px Arial';
         ctx.fillStyle = turn === YOU ? '#8fd3f4' : '#ff8a3d';
-        ctx.fillText(status === 'over' ? 'Fin' : (turn === YOU ? 'Te toca' : 'Piensa la máquina'),
+        ctx.fillText(gamePhase === 'over' ? 'Fin' : (turn === YOU ? 'Te toca' : 'Piensa la máquina'),
                      W / 2, 26);
 
         ctx.font = 'bold 20px Arial';
@@ -372,7 +375,7 @@ function draw() {
 
     msg.draw(ctx, W / 2, H - 70);
 
-    if (status === 'idle') {
+    if (gamePhase === 'idle') {
         GU.idleScreen(ctx, {
             title: 'TIMBIRICHE',
             lines: ['Cierra cuadros: quien cierra, repite turno',
@@ -388,7 +391,7 @@ function draw() {
  * contiene el punto: entre dos líneas los rectángulos sensibles dejan huecos, y
  * en un móvil eso son toques que no hacen nada. */
 function handleAt(x, y) {
-    if (status !== 'playing' || turn !== YOU || thinking) return;
+    if (gamePhase !== 'playing' || turn !== YOU || thinking) return;
     var moves = legalMoves(gs);
     var best = null, bestD = Infinity;
     for (var k = 0; k < moves.length; k++) {
@@ -409,7 +412,7 @@ GU.swipe(canvas, { onTap: function (p) { handleAt(p.x, p.y); } });
 var cursor = GU.canvasCursor(canvas, {
     label: 'Tablero de timbiriche. Flechas para moverte, Enter para trazar la línea.',
     targets: function () {
-        if (status !== 'playing' || turn !== YOU) return [];
+        if (gamePhase !== 'playing' || turn !== YOU) return [];
         return legalMoves(gs).map(function (mv) {
             var r = moveRect(mv);
             return { x: r.x, y: r.y, w: r.w, h: r.h, id: mv.t + mv.i, mv: mv };

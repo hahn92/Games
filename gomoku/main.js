@@ -30,7 +30,10 @@ var EMPTY = 0, HUMAN = 1, AI = 2;
 
 var board = null;
 var turn = HUMAN;
-var status = 'idle';      // idle | playing | over
+/* `gamePhase`, no `status`: `window.status` existe y es escribible, pero
+ * CONVIERTE A CADENA todo lo que se le asigne — `status = null` se queda en
+ * la cadena 'null', que es truthy. Ver docs/trampas.md. */
+var gamePhase = 'idle';      // idle | playing | over
 var lastMove = null;
 var winLine = null;
 var thinking = false;
@@ -44,7 +47,7 @@ var hud = GU.hud({
     losses: 'lossesLabel',
     turn:   { el: 'turnLabel', format: function (v) { return v; } },
     mobile: { el: 'mobileScore', format: function () {
-        var t = status !== 'playing' ? '—'
+        var t = gamePhase !== 'playing' ? '—'
               : thinking ? 'IA pensando…'
               : (turn === HUMAN ? 'Tu turno' : 'Turno IA');
         return t + '  ·  G:' + stats.w + ' P:' + stats.l + ' E:' + stats.d;
@@ -65,7 +68,7 @@ function saveStats() { GameStore.setJSON('gomokuStats', stats); }
 function newGame() {
     board = new Uint8Array(N * N);
     turn = HUMAN;
-    status = 'playing';
+    gamePhase = 'playing';
     lastMove = null;
     winLine = null;
     thinking = false;
@@ -91,7 +94,7 @@ function isFull() {
 }
 
 function humanMove(r, c) {
-    if (status !== 'playing' || turn !== HUMAN || thinking) return;
+    if (gamePhase !== 'playing' || turn !== HUMAN || thinking) return;
     if (board[idx(r, c)] !== EMPTY) { GameAudio.miss(); return; }
     GameAudio.place();
     if (place(r, c, HUMAN)) return;
@@ -103,7 +106,7 @@ function humanMove(r, c) {
 }
 
 function aiMove() {
-    if (status !== 'playing') { thinking = false; return; }
+    if (gamePhase !== 'playing') { thinking = false; return; }
     var best = chooseAI();
     thinking = false;
     if (!best) { finish(0, null); return; }
@@ -222,7 +225,7 @@ function chooseAI() {
 /* ── Fin ──────────────────────────────────────────────────────────── */
 
 function finish(who, line) {
-    status = 'over';
+    gamePhase = 'over';
     winLine = line;
     if (who === HUMAN)      { stats.w++; GameAudio.win(); }
     else if (who === AI)    { stats.l++; GameAudio.gameOver(); }
@@ -250,7 +253,7 @@ function syncHud() {
     hud.set({
         wins: stats.w,
         losses: stats.l,
-        turn: status !== 'playing' ? '—' : (thinking ? 'IA…' : (turn === HUMAN ? 'Tú' : 'IA'))
+        turn: gamePhase !== 'playing' ? '—' : (thinking ? 'IA…' : (turn === HUMAN ? 'Tú' : 'IA'))
     });
 }
 
@@ -282,7 +285,7 @@ function draw() {
         ctx.strokeRect(t.x, t.y, t.w, t.h);
     }
 
-    if (status === 'idle') drawIdle();
+    if (gamePhase === 'idle') drawIdle();
 }
 
 function drawGrid() {

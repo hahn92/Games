@@ -30,7 +30,10 @@ var HUMAN_STORE = 6, AI_STORE = 13;
 
 var board = null;        // 14 posiciones
 var turn = 'human';
-var status = 'idle';     // idle | playing | over
+/* `gamePhase`, no `status`: `window.status` existe y es escribible, pero
+ * CONVIERTE A CADENA todo lo que se le asigne — `status = null` se queda en
+ * la cadena 'null', que es truthy. Ver docs/trampas.md. */
+var gamePhase = 'idle';     // idle | playing | over
 var busy = false;
 var msg = '', msgT = 0;
 var lastSown = -1;
@@ -45,7 +48,7 @@ var hud = GU.hud({
     wins:   'winsLabel',
     mobile: { el: 'mobileScore', format: function () {
         if (!board) return 'Pulsa Iniciar';
-        var t = status !== 'playing' ? '—' : (busy ? 'La máquina juega…' : (turn === 'human' ? 'Tu turno' : 'Turno IA'));
+        var t = gamePhase !== 'playing' ? '—' : (busy ? 'La máquina juega…' : (turn === 'human' ? 'Tu turno' : 'Turno IA'));
         return t + '  ·  Tú ' + board[HUMAN_STORE] + ' — ' + board[AI_STORE] + ' IA';
     } }
 });
@@ -201,7 +204,7 @@ function saveStats() { GameStore.setJSON('mancalaStats', stats); }
 function newGame() {
     board = newBoard();
     turn = 'human';
-    status = 'playing';
+    gamePhase = 'playing';
     busy = false;
     msg = 'Empiezas tú';
     msgT = 1.6;
@@ -214,7 +217,7 @@ function newGame() {
 }
 
 function humanPlay(pit) {
-    if (status !== 'playing' || turn !== 'human' || busy) return;
+    if (gamePhase !== 'playing' || turn !== 'human' || busy) return;
     if (!isMine(pit, 'human') || board[pit] === 0) { GameAudio.miss(); return; }
 
     var res = sow(board, pit, 'human');
@@ -238,7 +241,7 @@ function humanPlay(pit) {
 }
 
 function aiTurn() {
-    if (status !== 'playing') { busy = false; return; }
+    if (gamePhase !== 'playing') { busy = false; return; }
     var pit = chooseAI();
     if (pit < 0) { busy = false; endGame(); return; }
 
@@ -263,7 +266,7 @@ function aiTurn() {
 }
 
 function endGame() {
-    status = 'over';
+    gamePhase = 'over';
     var h = board[HUMAN_STORE], a = board[AI_STORE];
     if (h > a)      { stats.w++; GameAudio.win(); }
     else if (a > h) { stats.l++; GameAudio.gameOver(); }
@@ -353,7 +356,7 @@ function draw() {
     }
 
     if (msgT > 0) drawMessage();
-    if (status === 'idle') drawIdle();
+    if (gamePhase === 'idle') drawIdle();
 }
 
 function drawStore(which) {
@@ -380,7 +383,7 @@ function drawStore(which) {
 function drawPit(i) {
     var p = pitPos(i);
     var mine = i <= 5;
-    var playable = status === 'playing' && turn === 'human' && mine && board[i] > 0 && !busy;
+    var playable = gamePhase === 'playing' && turn === 'human' && mine && board[i] > 0 && !busy;
 
     ctx.fillStyle = '#452a13';
     ctx.beginPath();
@@ -472,7 +475,7 @@ var cursor = GU.canvasCursor(canvas, {
     label: 'Hoyos de tu lado. Flechas para moverte, Enter para sembrar.',
     targets: function () {
         var out = [];
-        if (!board || status !== 'playing' || turn !== 'human') return out;
+        if (!board || gamePhase !== 'playing' || turn !== 'human') return out;
         for (var i = 0; i <= 5; i++) {
             if (!board[i]) continue;
             var p = pitPos(i);

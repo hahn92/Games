@@ -82,7 +82,10 @@ var toPlace = { 1: PIECES, 2: PIECES };
 var turn = HUMAN;
 var sel = -1;                 // ficha elegida para mover
 var removing = false;         // el humano debe quitar una ficha rival
-var status = 'idle';          // idle | playing | over
+/* `gamePhase`, no `status`: `window.status` existe y es escribible, pero
+ * CONVIERTE A CADENA todo lo que se le asigne — `status = null` se queda en
+ * la cadena 'null', que es truthy. Ver docs/trampas.md. */
+var gamePhase = 'idle';          // idle | playing | over
 var busy = false;
 var msg = '', msgT = 0;
 var lastMill = null;
@@ -103,7 +106,7 @@ var hud = GU.hud({
     wins:   'winsLabel',
     mobile: { el: 'mobileScore', format: function () {
         if (!board) return 'Pulsa Iniciar';
-        if (status !== 'playing') return 'Fin  ·  G:' + stats.w + ' P:' + stats.l;
+        if (gamePhase !== 'playing') return 'Fin  ·  G:' + stats.w + ' P:' + stats.l;
         if (removing) return 'Quita una ficha rival';
         return (busy ? 'La máquina piensa…' : (turn === HUMAN ? 'Tu turno' : 'Turno IA')) +
                '  ·  ' + phaseName(HUMAN);
@@ -329,7 +332,7 @@ function newGame() {
     busy = false;
     lastMill = null;
     quietMoves = 0;
-    status = 'playing';
+    gamePhase = 'playing';
     fx.clear();
     say('Coloca tus nueve fichas');
     gameControls.running();
@@ -339,7 +342,7 @@ function newGame() {
 }
 
 function humanAt(i) {
-    if (status !== 'playing' || turn !== HUMAN || busy) return;
+    if (gamePhase !== 'playing' || turn !== HUMAN || busy) return;
 
     if (removing) {
         var opts = removable(board, AI);
@@ -400,7 +403,7 @@ function passToAI() {
 }
 
 function aiTurn() {
-    if (status !== 'playing') { busy = false; return; }
+    if (gamePhase !== 'playing') { busy = false; return; }
     var mv = chooseAI();
     if (!mv) { busy = false; endGame(HUMAN); return; }
 
@@ -450,7 +453,7 @@ function endIfOver() {
 }
 
 function endGame(winner) {
-    status = 'over';
+    gamePhase = 'over';
     if (winner === HUMAN)    { stats.w++; GameAudio.win(); }
     else if (winner === AI)  { stats.l++; GameAudio.gameOver(); }
     else                     { stats.d++; GameAudio.gameOver(); }
@@ -478,7 +481,7 @@ function syncHud() {
     hud.set({
         yours:  board ? count(board, HUMAN) + toPlace[HUMAN] : PIECES,
         theirs: board ? count(board, AI) + toPlace[AI] : PIECES,
-        phase:  board && status === 'playing' ? phaseName(HUMAN) : '—',
+        phase:  board && gamePhase === 'playing' ? phaseName(HUMAN) : '—',
         wins:   stats.w
     });
 }
@@ -520,7 +523,7 @@ function draw() {
     }
 
     if (msgT > 0) drawMessage();
-    if (status === 'idle') drawIdle();
+    if (gamePhase === 'idle') drawIdle();
 }
 
 function drawLines() {
@@ -644,7 +647,7 @@ var cursor = GU.canvasCursor(canvas, {
     label: 'Tablero de molino. Flechas para moverte, Enter para jugar el punto.',
     targets: function () {
         var out = [], i, p;
-        if (!board || status !== 'playing' || turn !== HUMAN || busy) return out;
+        if (!board || gamePhase !== 'playing' || turn !== HUMAN || busy) return out;
         function add(i2) {
             var q = ptPos(i2);
             out.push({ x: q.x - 20, y: q.y - 20, w: 40, h: 40, id: 'p' + i2, i: i2 });

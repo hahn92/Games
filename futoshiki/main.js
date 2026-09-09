@@ -33,7 +33,10 @@ var hRel = null, vRel = null;
 var sel = 0;             // casilla seleccionada
 var errors = 0;
 var startMs = 0, elapsed = 0;
-var status = 'idle';     // idle | playing | won
+/* `gamePhase`, no `status`: `window.status` existe y es escribible, pero
+ * CONVIERTE A CADENA todo lo que se le asigne — `status = null` se queda en
+ * la cadena 'null', que es truthy. Ver docs/trampas.md. */
+var gamePhase = 'idle';     // idle | playing | won
 var diff = 'medio';
 
 var fx = new Particles(160);
@@ -215,7 +218,7 @@ function newGame() {
     errors = 0;
     startMs = performance.now();
     elapsed = 0;
-    status = 'playing';
+    gamePhase = 'playing';
     fx.clear();
     gameControls.running();
     over.hide();
@@ -231,7 +234,7 @@ function firstEmpty() {
 /* ── Jugada ───────────────────────────────────────────────────────── */
 
 function place(v) {
-    if (status !== 'playing') return;
+    if (gamePhase !== 'playing') return;
     if (given[sel]) { GameAudio.miss(); return; }
 
     if (v === 0) { grid[sel] = 0; GameAudio.click(); syncHud(); return; }
@@ -257,7 +260,7 @@ function place(v) {
 }
 
 function win() {
-    status = 'won';
+    gamePhase = 'won';
     elapsed = performance.now() - startMs;
     var record = bests[diff].submit(elapsed);
     syncHud();
@@ -324,7 +327,7 @@ function draw() {
         ctx.stroke();
     }
 
-    if (status === 'idle') drawIdle();
+    if (gamePhase === 'idle') drawIdle();
 }
 
 function drawCells() {
@@ -440,7 +443,7 @@ var view = rafDraw(function (dt) {
  * un frame: se refresca cuatro veces por segundo, que es de sobra para un
  * contador en segundos, y el tablero sigue durmiendo entre jugadas. */
 setInterval(function () {
-    if (status !== 'playing') return;
+    if (gamePhase !== 'playing') return;
     elapsed = performance.now() - startMs;
     syncHud();
 }, 250);
@@ -448,7 +451,7 @@ setInterval(function () {
 /* ── Entrada ──────────────────────────────────────────────────────── */
 
 function handleAt(x, y) {
-    if (status !== 'playing') return;
+    if (gamePhase !== 'playing') return;
     var i;
     for (i = 0; i <= N; i++) {
         var b = padBtn(i);

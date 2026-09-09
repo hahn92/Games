@@ -37,7 +37,10 @@ var off = { 1: 0, '-1': 0 };
 var dice = [];              // dados sin usar
 var turn = YOU;
 var sel = -1;
-var status = 'idle';        // idle | rolling | moving | over
+/* `gamePhase`, no `status`: `window.status` existe y es escribible, pero
+ * CONVIERTE A CADENA todo lo que se le asigne — `status = null` se queda en
+ * la cadena 'null', que es truthy. Ver docs/trampas.md. */
+var gamePhase = 'idle';        // idle | rolling | moving | over
 var wins = GameStore.getNum('backgammonWins', 0);
 var dieAnim = 0;
 var animDice = [];
@@ -229,13 +232,13 @@ function rollDice() {
 }
 
 function startTurn() {
-    status = 'rolling';
+    gamePhase = 'rolling';
     dieAnim = 0.45;
     view.invalidate();
     setTimeout(function () {
         rollDice();
         dieAnim = 0;
-        status = 'moving';
+        gamePhase = 'moving';
         sel = -1;
         var moves = usableMoves(turn);
         if (!moves.length) {
@@ -249,7 +252,7 @@ function startTurn() {
 }
 
 function endTurn() {
-    if (status === 'over') return;
+    if (gamePhase === 'over') return;
     dice = [];
     sel = -1;
     turn = turn === YOU ? AI : YOU;
@@ -300,7 +303,7 @@ function scorePosition(who) {
 }
 
 function aiPlay() {
-    if (status !== 'moving' || turn !== AI) return;
+    if (gamePhase !== 'moving' || turn !== AI) return;
     var moves = usableMoves(AI);
     if (!moves.length) { endTurn(); return; }
 
@@ -335,7 +338,7 @@ function doMove(mv, who) {
 }
 
 function finish() {
-    status = 'over';
+    gamePhase = 'over';
     var youWin = off[YOU] === 15;
     if (youWin) {
         wins++;
@@ -364,7 +367,7 @@ function newGame() {
     dice = [];
     sel = -1;
     turn = YOU;
-    status = 'moving';
+    gamePhase = 'moving';
     fx.clear();
     msg.clear();
     over.hide();
@@ -505,7 +508,7 @@ function draw() {
     });
 
     // destinos posibles de la ficha elegida
-    if (status === 'moving' && turn === YOU && sel >= 0) {
+    if (gamePhase === 'moving' && turn === YOU && sel >= 0) {
         var moves = usableMoves(YOU).filter(function (m) { return m.from === sel; });
         for (var mi = 0; mi < moves.length; mi++) {
             var m = moves[mi];
@@ -535,8 +538,8 @@ function draw() {
     ctx.textBaseline = 'middle';
     ctx.font = 'bold 15px Arial';
     ctx.fillStyle = turn === YOU ? '#8fd3f4' : '#ff8a3d';
-    ctx.fillText(status === 'over' ? 'Fin'
-               : status === 'rolling' ? 'Tirando…'
+    ctx.fillText(gamePhase === 'over' ? 'Fin'
+               : gamePhase === 'rolling' ? 'Tirando…'
                : (turn === YOU ? (bar[YOU] ? 'Reentra desde la barra' : 'Te toca')
                                : 'Juega la máquina'),
                  W / 2 - BEAR_W / 2, H / 2 - 34);
@@ -553,7 +556,7 @@ function draw() {
 
     msg.draw(ctx, W / 2 - BEAR_W / 2, H / 2 + 44);
 
-    if (status === 'idle') {
+    if (gamePhase === 'idle') {
         GU.idleScreen(ctx, {
             title: 'BACKGAMMON',
             lines: ['Saca tus quince fichas antes que la máquina',
@@ -598,7 +601,7 @@ function pointAt(x, y) {
 }
 
 function handleAt(x, y) {
-    if (status !== 'moving' || turn !== YOU) return;
+    if (gamePhase !== 'moving' || turn !== YOU) return;
     var p = pointAt(x, y);
     if (p < 0) return;
     var moves = usableMoves(YOU);
@@ -640,7 +643,7 @@ GU.swipe(canvas, { onTap: function (p) { handleAt(p.x, p.y); } });
 var cursor = GU.canvasCursor(canvas, {
     label: 'Tablero de backgammon. Flechas para moverte, Enter para elegir.',
     targets: function () {
-        if (status !== 'moving' || turn !== YOU) return [];
+        if (gamePhase !== 'moving' || turn !== YOU) return [];
         var moves = usableMoves(YOU), out = [], seen = {}, r = checkerR();
         function add(p, id) {
             if (seen[id]) return;

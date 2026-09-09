@@ -67,7 +67,10 @@ var selected = -1;
  * venía detrás: limpiar la selección, el sonido, el marcador y la comprobación
  * de fin de partida. Ver docs/trampas.md. */
 var undoStack = [];
-var status = 'idle';     // idle | playing | won | over
+/* `gamePhase`, no `status`: `window.status` existe y es escribible, pero
+ * CONVIERTE A CADENA todo lo que se le asigne — `status = null` se queda en
+ * la cadena 'null', que es truthy. Ver docs/trampas.md. */
+var gamePhase = 'idle';     // idle | playing | won | over
 var startMs = 0, elapsed = 0;
 var hintPair = null, hintT = 0;
 
@@ -203,7 +206,7 @@ function newGame() {
     undoStack = [];
     hintPair = null;
     fx.clear();
-    status = 'playing';
+    gamePhase = 'playing';
     startMs = performance.now();
     elapsed = 0;
     gameControls.running();
@@ -229,7 +232,7 @@ function tileAt(x, y) {
 }
 
 function pick(t) {
-    if (status !== 'playing' || !t) return;
+    if (gamePhase !== 'playing' || !t) return;
     if (!isFree(t, tiles)) { GameAudio.miss(); return; }
 
     var idx = tiles.indexOf(t);
@@ -255,7 +258,7 @@ function pick(t) {
 }
 
 function undo() {
-    if (status !== 'playing' || !undoStack.length) return;
+    if (gamePhase !== 'playing' || !undoStack.length) return;
     var pair = undoStack.pop();
     tiles[pair[0]].gone = false;
     tiles[pair[1]].gone = false;
@@ -265,7 +268,7 @@ function undo() {
 }
 
 function hint() {
-    if (status !== 'playing') return;
+    if (gamePhase !== 'playing') return;
     var pairs = freePairs();
     if (!pairs.length) { GameAudio.miss(); return; }
     hintPair = pairs[0];
@@ -275,7 +278,7 @@ function hint() {
 
 function checkEnd() {
     if (remaining() === 0) {
-        status = 'won';
+        gamePhase = 'won';
         var secs = elapsed;
         var record = best.submit(secs);
         syncHud();
@@ -289,7 +292,7 @@ function checkEnd() {
         return;
     }
     if (!freePairs().length) {
-        status = 'over';
+        gamePhase = 'over';
         syncHud();
         gameControls.idle();
         over.show({
@@ -339,7 +342,7 @@ var view = rafDraw(function (dt) {
  * suya llama a freePairs(), que recorre el tablero entero buscando parejas
  * libres. Eso pasa de 60 veces por segundo a 4. */
 setInterval(function () {
-    if (status !== 'playing') return;
+    if (gamePhase !== 'playing') return;
     elapsed = performance.now() - startMs;
     syncHud();
 }, 250);
@@ -370,7 +373,7 @@ function draw() {
         ctx.stroke();
     }
 
-    if (status === 'idle') drawIdle();
+    if (gamePhase === 'idle') drawIdle();
 }
 
 function drawTile(t) {
@@ -493,7 +496,7 @@ document.getElementById('hintBtn').addEventListener('click', function () { GameA
 document.getElementById('undoBtn').addEventListener('click', function () { undo(); });
 
 deal();
-status = 'idle';
+gamePhase = 'idle';
 syncHud();
 draw();
 

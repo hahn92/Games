@@ -99,12 +99,11 @@ done
 Los clics importan: un error que sólo salta al interactuar no aparece si el
 barrido se limita a cargar la página.
 
-### Su primo, `status`, que hoy funciona de milagro
+### Su primo, `status`, que funcionaba de milagro
 
-**24 juegos declaran `var status`**, y `window.status` existe: es una propiedad
-heredada de los tiempos en que se escribía en la barra de estado del navegador.
-A diferencia de `history`, ésta **sí** se puede escribir… pero convierte a
-cadena todo lo que le pongas:
+`window.status` existe: es una propiedad heredada de cuando se escribía en la
+barra de estado del navegador. A diferencia de `history`, ésta **sí** se puede
+escribir… pero convierte a cadena todo lo que le pongas:
 
 ```js
 var status = 'idle';   // 'idle'   — bien
@@ -112,14 +111,20 @@ status = 3;            // '3'      — string, no número
 status = null;         // 'null'   — string, y por tanto TRUTHY
 ```
 
-Comprobado: los 24 asignan siempre cadenas literales (`'idle'`, `'playing'`,
-`'over'`), así que funcionan. Pero el día que alguien escriba `status = null`
-para decir «sin estado», el `if (!status)` de al lado será falso y no habrá
-error en ninguna consola.
+Lo declaraban **24 juegos** a nivel global. Todos asignaban siempre cadenas
+literales, así que funcionaban; pero el día que alguien escribiera
+`status = null` para decir «sin estado», el `if (!status)` de al lado habría
+sido falso sin dar un solo error en consola.
 
-No se ha renombrado en los 24 porque el fallo no se materializa en ninguno y el
-cambio no es gratis. **En un juego nuevo, llama a esa variable de otra forma**
-—`phase`, `gameState`— o al menos no le asignes nunca algo que no sea texto.
+Están renombrados a `gamePhase`. **En un juego nuevo, no llames `status` a esa
+variable.** Y si aparece la duda con otro nombre, la comprobación es directa: un
+`var X` a nivel global choca con `window.X` si esa propiedad existe, y el
+resultado depende de si es escribible (coerciona, como `status`) o de sólo
+lectura (se ignora, como `history`).
+
+Los demás nombres peligrosos —`top`, `length`, `parent`, `closed`— aparecen en
+seis juegos, pero **dentro de funciones**, así que son variables locales y no
+tocan nada.
 
 ## Never call `adjustMobileLayout()` by hand
 

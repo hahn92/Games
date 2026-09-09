@@ -38,7 +38,10 @@ var pipes = null;        // Uint8Array de máscaras de 4 bits
 var filled = null;       // Uint8Array, 1 = le llega el agua
 var source = { r: 0, c: 0 };
 var moves = 0;
-var status = 'idle';     // idle | playing | won
+/* `gamePhase`, no `status`: `window.status` existe y es escribible, pero
+ * CONVIERTE A CADENA todo lo que se le asigne — `status = null` se queda en
+ * la cadena 'null', que es truthy. Ver docs/trampas.md. */
+var gamePhase = 'idle';     // idle | playing | won
 var diff = 'medio';
 
 var fx = new Particles(200);
@@ -112,7 +115,7 @@ function newGame() {
     if (!moved) { newGame(); return; }
 
     moves = 0;
-    status = 'playing';
+    gamePhase = 'playing';
     fx.clear();
     flood();
     gameControls.running();
@@ -155,7 +158,7 @@ function connectedCount() {
 /* ── Jugada ───────────────────────────────────────────────────────── */
 
 function turn(r, c) {
-    if (status !== 'playing') return;
+    if (gamePhase !== 'playing') return;
     pipes[idx(r, c)] = rot(pipes[idx(r, c)]);
     moves++;
     flood();
@@ -165,7 +168,7 @@ function turn(r, c) {
 }
 
 function win() {
-    status = 'won';
+    gamePhase = 'won';
     var record = bests[diff].submit(moves);
     for (var r = 0; r < N; r++) {
         for (var c = 0; c < N; c++) {
@@ -211,7 +214,7 @@ function draw() {
     });
     ctx.fillRect(0, 0, W, H);
 
-    if (!pipes) { if (status === 'idle') drawIdle(); return; }
+    if (!pipes) { if (gamePhase === 'idle') drawIdle(); return; }
 
     /* Fondo de celdas en una pasada, tuberías en otra: dos cambios de estilo
      * por frame en vez de dos por celda. */
@@ -236,7 +239,7 @@ function draw() {
         ctx.stroke();
     }
 
-    if (status === 'idle') drawIdle();
+    if (gamePhase === 'idle') drawIdle();
 }
 
 function drawPipes(wet) {
@@ -309,7 +312,7 @@ var view = rafDraw(function (dt) {
 /* ── Entrada ──────────────────────────────────────────────────────── */
 
 function handleAt(x, y) {
-    if (status !== 'playing') return;
+    if (gamePhase !== 'playing') return;
     var c = Math.floor((x - boardX()) / cell);
     var r = Math.floor((y - boardY()) / cell);
     if (!inside(r, c)) return;

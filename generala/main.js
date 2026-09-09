@@ -42,7 +42,10 @@ var UPPER_BONUS = 35;
 var dice = [];           // [{v, held}]
 var rollsLeft = MAX_ROLLS;
 var filled = {};         // id -> puntos
-var status = 'idle';     // idle | rolling | playing | over
+/* `gamePhase`, no `status`: `window.status` existe y es escribible, pero
+ * CONVIERTE A CADENA todo lo que se le asigne — `status = null` se queda en
+ * la cadena 'null', que es truthy. Ver docs/trampas.md. */
+var gamePhase = 'idle';     // idle | rolling | playing | over
 var rollAnim = 0;        // segundos que quedan de animación de tirada
 
 var fx = new Particles(180);
@@ -149,7 +152,7 @@ function newGame() {
     for (var i = 0; i < DICE; i++) dice.push({ v: 1, held: false });
     filled = {};
     rollsLeft = MAX_ROLLS;
-    status = 'playing';
+    gamePhase = 'playing';
     fx.clear();
     gameControls.running();
     over.hide();
@@ -159,7 +162,7 @@ function newGame() {
 }
 
 function roll() {
-    if (status !== 'playing' || rollsLeft <= 0) return;
+    if (gamePhase !== 'playing' || rollsLeft <= 0) return;
     rollsLeft--;
     rollAnim = 0.5;
     for (var i = 0; i < DICE; i++) {
@@ -173,13 +176,13 @@ function roll() {
 
 function toggleHold(i) {
     /* Con la primera tirada sin gastar no hay nada que apartar todavía. */
-    if (status !== 'playing' || rollsLeft === MAX_ROLLS) return;
+    if (gamePhase !== 'playing' || rollsLeft === MAX_ROLLS) return;
     dice[i].held = !dice[i].held;
     GameAudio.click();
 }
 
 function assign(boxId) {
-    if (status !== 'playing' || filled[boxId] != null) return;
+    if (gamePhase !== 'playing' || filled[boxId] != null) return;
     if (rollsLeft === MAX_ROLLS) return;   // aún no se ha tirado en este turno
 
     var vals = dice.map(function (d) { return d.v; });
@@ -203,7 +206,7 @@ function assign(boxId) {
 }
 
 function endGame() {
-    status = 'over';
+    gamePhase = 'over';
     var t = total();
     var record = best.submit(t);
     syncHud();
@@ -258,7 +261,7 @@ function draw() {
     drawTable();
     fx.draw(ctx);
 
-    if (status === 'idle') drawIdle();
+    if (gamePhase === 'idle') drawIdle();
 }
 
 function drawDice() {
@@ -318,7 +321,7 @@ function drawPips(x, y, s, v) {
 
 function drawTable() {
     var vals = dice.map(function (d) { return d.v; });
-    var canAssign = status === 'playing' && rollsLeft < MAX_ROLLS;
+    var canAssign = gamePhase === 'playing' && rollsLeft < MAX_ROLLS;
     var y0 = boxTop();
 
     for (var i = 0; i < BOXES.length; i++) {
@@ -387,7 +390,7 @@ var view = rafDraw(function (dt) {
 /* ── Entrada ──────────────────────────────────────────────────────── */
 
 function handleAt(x, y) {
-    if (status !== 'playing') return;
+    if (gamePhase !== 'playing') return;
     if (y >= DIE_Y - 6 && y <= DIE_Y + DIE_SIZE + 16) {
         for (var i = 0; i < DICE; i++) {
             if (x >= dieX(i) && x <= dieX(i) + DIE_SIZE) { toggleHold(i); return; }

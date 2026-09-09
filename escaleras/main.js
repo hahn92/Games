@@ -34,7 +34,10 @@ var SNAKES  = { 16: 6, 47: 26, 49: 11, 56: 53, 62: 19, 64: 60, 87: 24, 93: 73, 9
 var YOU = 0, AI = 1;
 var pos = [0, 0];                 // 0 = fuera del tablero, aún sin salir
 var turn = YOU;
-var status = 'idle';              // idle | playing | rolling | over
+/* `gamePhase`, no `status`: `window.status` existe y es escribible, pero
+ * CONVIERTE A CADENA todo lo que se le asigne — `status = null` se queda en
+ * la cadena 'null', que es truthy. Ver docs/trampas.md. */
+var gamePhase = 'idle';              // idle | playing | rolling | over
 var die = 1, dieAnim = 0;
 var wins = GameStore.getNum('escalerasWins', 0);
 var moveAnim = null;              // {who, from, to, t, kind}
@@ -79,7 +82,7 @@ function cellPos(n) {
 function newGame() {
     pos = [0, 0];
     turn = YOU;
-    status = 'playing';
+    gamePhase = 'playing';
     die = 1;
     dieAnim = 0;
     moveAnim = null;
@@ -97,8 +100,8 @@ function syncHud() {
 }
 
 function roll() {
-    if (status !== 'playing') return;
-    status = 'rolling';
+    if (gamePhase !== 'playing') return;
+    gamePhase = 'rolling';
     dieAnim = 0.5;
     GameAudio.click();
     view.invalidate();
@@ -126,7 +129,7 @@ function resolveRoll() {
 
 function startMove(who, from, to, kind) {
     moveAnim = { who: who, from: from, to: to, t: 0, kind: kind };
-    status = 'rolling';
+    gamePhase = 'rolling';
     GameAudio[kind === 'walk' ? 'hop' : (kind === 'ladder' ? 'powerUp' : 'bomb')]();
     view.invalidate();
 }
@@ -167,10 +170,10 @@ function finishMove() {
     } else {
         turn = who === YOU ? AI : YOU;
     }
-    status = 'playing';
+    gamePhase = 'playing';
 
-    if (turn === AI && status === 'playing') {
-        setTimeout(function () { if (status === 'playing' && turn === AI) roll(); view.invalidate(); }, 620);
+    if (turn === AI && gamePhase === 'playing') {
+        setTimeout(function () { if (gamePhase === 'playing' && turn === AI) roll(); view.invalidate(); }, 620);
     }
 }
 
@@ -180,7 +183,7 @@ function celebrate(n, color) {
 }
 
 function finish(who) {
-    status = 'over';
+    gamePhase = 'over';
     if (who === YOU) {
         wins++;
         GameStore.setNum('escalerasWins', wins);
@@ -358,8 +361,8 @@ function draw() {
     ctx.textBaseline = 'middle';
     ctx.font = 'bold 16px Arial';
     ctx.fillStyle = turn === YOU ? '#8fd3f4' : '#ff8a3d';
-    var label = status === 'over' ? 'Fin de la carrera'
-              : status === 'rolling' ? '…'
+    var label = gamePhase === 'over' ? 'Fin de la carrera'
+              : gamePhase === 'rolling' ? '…'
               : (turn === YOU ? 'Tira tú (Espacio)' : 'Tira la máquina');
     ctx.fillText(label, W / 2, H - 18);
 
@@ -379,7 +382,7 @@ function draw() {
 
     msg.draw(ctx, W / 2, boardY() + cellSize() * N + 8);
 
-    if (status === 'idle') {
+    if (gamePhase === 'idle') {
         GU.idleScreen(ctx, {
             title: 'SERPIENTES Y ESCALERAS',
             titleSize: 22,
@@ -394,7 +397,7 @@ function draw() {
 /* ── Entrada ──────────────────────────────────────────────────────── */
 
 function handleAt() {
-    if (status === 'playing' && turn === YOU) roll();
+    if (gamePhase === 'playing' && turn === YOU) roll();
 }
 
 canvas.addEventListener('click', handleAt);
@@ -412,7 +415,7 @@ document.addEventListener('keydown', function (e) {
 var cursor = GU.canvasCursor(canvas, {
     label: 'Serpientes y escaleras. Enter para tirar el dado.',
     targets: function () {
-        if (status !== 'playing' || turn !== YOU) return [];
+        if (gamePhase !== 'playing' || turn !== YOU) return [];
         var d = diePos();
         return [{ x: d.x, y: d.y, w: d.s, h: d.s, id: 'die' }];
     },

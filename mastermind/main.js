@@ -35,7 +35,10 @@ var secret = [];
 var guesses = [];        // [{pegs:[], black, white}]
 var current = [];        // intento en curso
 var picked = 0;          // color seleccionado en la paleta
-var status = 'idle';     // idle | playing | won | lost
+/* `gamePhase`, no `status`: `window.status` existe y es escribible, pero
+ * CONVIERTE A CADENA todo lo que se le asigne — `status = null` se queda en
+ * la cadena 'null', que es truthy. Ver docs/trampas.md. */
+var gamePhase = 'idle';     // idle | playing | won | lost
 var revealSecret = false;
 
 var fx = new Particles(160);
@@ -66,7 +69,7 @@ function newGame() {
     current = [];
     picked = 0;
     revealSecret = false;
-    status = 'playing';
+    gamePhase = 'playing';
     fx.clear();
     gameControls.running();
     over.hide();
@@ -96,13 +99,13 @@ function score(guess) {
 }
 
 function submit() {
-    if (status !== 'playing' || current.length < SLOTS) return;
+    if (gamePhase !== 'playing' || current.length < SLOTS) return;
     var res = score(current);
     guesses.push({ pegs: current.slice(), black: res.black, white: res.white });
     current = [];
 
     if (res.black === SLOTS) {
-        status = 'won';
+        gamePhase = 'won';
         revealSecret = true;
         var tries = guesses.length;
         var record = best.submit(tries);
@@ -124,7 +127,7 @@ function submit() {
     }
 
     if (guesses.length >= ROWS) {
-        status = 'lost';
+        gamePhase = 'lost';
         revealSecret = true;
         GameAudio.gameOver();
         syncHud();
@@ -144,7 +147,7 @@ function submit() {
 }
 
 function place(colorIdx) {
-    if (status !== 'playing' || current.length >= SLOTS) return;
+    if (gamePhase !== 'playing' || current.length >= SLOTS) return;
     current.push(colorIdx);
     GameAudio.flip();
     /* Enviar solo cuando el jugador lo pida: rellenar la fila no debe gastar el
@@ -152,7 +155,7 @@ function place(colorIdx) {
 }
 
 function undo() {
-    if (status !== 'playing' || !current.length) return;
+    if (gamePhase !== 'playing' || !current.length) return;
     current.pop();
     GameAudio.click();
 }
@@ -188,7 +191,7 @@ function draw() {
     fx.draw(ctx);
     drawPalette();
 
-    if (status === 'idle') drawIdle();
+    if (gamePhase === 'idle') drawIdle();
 }
 
 function drawSecretRow() {
@@ -229,7 +232,7 @@ function drawRows() {
 }
 
 function drawCurrent() {
-    if (status !== 'playing') return;
+    if (gamePhase !== 'playing') return;
     var y = rowY(guesses.length);
     ctx.strokeStyle = '#00e5ff';
     ctx.lineWidth = 2;
@@ -334,7 +337,7 @@ var view = rafDraw(function (dt) {
 /* Un solo camino para el clic y para el teclado: los dos acaban aquí, así que
  * los dos modos no pueden separarse con el tiempo. */
 function handleAt(x, y) {
-    if (status !== 'playing') return;
+    if (gamePhase !== 'playing') return;
     if (y > PAL_Y - 34) {
         for (var i = 0; i < COLORS.length; i++) {
             if (Math.abs(x - palX(i)) < 24) { picked = i; place(i); return; }

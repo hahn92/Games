@@ -37,7 +37,10 @@ function isCell(r, c) {
 var board = [];
 var sel = -1;
 var moves = 0;
-var status = 'idle';        // idle | playing | won | over
+/* `gamePhase`, no `status`: `window.status` existe y es escribible, pero
+ * CONVIERTE A CADENA todo lo que se le asigne — `status = null` se queda en
+ * la cadena 'null', que es truthy. Ver docs/trampas.md. */
+var gamePhase = 'idle';        // idle | playing | won | over
 var undoStack = [];
 
 var fx = new Particles(140);
@@ -80,7 +83,7 @@ function newGame() {
     sel = -1;
     moves = 0;
     undoStack.length = 0;
-    status = 'playing';
+    gamePhase = 'playing';
     fx.clear();
     msg.clear();
     over.hide();
@@ -142,7 +145,7 @@ function doJump(j) {
 }
 
 function undo() {
-    if (status !== 'playing' || !undoStack.length) return;
+    if (gamePhase !== 'playing' || !undoStack.length) return;
     board = undoStack.pop();
     moves = Math.max(0, moves - 1);
     sel = -1;
@@ -152,7 +155,7 @@ function undo() {
 }
 
 function win() {
-    status = 'won';
+    gamePhase = 'won';
     var record = best.submit(1);
     for (var k = 0; k < 30; k++) {
         fx.burst(GU.rand(boardX(), W - boardX()), GU.rand(boardY(), boardY() + cellSize() * SIZE), 2,
@@ -173,7 +176,7 @@ function win() {
 }
 
 function blocked() {
-    status = 'over';
+    gamePhase = 'over';
     var left = pegCount();
     var record = best.submit(left);
     gameControls.idle();
@@ -271,7 +274,7 @@ function draw() {
 
     msg.draw(ctx, W / 2, H - 46);
 
-    if (status === 'idle') {
+    if (gamePhase === 'idle') {
         GU.idleScreen(ctx, {
             title: 'SENKU',
             lines: ['Salta una ficha sobre otra y cómetela',
@@ -294,7 +297,7 @@ function cellAt(x, y) {
 }
 
 function handleAt(x, y) {
-    if (status !== 'playing') return;
+    if (gamePhase !== 'playing') return;
     var i = cellAt(x, y);
     if (i < 0) return;
     var r = (i / SIZE) | 0, c = i % SIZE;
@@ -336,7 +339,7 @@ GU.swipe(canvas, { onTap: function (p) { handleAt(p.x, p.y); } });
 var cursor = GU.canvasCursor(canvas, {
     label: 'Tablero de senku. Flechas para moverte, Enter para elegir.',
     targets: function () {
-        if (status !== 'playing') return [];
+        if (gamePhase !== 'playing') return [];
         var s = cellSize(), out = [];
         function push(i) {
             var r = (i / SIZE) | 0, c = i % SIZE;

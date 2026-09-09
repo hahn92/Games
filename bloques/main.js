@@ -58,7 +58,10 @@ var grid = [];
 var tray = [];              // 3 piezas o null
 var sel = -1;
 var score = 0, combo = 0;
-var status = 'idle';
+/* `gamePhase`, no `status`: `window.status` existe y es escribible, pero
+ * CONVIERTE A CADENA todo lo que se le asigne — `status = null` se queda en
+ * la cadena 'null', que es truthy. Ver docs/trampas.md. */
+var gamePhase = 'idle';
 var ghost = null;           // {piece, r, c, ok}
 
 var fx = new Particles(260);
@@ -199,7 +202,7 @@ function clearLines() {
 }
 
 function gameOver() {
-    status = 'over';
+    gamePhase = 'over';
     var record = best.submit(score);
     gameControls.idle();
     GameAudio.gameOver();
@@ -220,7 +223,7 @@ function newGame() {
     score = 0;
     combo = 0;
     ghost = null;
-    status = 'playing';
+    gamePhase = 'playing';
     fx.clear();
     msg.clear();
     over.hide();
@@ -318,7 +321,7 @@ function draw() {
         var ps = Math.min(rect.w / piece.w, rect.h / piece.h, 22);
         var ox = rect.x + (rect.w - piece.w * ps) / 2;
         var oy = rect.y + (rect.h - piece.h * ps) / 2;
-        var usable = status !== 'playing' || fitsAnywhere(piece);
+        var usable = gamePhase !== 'playing' || fitsAnywhere(piece);
         for (var p = 0; p < piece.cells.length; p++) {
             drawCell(ox + piece.cells[p][1] * ps, oy + piece.cells[p][0] * ps, ps,
                      piece.color, usable ? 1 : 0.3);
@@ -348,7 +351,7 @@ function draw() {
 
     msg.draw(ctx, W / 2, TOP + boardSize() + 16);
 
-    if (status === 'idle') {
+    if (gamePhase === 'idle') {
         GU.idleScreen(ctx, {
             title: 'BLOQUES',
             lines: ['Encaja las piezas y limpia filas, columnas y cuadros',
@@ -369,7 +372,7 @@ function cellAt(x, y) {
 }
 
 function handleAt(x, y) {
-    if (status !== 'playing') return;
+    if (gamePhase !== 'playing') return;
     for (var t = 0; t < 3; t++) {
         var rect = trayRect(t);
         if (x >= rect.x && x <= rect.x + rect.w && y >= rect.y && y <= rect.y + rect.h) {
@@ -399,7 +402,7 @@ canvas.addEventListener('click', function (e) {
     handleAt(p.x, p.y);
 });
 canvas.addEventListener('mousemove', function (e) {
-    if (status !== 'playing' || sel < 0) { return; }
+    if (gamePhase !== 'playing' || sel < 0) { return; }
     var p = GU.pointerPos(canvas, e);
     var cell = cellAt(p.x, p.y);
     if (!cell) { if (ghost) { ghost = null; view.invalidate(); } return; }
@@ -415,7 +418,7 @@ GU.swipe(canvas, { onTap: function (p) { handleAt(p.x, p.y); } });
 var cursor = GU.canvasCursor(canvas, {
     label: 'Tablero de bloques. Flechas para moverte, Enter para elegir pieza y sitio.',
     targets: function () {
-        if (status !== 'playing') return [];
+        if (gamePhase !== 'playing') return [];
         var out = [], s = cellSize();
         for (var t = 0; t < 3; t++) {
             if (!tray[t]) continue;

@@ -34,7 +34,10 @@ var player = { x: W / 2, y: H - CELL * 1.5, w: 18, h: 16 };
 var fireTimer = 0;
 
 var score = 0, lives = 3, level = 1;
-var status = 'idle';              // idle | playing | dead | over
+/* `gamePhase`, no `status`: `window.status` existe y es escribible, pero
+ * CONVIERTE A CADENA todo lo que se le asigne — `status = null` se queda en
+ * la cadena 'null', que es truthy. Ver docs/trampas.md. */
+var gamePhase = 'idle';              // idle | playing | dead | over
 
 var shake = new Shake({ decay: 0.86, max: 14 });
 var fx    = new Particles(300);
@@ -85,7 +88,7 @@ function startLevel() {
     fx.clear();
     player.x = W / 2;
     player.y = H - CELL * 1.5;
-    status = 'playing';
+    gamePhase = 'playing';
     syncHud();
 }
 
@@ -142,7 +145,7 @@ function stepCentipede(cp, dt) {
 /* ── Disparo y colisiones ─────────────────────────────────────────── */
 
 function fire() {
-    if (status !== 'playing' || fireTimer > 0) return;
+    if (gamePhase !== 'playing' || fireTimer > 0) return;
     bullets.push({ x: player.x, y: player.y - 10 });
     fireTimer = FIRE_COOLDOWN;
     GameAudio.shoot();
@@ -175,7 +178,7 @@ function hitSegment(cpIdx, segIdx, x, y) {
         level++;
         score += 100;
         GameAudio.win();
-        setTimeout(function () { if (status === 'playing') startLevel(); }, 900);
+        setTimeout(function () { if (gamePhase === 'playing') startLevel(); }, 900);
     }
     syncHud();
 }
@@ -232,20 +235,20 @@ function loseLife() {
     GameAudio.explode();
     syncHud();
     if (lives <= 0) { endGame(); return; }
-    status = 'dead';
+    gamePhase = 'dead';
     setTimeout(function () {
-        if (status !== 'dead') return;
+        if (gamePhase !== 'dead') return;
         /* Reaparecer con el bicho encima sería una muerte gratis, así que se
          * limpia la zona baja de segmentos antes de devolver el control. */
         spawnCentipede();
         player.x = W / 2;
         bullets = [];
-        status = 'playing';
+        gamePhase = 'playing';
     }, 900);
 }
 
 function endGame() {
-    status = 'over';
+    gamePhase = 'over';
     var record = best.submit(score);
     syncHud();
     gameControls.idle();
@@ -264,7 +267,7 @@ function syncHud() {
 
 function update(dt) {
     if (fireTimer > 0) fireTimer -= dt;
-    if (status !== 'playing') return;
+    if (gamePhase !== 'playing') return;
 
     var speed = 210 * dt;
     if (keys.down('left'))  player.x -= speed;
@@ -306,11 +309,11 @@ function draw() {
     drawCentipedes();
     drawBullets();
     fx.draw(ctx);
-    if (status === 'playing') drawPlayer();
+    if (gamePhase === 'playing') drawPlayer();
 
     if (shaking) ctx.restore();
 
-    if (status === 'idle') drawIdle();
+    if (gamePhase === 'idle') drawIdle();
 }
 
 function drawMushrooms() {

@@ -45,7 +45,10 @@ var clues = [];        // por celda negra: {right: suma|0, down: suma|0}
 var runs = { h: [], v: [] };
 var sel = -1;
 var errors = 0, elapsed = 0, startMs = 0;
-var status = 'idle';
+/* `gamePhase`, no `status`: `window.status` existe y es escribible, pero
+ * CONVIERTE A CADENA todo lo que se le asigne — `status = null` se queda en
+ * la cadena 'null', que es truthy. Ver docs/trampas.md. */
+var gamePhase = 'idle';
 
 var fx = new Particles(140);
 var gMemo = GU.gradientMemo();
@@ -398,7 +401,7 @@ function newGame(level) {
     errors = 0;
     elapsed = 0;
     startMs = performance.now();
-    status = 'playing';
+    gamePhase = 'playing';
     fx.clear();
     msg.clear();
     over.hide();
@@ -424,7 +427,7 @@ function syncHud() {
 }
 
 function place(d) {
-    if (status !== 'playing' || sel < 0 || cells[sel] === BLOCK) return;
+    if (gamePhase !== 'playing' || sel < 0 || cells[sel] === BLOCK) return;
     if (given[sel]) { msg.show('Esa cifra viene dada', 1); return; }
     if (d === 0) { cells[sel] = 0; GameAudio.click(); syncHud(); view.invalidate(); return; }
     if (d === sol[sel]) {
@@ -446,7 +449,7 @@ function place(d) {
 }
 
 function win() {
-    status = 'won';
+    gamePhase = 'won';
     var record = bests[diff].submit(elapsed);
     for (var k = 0; k < 26; k++) {
         fx.burst(GU.rand(20, W - 20), GU.rand(TOP, H - PAD_BOTTOM), 2,
@@ -570,7 +573,7 @@ function draw() {
 
     msg.draw(ctx, W / 2, H - PAD_BOTTOM - 14);
 
-    if (status === 'idle') {
+    if (gamePhase === 'idle') {
         GU.idleScreen(ctx, {
             title: 'KAKURO',
             lines: ['Suma cada tramo sin repetir cifra',
@@ -583,7 +586,7 @@ function draw() {
 /* ── Entrada ──────────────────────────────────────────────────────── */
 
 function handleAt(x, y) {
-    if (status !== 'playing') return;
+    if (gamePhase !== 'playing') return;
     for (var d = 0; d <= 9; d++) {
         var pr = padRect(d);
         if (x >= pr.x && x <= pr.x + pr.w && y >= pr.y && y <= pr.y + pr.h) { place(d); return; }
@@ -606,7 +609,7 @@ canvas.addEventListener('click', function (e) {
 GU.swipe(canvas, { onTap: function (p) { handleAt(p.x, p.y); } });
 
 document.addEventListener('keydown', function (e) {
-    if (status !== 'playing') return;
+    if (gamePhase !== 'playing') return;
     var n = parseInt(e.key, 10);
     if (n >= 1 && n <= 9) { place(n); e.preventDefault(); return; }
     if (e.key === '0' || e.key === 'Backspace' || e.key === 'Delete') { place(0); e.preventDefault(); }
@@ -615,7 +618,7 @@ document.addEventListener('keydown', function (e) {
 var cursor = GU.canvasCursor(canvas, {
     label: 'Rejilla de kakuro. Flechas para moverte, Enter para elegir casilla o cifra.',
     targets: function () {
-        if (status !== 'playing') return [];
+        if (gamePhase !== 'playing') return [];
         var s = cs(), out = [];
         for (var i = 0; i < cells.length; i++) {
             if (cells[i] === BLOCK || given[i]) continue;
@@ -644,7 +647,7 @@ var view = rafDraw(function (dt) {
 /* El cronómetro se pinta DENTRO del canvas, así que hay que repintar mientras
  * corre — pero cuatro veces por segundo, no sesenta. */
 setInterval(function () {
-    if (status !== 'playing') return;
+    if (gamePhase !== 'playing') return;
     elapsed = performance.now() - startMs;
     syncHud();
     view.invalidate();

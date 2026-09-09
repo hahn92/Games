@@ -37,7 +37,10 @@ var stars = [];
 var level = 1;
 var score = 0;
 var fuel = 100;
-var status = 'idle';     // idle | flying | landed | crashed
+/* `gamePhase`, no `status`: `window.status` existe y es escribible, pero
+ * CONVIERTE A CADENA todo lo que se le asigne — `status = null` se queda en
+ * la cadena 'null', que es truthy. Ver docs/trampas.md. */
+var gamePhase = 'idle';     // idle | flying | landed | crashed
 var msg = '';
 
 var shake = new Shake({ decay: 0.85, max: 16 });
@@ -154,7 +157,7 @@ function startLevel() {
     buildTerrain();
     newShip();
     fx.clear();
-    status = 'flying';
+    gamePhase = 'flying';
     msg = '';
     syncHud();
 }
@@ -173,7 +176,7 @@ function startGame() {
 /* ── Física ───────────────────────────────────────────────────────── */
 
 function update(dt) {
-    if (status !== 'flying' || !ship) return;
+    if (gamePhase !== 'flying' || !ship) return;
 
     var wantThrust = keys.down('thrust') && fuel > 0;
     var wantLeft   = keys.down('left')   && fuel > 0;
@@ -216,7 +219,7 @@ function resolveTouchdown(gy) {
     var upright = Math.abs(ship.angle) <= MAX_LAND_ANGLE;
 
     if (pad && slow && upright) {
-        status = 'landed';
+        gamePhase = 'landed';
         /* Lo que sobra de combustible vale puntos: aterrizar rápido y con
          * margen renta más que planear hasta el último gramo. */
         var gained = 100 * pad.mult + Math.round(fuel) * 2 + level * 20;
@@ -225,7 +228,7 @@ function resolveTouchdown(gy) {
         GameAudio.win();
         setTimeout(nextLevel, 1400);
     } else {
-        status = 'crashed';
+        gamePhase = 'crashed';
         msg = !pad ? 'Fuera de plataforma'
             : !upright ? 'Inclinado de más'
             : 'Demasiado rápido';
@@ -299,13 +302,13 @@ function draw() {
     drawTerrain();
     drawPads();
     fx.draw(ctx);
-    if (ship && status !== 'crashed') drawShip();
+    if (ship && gamePhase !== 'crashed') drawShip();
 
     if (shaking) ctx.restore();
 
     drawGauges();
     if (msg) drawMessage();
-    if (status === 'idle') drawIdle();
+    if (gamePhase === 'idle') drawIdle();
 }
 
 function drawStars() {
@@ -412,7 +415,7 @@ function drawGauges() {
 }
 
 function drawMessage() {
-    ctx.fillStyle = status === 'landed' ? '#8fff6a' : '#ff512f';
+    ctx.fillStyle = gamePhase === 'landed' ? '#8fff6a' : '#ff512f';
     ctx.font = 'bold 20px Arial';
     ctx.textAlign = 'center';
     ctx.fillText(msg, W / 2, H / 2);

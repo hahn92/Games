@@ -22,7 +22,10 @@ var RELOAD_TIME = 1.1;            // s
 var targets = [];
 var score = 0, ammo = CLIP, timeLeft = ROUND_TIME, combo = 0, bestCombo = 0;
 var reloading = 0;
-var status = 'idle';              // idle | playing | over
+/* `gamePhase`, no `status`: `window.status` existe y es escribible, pero
+ * CONVIERTE A CADENA todo lo que se le asigne — `status = null` se queda en
+ * la cadena 'null', que es truthy. Ver docs/trampas.md. */
+var gamePhase = 'idle';              // idle | playing | over
 var spawnTimer = 0;
 
 var shake = new Shake({ decay: 0.87, max: 9 });
@@ -77,7 +80,7 @@ function timePressure() { return 1 - timeLeft / ROUND_TIME; }
 /* ── Disparo ──────────────────────────────────────────────────────── */
 
 function shoot(x, y) {
-    if (status !== 'playing') return;
+    if (gamePhase !== 'playing') return;
     if (reloading > 0) return;
     if (ammo <= 0) { startReload(); return; }
 
@@ -136,7 +139,7 @@ function startGame() {
     score = 0; ammo = CLIP; timeLeft = ROUND_TIME; combo = 0; bestCombo = 0;
     reloading = 0; spawnTimer = 0;
     fx.clear();
-    status = 'playing';
+    gamePhase = 'playing';
     gameControls.running();
     over.hide();
     syncHud();
@@ -144,7 +147,7 @@ function startGame() {
 }
 
 function endGame() {
-    status = 'over';
+    gamePhase = 'over';
     var record = best.submit(score);
     syncHud();
     gameControls.idle();
@@ -168,7 +171,7 @@ function syncHud() {
 /* ── Bucle ────────────────────────────────────────────────────────── */
 
 function update(dt) {
-    if (status !== 'playing') return;
+    if (gamePhase !== 'playing') return;
 
     timeLeft -= dt;
     if (timeLeft <= 0) { timeLeft = 0; syncHud(); endGame(); return; }
@@ -224,7 +227,7 @@ function draw() {
     if (shaking) ctx.restore();
 
     drawAmmoBar();
-    if (status === 'idle') drawIdle();
+    if (gamePhase === 'idle') drawIdle();
 }
 
 function drawBooth() {

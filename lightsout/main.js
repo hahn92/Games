@@ -29,7 +29,10 @@ var grid = null;         // Uint8Array, 1 = encendida
 var solution = null;     // las pulsaciones que la generaron, para la pista
 var moves = 0;
 var minMoves = 0;
-var status = 'idle';     // idle | playing | won
+/* `gamePhase`, no `status`: `window.status` existe y es escribible, pero
+ * CONVIERTE A CADENA todo lo que se le asigne — `status = null` se queda en
+ * la cadena 'null', que es truthy. Ver docs/trampas.md. */
+var gamePhase = 'idle';     // idle | playing | won
 var hintCell = -1, hintT = 0;
 
 var fx = new Particles(180);
@@ -99,7 +102,7 @@ function newGame() {
     minMoves = solution.length;
     moves = 0;
     hintCell = -1;
-    status = 'playing';
+    gamePhase = 'playing';
     fx.clear();
     gameControls.running();
     over.hide();
@@ -110,7 +113,7 @@ function newGame() {
 /* ── Jugada ───────────────────────────────────────────────────────── */
 
 function play(r, c) {
-    if (status !== 'playing') return;
+    if (gamePhase !== 'playing') return;
     press(r, c);
     moves++;
     hintCell = -1;
@@ -120,7 +123,7 @@ function play(r, c) {
 }
 
 function win() {
-    status = 'won';
+    gamePhase = 'won';
     var record = bests[diff].submit(moves);
     for (var r = 0; r < N; r++) {
         for (var c = 0; c < N; c++) {
@@ -144,7 +147,7 @@ function win() {
  * ha pulsado un número impar de veces. Como el orden da igual y pulsar dos
  * veces se anula, cualquiera de ellas sigue siendo un paso válido. */
 function hint() {
-    if (status !== 'playing') return;
+    if (gamePhase !== 'playing') return;
     hintCell = solution.length ? GU.pick(solution) : -1;
     hintT = 2;
     GameAudio.reveal();
@@ -191,7 +194,7 @@ function draw() {
         ctx.stroke();
     }
 
-    if (status === 'idle') drawIdle();
+    if (gamePhase === 'idle') drawIdle();
 }
 
 function drawCell(r, c) {
@@ -260,7 +263,7 @@ var view = rafDraw(function (dt) {
 /* ── Entrada ──────────────────────────────────────────────────────── */
 
 function handleAt(x, y) {
-    if (status !== 'playing') return;
+    if (gamePhase !== 'playing') return;
     var c = Math.floor((x - boardX()) / cell);
     var r = Math.floor((y - boardY()) / cell);
     if (r < 0 || r >= N || c < 0 || c >= N) return;

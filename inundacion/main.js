@@ -32,7 +32,10 @@ var cell = 1;
 var grid = [];              // índice de color por celda
 var mine = [];              // true si la celda es de la mancha
 var moves = 0, limit = 0, zone = 1;
-var status = 'idle';        // idle | playing | won | lost
+/* `gamePhase`, no `status`: `window.status` existe y es escribible, pero
+ * CONVIERTE A CADENA todo lo que se le asigne — `status = null` se queda en
+ * la cadena 'null', que es truthy. Ver docs/trampas.md. */
+var gamePhase = 'idle';        // idle | playing | won | lost
 var diff = 'medio';
 
 var fx = new Particles(160);
@@ -147,7 +150,7 @@ function newGame(level) {
     limit = greedySolve(grid) + (diff === 'dificil' ? 3 : 2);
     zone = floodRegion(grid, mine);
     moves = 0;
-    status = 'playing';
+    gamePhase = 'playing';
     cell = boardSize() / N;
     fx.clear();
     msg.clear();
@@ -168,7 +171,7 @@ function syncHud() {
 }
 
 function play(color) {
-    if (status !== 'playing') return;
+    if (gamePhase !== 'playing') return;
     if (color === grid[0]) {           // el color que ya tienes no es jugada
         msg.show('Ese ya es tu color', 1.1);
         view.invalidate();
@@ -202,7 +205,7 @@ function play(color) {
 }
 
 function win() {
-    status = 'won';
+    gamePhase = 'won';
     var record = bests[diff].submit(moves);
     for (var k = 0; k < 40; k++) {
         fx.burst(GU.rand(boardX(), boardX() + boardSize()),
@@ -222,7 +225,7 @@ function win() {
 }
 
 function lose() {
-    status = 'lost';
+    gamePhase = 'lost';
     gameControls.idle();
     GameAudio.gameOver();
     setTimeout(function () {
@@ -316,7 +319,7 @@ function draw() {
 
     msg.draw(ctx, W / 2, H - PALETTE_H - 22);
 
-    if (status === 'idle') {
+    if (gamePhase === 'idle') {
         GU.idleScreen(ctx, {
             title: 'INUNDACIÓN',
             lines: ['Tiñe el tablero entero desde la esquina',
@@ -329,7 +332,7 @@ function draw() {
 /* ── Entrada ──────────────────────────────────────────────────────── */
 
 function handleAt(x, y) {
-    if (status !== 'playing') return;
+    if (gamePhase !== 'playing') return;
     for (var i = 0; i < COLORS.length; i++) {
         var r = paletteRect(i);
         if (x >= r.x && x <= r.x + r.w && y >= r.y && y <= r.y + r.h) { play(i); return; }
@@ -347,7 +350,7 @@ GU.swipe(canvas, { onTap: function (p) { handleAt(p.x, p.y); } });
 var cursor = GU.canvasCursor(canvas, {
     label: 'Paleta de colores. Flechas para moverte, Enter para elegir.',
     targets: function () {
-        if (status !== 'playing') return [];
+        if (gamePhase !== 'playing') return [];
         return COLORS.map(function (col, i) {
             var r = paletteRect(i);
             return { x: r.x, y: r.y, w: r.w, h: r.h, id: 'c' + i };

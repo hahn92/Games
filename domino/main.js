@@ -28,7 +28,10 @@ var aiHand = [];
 var chain = [];      // [{a, b}] ya orientadas: a a la izquierda, b a la derecha
 var selected = -1;
 var turn = 'player';  // player | ai
-var status = 'idle';  // idle | playing | over
+/* `gamePhase`, no `status`: `window.status` existe y es escribible, pero
+ * CONVIERTE A CADENA todo lo que se le asigne — `status = null` se queda en
+ * la cadena 'null', que es truthy. Ver docs/trampas.md. */
+var gamePhase = 'idle';  // idle | playing | over
 var msg = '', msgT = 0;
 var wins = 0, losses = 0;
 
@@ -65,7 +68,7 @@ function newGame() {
     aiHand = stock.splice(0, HAND_SIZE);
     chain = [];
     selected = -1;
-    status = 'playing';
+    gamePhase = 'playing';
     msg = '';
     msgT = 0;
     fx.clear();
@@ -139,7 +142,7 @@ function drawFromStock(h) {
 /* ── Turnos ───────────────────────────────────────────────────────── */
 
 function playerPlay(idx, side) {
-    if (status !== 'playing' || turn !== 'player') return;
+    if (gamePhase !== 'playing' || turn !== 'player') return;
     var t = hand[idx];
     if (!t || !fits(t, side)) { say('Por ahí no casa'); GameAudio.miss(); return; }
     placeTile(t, side);
@@ -154,7 +157,7 @@ function playerPlay(idx, side) {
 }
 
 function playerDraw() {
-    if (status !== 'playing' || turn !== 'player') return;
+    if (gamePhase !== 'playing' || turn !== 'player') return;
     if (handCanPlay(hand)) { say('Aún tienes jugada'); return; }
     if (drawFromStock(hand)) {
         sortHand();
@@ -171,7 +174,7 @@ function playerDraw() {
 }
 
 function aiTurn() {
-    if (status !== 'playing') return;
+    if (gamePhase !== 'playing') return;
 
     while (!handCanPlay(aiHand) && stock.length) drawFromStock(aiHand);
 
@@ -225,7 +228,7 @@ function pips(h) {
 }
 
 function finish(who) {
-    status = 'over';
+    gamePhase = 'over';
     var title, line;
     if (who === 'player') {
         wins++;
@@ -283,7 +286,7 @@ function draw() {
     fx.draw(ctx);
     drawHand();
     if (msgT > 0) drawMessage();
-    if (status === 'idle') drawIdle();
+    if (gamePhase === 'idle') drawIdle();
 }
 
 function drawAiHand() {
@@ -389,7 +392,7 @@ function drawHand() {
         var lifted = i === selected;
         if (lifted) y -= 12;
 
-        var playable = status === 'playing' && turn === 'player' && canPlay(t);
+        var playable = gamePhase === 'playing' && turn === 'player' && canPlay(t);
         ctx.fillStyle = playable ? '#f4f1ea' : '#c9c4bb';
         GU.roundRectPath(ctx, x, y, TILE_W, TILE_H, 5);
         ctx.fill();
@@ -463,7 +466,7 @@ function drawIdle() {
 /* ── Entrada ──────────────────────────────────────────────────────── */
 
 function handleAt(x, y) {
-    if (status !== 'playing' || turn !== 'player') return;
+    if (gamePhase !== 'playing' || turn !== 'player') return;
 
     /* Primero los botones de extremo, que se dibujan encima. */
     if (selected >= 0) {

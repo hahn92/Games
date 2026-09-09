@@ -39,7 +39,10 @@ var gridId = [];         // celda -> id de isla, o -1
 var bridges = [];        // {a, b, count, horiz}
 var sel = -1;
 var elapsed = 0, startMs = 0;
-var status = 'idle';
+/* `gamePhase`, no `status`: `window.status` existe y es escribible, pero
+ * CONVIERTE A CADENA todo lo que se le asigne — `status = null` se queda en
+ * la cadena 'null', que es truthy. Ver docs/trampas.md. */
+var gamePhase = 'idle';
 
 var fx = new Particles(120);
 var gMemo = GU.gradientMemo();
@@ -82,7 +85,7 @@ function newGame(level) {
     sel = -1;
     elapsed = 0;
     startMs = performance.now();
-    status = 'playing';
+    gamePhase = 'playing';
     fx.clear();
     msg.clear();
     over.hide();
@@ -281,7 +284,7 @@ function checkWin() {
         syncHud();
         return;
     }
-    status = 'won';
+    gamePhase = 'won';
     var record = bests[diff].submit(elapsed);
     for (var i = 0; i < islands.length; i++) {
         var p = pos(islands[i]);
@@ -399,7 +402,7 @@ function draw() {
 
     msg.draw(ctx, W / 2, H - 14);
 
-    if (status === 'idle') {
+    if (gamePhase === 'idle') {
         GU.idleScreen(ctx, {
             title: 'PUENTES',
             lines: ['Une las islas hasta cumplir sus números',
@@ -420,7 +423,7 @@ function islandAt(x, y) {
 }
 
 function handleAt(x, y) {
-    if (status !== 'playing') return;
+    if (gamePhase !== 'playing') return;
     var i = islandAt(x, y);
     if (i < 0) { sel = -1; view.invalidate(); return; }
     if (sel < 0) { sel = i; GameAudio.click(); view.invalidate(); return; }
@@ -441,7 +444,7 @@ GU.swipe(canvas, { onTap: function (p) { handleAt(p.x, p.y); } });
 var cursor = GU.canvasCursor(canvas, {
     label: 'Tablero de puentes. Flechas para moverte, Enter para elegir isla.',
     targets: function () {
-        if (status !== 'playing') return [];
+        if (gamePhase !== 'playing') return [];
         var r = radius(), out = [];
         for (var i = 0; i < islands.length; i++) {
             if (sel >= 0 && i !== sel && canLink(sel, i)) continue;
@@ -471,7 +474,7 @@ var view = rafDraw(function (dt) {
 /* El reloj se pinta dentro del canvas, así que hay que repintar — cuatro veces
  * por segundo, no sesenta. */
 setInterval(function () {
-    if (status !== 'playing') return;
+    if (gamePhase !== 'playing') return;
     elapsed = performance.now() - startMs;
     syncHud();
     view.invalidate();

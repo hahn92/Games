@@ -32,7 +32,10 @@ var WEIGHT = [3, 2, 3, 2, 4, 2, 3, 2, 3];      // esquinas y centro valen más
 
 var gs = null;
 var turn = YOU;
-var status = 'idle';
+/* `gamePhase`, no `status`: `window.status` existe y es escribible, pero
+ * CONVIERTE A CADENA todo lo que se le asigne — `status = null` se queda en
+ * la cadena 'null', que es truthy. Ver docs/trampas.md. */
+var gamePhase = 'idle';
 var thinking = false;
 var wins = GameStore.getNum('gatosupremoWins', 0);
 var lastMove = -1;
@@ -190,7 +193,7 @@ function aiDepth() {
 }
 
 function aiTurn() {
-    if (status !== 'playing' || turn !== AI) return;
+    if (gamePhase !== 'playing' || turn !== AI) return;
     var res = ai.best(gs, AI, aiDepth());
     thinking = false;
     if (res.move == null) { finish(); view.invalidate(); return; }
@@ -203,7 +206,7 @@ function aiTurn() {
 function newGame() {
     gs = newState();
     turn = YOU;
-    status = 'playing';
+    gamePhase = 'playing';
     thinking = false;
     lastMove = -1;
     fx.clear();
@@ -242,7 +245,7 @@ function apply(mv, who) {
 }
 
 function humanMove(mv) {
-    if (status !== 'playing' || turn !== YOU || thinking) return;
+    if (gamePhase !== 'playing' || turn !== YOU || thinking) return;
     if (legalMoves(gs).indexOf(mv) < 0) {
         msg.show(gs.forced >= 0 ? 'Te toca en el tablero resaltado' : 'Ahí no se puede', 1.2);
         GameAudio.hit();
@@ -264,7 +267,7 @@ function counts() {
 }
 
 function finish() {
-    status = 'over';
+    gamePhase = 'over';
     var w = bigWinner(gs);
     var c = counts();
     if (w === YOU) {
@@ -350,7 +353,7 @@ function draw() {
 
     if (gs) {
         var ss = smallSize(), cz = cellSize();
-        var legal = status === 'playing' && turn === YOU ? legalMoves(gs) : [];
+        var legal = gamePhase === 'playing' && turn === YOU ? legalMoves(gs) : [];
         var legalBoards = {};
         for (var l = 0; l < legal.length; l++) legalBoards[(legal[l] / 9) | 0] = true;
 
@@ -417,7 +420,7 @@ function draw() {
         ctx.textBaseline = 'middle';
         ctx.font = 'bold 17px Arial';
         ctx.fillStyle = turn === YOU ? '#8fd3f4' : '#ff8a3d';
-        ctx.fillText(status === 'over' ? 'Fin'
+        ctx.fillText(gamePhase === 'over' ? 'Fin'
                    : (turn === YOU
                       ? (gs.forced >= 0 ? 'Te toca en el tablero resaltado' : 'Te toca: elige tablero')
                       : 'Piensa la máquina'),
@@ -435,7 +438,7 @@ function draw() {
 
     msg.draw(ctx, W / 2, H - 16);
 
-    if (status === 'idle') {
+    if (gamePhase === 'idle') {
         GU.idleScreen(ctx, {
             title: 'GATO SUPREMO',
             lines: ['Tu jugada decide dónde juega el rival',
@@ -448,7 +451,7 @@ function draw() {
 /* ── Entrada ──────────────────────────────────────────────────────── */
 
 function handleAt(x, y) {
-    if (status !== 'playing') return;
+    if (gamePhase !== 'playing') return;
     for (var mv = 0; mv < 81; mv++) {
         var r = cellRect(mv);
         if (x >= r.x && x <= r.x + r.w && y >= r.y && y <= r.y + r.h) { humanMove(mv); return; }
@@ -464,7 +467,7 @@ GU.swipe(canvas, { onTap: function (p) { handleAt(p.x, p.y); } });
 var cursor = GU.canvasCursor(canvas, {
     label: 'Gato supremo. Flechas para moverte, Enter para jugar.',
     targets: function () {
-        if (status !== 'playing' || turn !== YOU) return [];
+        if (gamePhase !== 'playing' || turn !== YOU) return [];
         return legalMoves(gs).map(function (mv) {
             var r = cellRect(mv);
             return { x: r.x, y: r.y, w: r.w, h: r.h, id: 'm' + mv, mv: mv };

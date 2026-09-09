@@ -36,7 +36,10 @@ var player = null;
 var range = 2;
 
 var score = 0, lives = 3, level = 1;
-var status = 'idle';     // idle | playing | dead | over
+/* `gamePhase`, no `status`: `window.status` existe y es escribible, pero
+ * CONVIERTE A CADENA todo lo que se le asigne — `status = null` se queda en
+ * la cadena 'null', que es truthy. Ver docs/trampas.md. */
+var gamePhase = 'idle';     // idle | playing | dead | over
 
 var shake = new Shake({ decay: 0.85, max: 12 });
 var fx    = new Particles(280);
@@ -90,7 +93,7 @@ function buildLevel() {
     flames = [];
     fx.clear();
     spawnEnemies();
-    status = 'playing';
+    gamePhase = 'playing';
     syncHud();
 }
 
@@ -121,7 +124,7 @@ function startGame() {
 /* ── Bombas y llamas ──────────────────────────────────────────────── */
 
 function dropBomb() {
-    if (status !== 'playing') return;
+    if (gamePhase !== 'playing') return;
     /* Una bomba por celda; y un tope, o se puede alfombrar el mapa entero. */
     for (var i = 0; i < bombs.length; i++) {
         if (bombs[i].c === player.c && bombs[i].r === player.r) return;
@@ -195,7 +198,7 @@ function tryMove(m, dc, dr) {
 /* ── Actualización ────────────────────────────────────────────────── */
 
 function update(dt) {
-    if (status !== 'playing') return;
+    if (gamePhase !== 'playing') return;
 
     if (player.invuln > 0) player.invuln -= dt;
 
@@ -265,13 +268,13 @@ function updateEnemies(dt) {
 }
 
 function nextLevel() {
-    status = 'dead';           // congela el bucle mientras se monta el siguiente
+    gamePhase = 'dead';           // congela el bucle mientras se monta el siguiente
     level++;
     score += 100;
     if (level % 3 === 0) range++;
     GameAudio.win();
     syncHud();
-    setTimeout(function () { if (status !== 'over') buildLevel(); }, 900);
+    setTimeout(function () { if (gamePhase !== 'over') buildLevel(); }, 900);
 }
 
 function loseLife() {
@@ -282,19 +285,19 @@ function loseLife() {
     GameAudio.explode();
     syncHud();
     if (lives <= 0) { endGame(); return; }
-    status = 'dead';
+    gamePhase = 'dead';
     setTimeout(function () {
-        if (status === 'over') return;
+        if (gamePhase === 'over') return;
         player.c = player.tc = 1; player.r = player.tr = 1;
         player.x = 1; player.y = 1; player.moving = false;
         player.invuln = 1.6;
         bombs = []; flames = [];
-        status = 'playing';
+        gamePhase = 'playing';
     }, 900);
 }
 
 function endGame() {
-    status = 'over';
+    gamePhase = 'over';
     var record = best.submit(score);
     syncHud();
     gameControls.idle();
@@ -335,11 +338,11 @@ function draw() {
     drawFlames();
     fx.draw(ctx);
     drawEnemies();
-    if (status === 'playing' || status === 'dead') drawPlayer();
+    if (gamePhase === 'playing' || gamePhase === 'dead') drawPlayer();
 
     if (shaking) ctx.restore();
 
-    if (status === 'idle') drawIdle();
+    if (gamePhase === 'idle') drawIdle();
 }
 
 function drawGrid() {
@@ -483,7 +486,7 @@ var over = GU.popup('overPopup');
 var gameControls = GU.controls({ start: startGame, popup: 'overPopup' });
 
 buildLevel();
-status = 'idle';
+gamePhase = 'idle';
 syncHud();
 draw();
 

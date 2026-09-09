@@ -32,7 +32,10 @@ var aimFrom = { x: 0, y: 0 }, aimTo = { x: 0, y: 0 };
 var shotsLeft = 0;
 var score = 0, streak = 0, bestStreak = 0, made = 0, taken = 0;
 var timeLeft = ROUND_TIME;
-var status = 'idle';     // idle | ready | flying | over
+/* `gamePhase`, no `status`: `window.status` existe y es escribible, pero
+ * CONVIERTE A CADENA todo lo que se le asigne — `status = null` se queda en
+ * la cadena 'null', que es truthy. Ver docs/trampas.md. */
+var gamePhase = 'idle';     // idle | ready | flying | over
 var msg = '', msgT = 0;
 var scoredThisShot = false;
 var wasAboveRim = false;
@@ -67,7 +70,7 @@ function resetBall() {
     };
     scoredThisShot = false;
     wasAboveRim = false;
-    status = 'ready';
+    gamePhase = 'ready';
 }
 
 function launch(dx, dy) {
@@ -79,7 +82,7 @@ function launch(dx, dy) {
     ball.vy = -Math.sin(ang) * power;
     ball.spin = -ball.vx * 0.012;
     ball.live = true;
-    status = 'flying';
+    gamePhase = 'flying';
     taken++;
     GameAudio.shoot();
     syncHud();
@@ -88,14 +91,14 @@ function launch(dx, dy) {
 /* ── Física ───────────────────────────────────────────────────────── */
 
 function update(dt) {
-    if (status === 'over' || status === 'idle') return;
+    if (gamePhase === 'over' || gamePhase === 'idle') return;
 
     timeLeft -= dt;
     if (timeLeft <= 0) { timeLeft = 0; endGame(); return; }
 
     if (msgT > 0) msgT -= dt;
 
-    if (status !== 'flying' || !ball.live) { syncHud(); return; }
+    if (gamePhase !== 'flying' || !ball.live) { syncHud(); return; }
 
     ball.vy += GRAVITY * dt;
     ball.x += ball.vx * dt;
@@ -201,7 +204,7 @@ function startGame() {
 }
 
 function endGame() {
-    status = 'over';
+    gamePhase = 'over';
     var record = best.submit(score);
     syncHud();
     gameControls.idle();
@@ -253,7 +256,7 @@ function draw() {
     if (shaking) ctx.restore();
 
     if (msgT > 0) drawMessage();
-    if (status === 'idle') drawIdle();
+    if (gamePhase === 'idle') drawIdle();
 }
 
 function drawCourt() {
@@ -391,7 +394,7 @@ function drawIdle() {
 /* ── Entrada ──────────────────────────────────────────────────────── */
 
 function startAim(p) {
-    if (status !== 'ready') return;
+    if (gamePhase !== 'ready') return;
     aiming = true;
     aimFrom.x = ball.x; aimFrom.y = ball.y;
     aimTo.x = p.x; aimTo.y = p.y;
@@ -419,7 +422,7 @@ var over = GU.popup('overPopup');
 var gameControls = GU.controls({ start: startGame, popup: 'overPopup' });
 
 resetBall();
-status = 'idle';
+gamePhase = 'idle';
 syncHud();
 draw();
 
