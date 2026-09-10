@@ -819,13 +819,27 @@
             return out;
         }
 
+        /* El nombre de la caché lo decide `sw.js` y lleva la versión dentro, así
+         * que aquí NO se puede escribir a mano: estuvo puesto 'juegos-v1' mientras
+         * el worker ya iba por la v2, y todo lo que guardaba este botón caía en una
+         * caché que nadie leía y que el propio worker borraba al activarse. Se
+         * pregunta por la que hay. */
+        function cacheDelWorker() {
+            return caches.keys().then(function (ns) {
+                for (var i = 0; i < ns.length; i++) {
+                    if (/^juegos-v\d+$/.test(ns[i])) return caches.open(ns[i]);
+                }
+                return Promise.reject(new Error('el service worker no ha creado su caché todavía'));
+            });
+        }
+
         btn.addEventListener('click', function () {
             var lista = ficheros();
             var hechos = 0, fallos = 0;
             btn.disabled = true;
             msg.textContent = 'Guardando… 0 de ' + lista.length;
 
-            caches.open('juegos-v1').then(function (c) {
+            cacheDelWorker().then(function (c) {
                 var i = 0;
                 function lote() {
                     if (i >= lista.length) {

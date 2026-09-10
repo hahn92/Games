@@ -29,7 +29,7 @@
  * recibe el HTML nuevo (va por red) con el CSS y el JS viejos hasta la segunda
  * carga. Pasó entre la v1 y esta: se publicaron tres cambios sin tocarla.
  * `node sw.test.js` lo comprueba y avisa. */
-var VERSION = 'v2';
+var VERSION = 'v3';
 var CACHE = 'juegos-' + VERSION;
 
 /* El esqueleto: lo que necesita el catálogo para arrancar, y los ficheros que
@@ -45,7 +45,8 @@ var ESQUELETO = [
     './audio.js',
     './mobile-layout.js',
     './fullscreen-btn.js',
-    './favicon.svg'
+    './favicon.svg',
+    './manifest.webmanifest'
 ];
 
 self.addEventListener('install', function (e) {
@@ -71,6 +72,18 @@ self.addEventListener('activate', function (e) {
     );
 });
 
+/* `respondWith` TIENE que resolverse a un Response. Resolverse a `undefined`
+ * —lo que pasaba cuando no había copia y la red fallaba— no se traduce en un
+ * error de red normal: el navegador lo trata como un fallo del worker
+ * ("Returned response is null" en WebKit) y la carga entera se cae. Con esto,
+ * pedir sin conexión algo que nunca se guardó falla como fallaría sin worker:
+ * un 503 que el `onerror` del que lo pidió puede tratar. Salió abriendo el
+ * catálogo sin servidor: las miniaturas que aún no estaban en la caché tumbaban
+ * la página en vez de dejar la tarjeta sin dibujo. */
+function sinRed() {
+    return new Response('', { status: 503, statusText: 'Sin conexion' });
+}
+
 function esHTML(req) {
     return req.mode === 'navigate' ||
            (req.headers.get('accept') || '').indexOf('text/html') >= 0;
@@ -94,7 +107,9 @@ self.addEventListener('fetch', function (e) {
                 return res;
             }).catch(function () {
                 return caches.match(req).then(function (hit) {
-                    return hit || caches.match('./index.html');
+                    return hit || caches.match('./index.html').then(function (raiz) {
+                        return raiz || sinRed();
+                    });
                 });
             })
         );
@@ -113,7 +128,7 @@ self.addEventListener('fetch', function (e) {
                     caches.open(CACHE).then(function (c) { c.put(req, copia); });
                 }
                 return res;
-            }).catch(function () { return hit; });
+            }).catch(function () { return hit || sinRed(); });
             return hit || red;
         })
     );

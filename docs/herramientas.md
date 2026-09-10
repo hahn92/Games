@@ -50,6 +50,44 @@ Lo que Lighthouse dice y aquí NO se sigue: minificar CSS y JavaScript. Este
 proyecto se lee tal cual desde el navegador y no tiene build; minificar sería
 cambiar eso por 80 KB.
 
+## Probar en Safari sin tener Safari delante
+
+Tres piezas del proyecto existen **sólo** por WebKit —el polyfill de
+`ctx.roundRect` para Safari < 16.4, el desbloqueo del `AudioContext` con el primer
+gesto y `GameStore` degradando cuando el almacenamiento está bloqueado— y ninguna
+se había ejecutado nunca ahí. `safaridriver` existe en macOS pero pide activar a
+mano «Permitir automatización remota» en los ajustes de Safari, así que para una
+pasada automática se usa el WebKit de Playwright, **fuera del repositorio** (este
+proyecto no tiene dependencias y no va a tenerlas):
+
+```bash
+mkdir -p /tmp/wk && cd /tmp/wk && pnpm add playwright-webkit
+node node_modules/.pnpm/playwright-core@*/node_modules/playwright-core/cli.js install webkit
+```
+
+pnpm bloquea el script de postinstalación, así que el binario **no se baja solo**:
+hay que llamar al CLI de `playwright-core` a mano, como arriba.
+
+Lo que hay que forzar, porque en un WebKit moderno no salta solo:
+
+| Pieza | Cómo se provoca |
+|-------|-----------------|
+| Polyfill de `roundRect` | `delete CanvasRenderingContext2D.prototype.roundRect` en un `addInitScript` |
+| Prefijo `webkitAudioContext` | `delete window.AudioContext` dejando sólo el prefijado |
+| Sin Web Audio | borrar los dos: el juego tiene que sonar mudo, no romperse |
+| `GameStore` bloqueado | redefinir `window.localStorage` con un getter que **lance** — es lo que hace Safari de verdad, no devolver `null` |
+
+Resultado de la pasada: los 80 juegos cargan sin un error en escritorio y en un
+contexto iPhone 13, sin scroll lateral y sin canvas saliéndose; el polyfill
+dibuja las esquinas; el contexto de audio no se crea hasta el primer gesto y
+entonces queda en `running`; y con el almacenamiento bloqueado `GameStore`
+guarda en memoria sin que muera `main.js`.
+
+**Ojo con `context.setOffline(true)` en el WebKit de Playwright**: devuelve
+«WebKit encountered an internal error» en la navegación aunque la página cargue
+de verdad. Para probar sin conexión, apaga el servidor
+(`lsof -ti tcp:8899 | xargs kill -9`), que además es la prueba honesta.
+
 ## Ver los juegos sin extensión de navegador
 
 Lo único que detecta que un canvas no pinta es mirarlo, y para eso no hace falta

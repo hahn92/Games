@@ -47,6 +47,12 @@ function entorno(opts) {
         URL,
         Promise,
         Request: function (url, init) { this.url = String(url); this.init = init; },
+        Response: function (body, init) {
+            init = init || {};
+            this.body = body;
+            this.status = init.status === undefined ? 200 : init.status;
+            this.statusText = init.statusText || '';
+        },
         self: null,
         caches: {
             _mapa: caches,
@@ -225,6 +231,26 @@ function eventoFetch(url, opts) {
     } catch (e) {
         console.log('  --   sin git: no se puede comprobar');
     }
+
+    /* ── 9. Sin copia y sin red ─────────────────────────────────────
+     *
+     * `respondWith` tiene que resolverse a un Response SIEMPRE. Resolverse a
+     * `undefined` no es "error de red": el navegador lo toma por un fallo del
+     * worker y tumba la carga entera. Salió abriendo el catálogo sin servidor:
+     * las miniaturas que aún no estaban guardadas se llevaban la página por
+     * delante en vez de dejar la tarjeta sin dibujo. */
+    console.log('\n9. sin copia y sin red');
+    const ent9 = entorno({ sinRed: true });
+    const f9 = eventoFetch('https://games.hahndev.com/thumbnails/snake.js');
+    await disparar(ent9.listeners, 'fetch', f9.e);
+    const r9 = await f9.respuesta();
+    check('lo estatico responde 503, no undefined', r9 && r9.status === 503);
+
+    const f9b = eventoFetch('https://games.hahndev.com/nunca-visto/index.html', { navigate: true });
+    await disparar(ent9.listeners, 'fetch', f9b.e);
+    const r9b = await f9b.respuesta();
+    check('una navegacion nunca vista tampoco se queda en undefined',
+        r9b !== undefined && r9b !== null);
 
     console.log('\n' + pass + ' pasan, ' + fail + ' fallan');
     process.exit(fail ? 1 : 0);

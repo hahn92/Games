@@ -170,6 +170,29 @@ petición, por lotes de ocho y con el progreso a la vista. La lista sale del
 propio catálogo (el `data-game` de cada tarjeta), así que un juego nuevo entra
 solo sin tocar nada.
 
+Dos cosas que salieron probándolo en WebKit con el servidor apagado, y que no
+se ven de ninguna otra forma:
+
+- **El nombre de la caché lo decide `sw.js`, y el botón lo tenía escrito a mano.**
+  Ponía `caches.open('juegos-v1')` mientras el worker ya iba por la v2, así que
+  todo lo que guardaba caía en una caché que nadie leía y que el propio worker
+  borraba al activarse: el botón decía «Listo» y no servía de nada. Ahora se
+  busca la que existe (`/^juegos-v\d+$/`); duplicar la versión en dos ficheros
+  es exactamente lo que no puede volver a pasar.
+- **`respondWith` tiene que resolverse a un `Response` siempre.** Cuando no
+  había copia y la red fallaba se resolvía a `undefined`, y eso no es un error
+  de red: el navegador lo toma por un fallo del worker («Returned response is
+  null» en WebKit) y tumba la carga entera. Se vio abriendo el catálogo sin
+  servidor — las miniaturas aún no guardadas se llevaban la página por delante
+  en vez de dejar la tarjeta sin dibujo. Ahora esa rama devuelve un 503, que es
+  lo que habría pasado sin worker.
+
+**La primera visita no está controlada por el worker.** El registro termina
+después de que la página haya pedido sus ficheros, así que lo que cargue esa
+primera vez —las miniaturas, el manifiesto— no queda guardado. Desde la segunda
+visita sí. Es la razón de que el botón de guardar exista, y de que el manifiesto
+esté en el esqueleto.
+
 **Al publicar un cambio hay que subir `VERSION` en `sw.js`.** Es lo que dispara
 la instalación de la caché nueva y el borrado de la anterior. Si no se sube,
 quien ya tenga el worker instalado recibe el HTML nuevo —que va por red— con el
