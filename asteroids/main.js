@@ -561,6 +561,19 @@ var gameHud = GU.hud({
     } }
 });
 
+/* Una vida extra cada EXTRA_LIFE_STEP puntos. La llamada estaba en el bucle
+ * desde que se añadió la constante, pero la función no se llegó a escribir:
+ * el primer asteroide destruido lanzaba un ReferenceError y paraba la partida. */
+function grantExtraLives() {
+    var granted = false;
+    while (score >= nextExtraLife) {
+        lives++;
+        nextExtraLife += EXTRA_LIFE_STEP;
+        granted = true;
+    }
+    if (granted) GameAudio.scoreHigh();
+}
+
 function updateHUD() {
     gameBest.submit(score);
     highScore = gameBest.display(0);
@@ -583,6 +596,7 @@ function startGame() {
     ship = new Ship(W/2, H/2);
     bullets = []; asteroids = []; particles = []; thrustParticles = [];
     score = 0; lives = 3; level = 1; invincible = 0; shipGlowPhase = 0;
+    nextExtraLife = EXTRA_LIFE_STEP;
     shake.stop(); deathFlash = 0;   // una partida nueva no hereda la muerte anterior
     isPlaying = true;
     document.getElementById('gameOverPopup').style.display = 'none';
