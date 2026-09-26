@@ -717,4 +717,17 @@ window.addEventListener('keydown', e => {
 })();
 
 updateScoreDOM();
-drawBoard();
+
+/* Pantalla de reposo: el tablero vacío solo era un rectángulo negro que no
+ * decía qué hacer. Se repinta en el resize porque reasignar el tamaño del
+ * canvas lo borra. */
+function drawIdle() {
+    drawBoard();
+    GU.idleScreen(ctx, {
+        title: 'TETRIS',
+        lines: ['Completa líneas sin llegar arriba', 'Pulsa Iniciar'],
+        bg: 'rgba(0,0,0,0.35)'
+    });
+}
+window.addEventListener('resize', function () { if (!isPlaying) drawIdle(); });
+drawIdle();

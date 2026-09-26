@@ -7,7 +7,7 @@ var H = canvas.height;  // 480
 var COLS = 10, ROWS = 12;
 var CELL = W / COLS; // 40
 
-var score, highScore, lives, isPlaying, animFrameId;
+var score = 0, highScore, lives = 3, isPlaying, animFrameId;
 /* El récord va por GU.highScore: la comparación, la escritura y el valor
  * por defecto en un solo sitio. `highScore` se mantiene porque el resto
  * del fichero la usa. */
@@ -1698,5 +1698,18 @@ var gameControls = GU.controls({ start: startGame, popup: 'gameOverPopup' });
 
 // Init
 initLanes();
-ctx.fillStyle = '#1a237e'; ctx.fillRect(0, 0, W, H);
+/* Pantalla de reposo. El canvas salía como un rectángulo liso hasta pulsar
+ * Iniciar; y como un resize reasigna el tamaño del canvas y lo borra, se repinta
+ * también ahí mientras no haya partida. */
+function drawIdle() {
+    ctx.fillStyle = '#1a237e'; ctx.fillRect(0, 0, W, H);
+    GU.idleScreen(ctx, {
+        title: 'FROGGER',
+        lines: ['Lleva la rana a los nenúfares', 'Pulsa Iniciar'],
+        bg: 'rgba(0,0,0,0.25)',
+        color: '#7CFC9A'
+    });
+}
+window.addEventListener('resize', function () { if (!isPlaying) drawIdle(); });
+drawIdle();
 updateHUD();

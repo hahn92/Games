@@ -721,5 +721,16 @@ var gameControls = GU.controls({ start: startGame, popup: 'gameOverPopup' });
 })();
 
 // Init draw
-ctx.fillStyle = bgGrad; ctx.fillRect(0, 0, W, H);  // fondo inicial
+/* Pantalla de reposo: el fondo solo, sin título, parecía un canvas roto. Un
+ * resize reasigna el tamaño del canvas y lo borra, así que se repinta ahí. */
+function drawIdle() {
+    ctx.fillStyle = bgGrad; ctx.fillRect(0, 0, W, H);
+    GU.idleScreen(ctx, {
+        title: 'ASTEROIDS',
+        lines: ['Gira, avanza y dispara', 'Pulsa Iniciar'],
+        bg: 'rgba(0,0,0,0.25)'
+    });
+}
+window.addEventListener('resize', function () { if (!isPlaying) drawIdle(); });
+drawIdle();
 updateHUD();

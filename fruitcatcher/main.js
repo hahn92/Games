@@ -9,7 +9,7 @@ var BASKET_SPEED = 7;
 
 // Fruit kinds: 0-9 fruits, 10 bomb, 11 star
 var FRUIT_COUNT = 10;
-var basket, items, score, highScore, lives, isPlaying, animFrameId, frame, spawnRate;
+var basket, items, score = 0, highScore, lives = 3, isPlaying, animFrameId, frame, spawnRate;
 var isPaused = false;
 
 // Waves
@@ -785,5 +785,18 @@ addHold(btnRight, 'right');
 var gameControls = GU.controls({ start: startGame, popup: 'gameOverPopup' });
 
 // Init
-ctx.fillStyle = '#1a237e'; ctx.fillRect(0, 0, W, H);
+/* Pantalla de reposo. El canvas salía como un rectángulo liso hasta pulsar
+ * Iniciar; y como un resize reasigna el tamaño del canvas y lo borra, se repinta
+ * también ahí mientras no haya partida. */
+function drawIdle() {
+    ctx.fillStyle = '#1a237e'; ctx.fillRect(0, 0, W, H);
+    GU.idleScreen(ctx, {
+        title: 'ATRAPA FRUTAS',
+        lines: ['Atrapa la fruta, esquiva las bombas', 'Pulsa Iniciar'],
+        bg: 'rgba(0,0,0,0.25)',
+        color: '#ffd54f'
+    });
+}
+window.addEventListener('resize', function () { if (!isPlaying) drawIdle(); });
+drawIdle();
 updateHUD();

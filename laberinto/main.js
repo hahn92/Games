@@ -23,7 +23,9 @@
         timer: timerEl,
         best:  bestEl,
         mobile: { el: mobileScore, html: function (v) {
-            return 'Nv.' + v.level + '  ' + v.timer;
+            /* El reloj no se escribe hasta el primer movimiento: sin este
+             * respaldo la línea de móvil decía «Nv.1 undefined» en reposo. */
+            return 'Nv.' + v.level + '  ' + (v.timer == null ? fmtTime(0) : v.timer);
         } }
     });
     var startBtn    = document.getElementById('startBtn');
