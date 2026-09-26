@@ -112,6 +112,25 @@ en su rama de móvil y uno fuera de pantalla hace que Chrome estrangule su `rAF`
 con lo que el juego no avanza ni un frame y la captura miente.
 → [Trampas](./trampas.md)
 
+**Si `--screenshot` se queda colgado** —pasa con el Chrome actual: el registro
+del service worker y los bucles de `rAF` no dejan agotarse el presupuesto de
+tiempo virtual—, Playwright contra el Chrome instalado sí funciona, fuera del
+repositorio y bloqueando el worker:
+
+```js
+// pnpm add playwright-core   (en una carpeta temporal, nunca en el repo)
+const b = await chromium.launch({ channel: 'chrome' });
+const ctx = await b.newContext({ serviceWorkers: 'block',
+    viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true,
+    userAgent: '... iPhone ...' });   // el UA es lo que activa la rama de móvil
+```
+
+Así se barrieron los 80 en escritorio y en iPhone, con `pageerror` escuchado y
+tocando de verdad el botón de inicio (`page.touchscreen.tap`). Lo que encontró
+—el error de asteroids al destruir un asteroide, 38 juegos sin forma de empezar
+en móvil, el Iniciar de 2048 que no respondía al dedo— no lo veía ningún
+barrido que sólo cargara la página.
+
 Para sondear valores en vez de mirar, `--dump-dom` sobre una página que escriba
 lo que quieras en un `<pre>` sirve: así se localizó que el fondo de asteroids
 salía en (145,152,173) cuando debía ser (13,27,75).
