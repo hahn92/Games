@@ -438,3 +438,40 @@ h1 {
     font-size: 0.9rem;
     color: var(--text-muted);
 }
+
+/* Botón de inicio en móvil. mobile-layout.js lo crea cuando el juego no lo trae
+ * y decide su posición; esto es sólo el aspecto. Va en :where() para que los
+ * juegos que lo llevan con estilo en línea conserven el suyo. */
+:where(#mobileStartBtn) {
+    padding: 1rem 2.5rem;
+    font-size: 1.3rem;
+    font-weight: bold;
+    border: none;
+    border-radius: 12px;
+    background: var(--grad-primary);
+    color: #222;
+    box-shadow: 0 4px 16px rgba(0,0,0,0.35);
+    white-space: nowrap;
+    cursor: pointer;
+}
+
+/* Barra de acciones en móvil (MobileLayout({ actions })): los botones del panel
+ * lateral sin los que no se puede jugar, reflejados bajo el tablero. */
+.mobile-actions {
+    display: none;
+    gap: 0.8rem;
+    justify-content: center;
+    flex-wrap: wrap;
+    margin-top: 0.6rem;
+}
+.mobile-actions button {
+    background: var(--grad-primary);
+    color: #222;
+    border: none;
+    border-radius: 8px;
+    padding: 0.6rem 1.4rem;
+    font-size: 1rem;
+    font-weight: bold;
+    cursor: pointer;
+}
+.mobile-actions button:disabled { opacity: 0.45; cursor: default; }

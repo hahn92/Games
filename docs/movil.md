@@ -47,10 +47,39 @@ Remaining per-game conventions:
   y ocupa hasta los 157, así que sin ese hueco se come el principio del texto. En un móvil se leía
   «…tos · 0/52 subidas» en vez de «12 movimientos · 0/52 subidas», y le pasaba a los ochenta juegos.
   Si algún día la barra cambia de ancho, ese padding va con ella
-- `#mobileStartBtn` overlays the canvas on initial load
+- `#mobileStartBtn` lo garantiza y lo coloca `mobile-layout.js` — ver abajo
 - `fullscreen-btn.js` adds a floating ⛶ button (bottom-right) that triggers `requestFullscreen()` + `screen.orientation.lock('landscape')` (Android) or full-screen without lock (iOS)
 - Bottom-anchored elements use `bottom: calc(20px + env(safe-area-inset-bottom))` for iPhone notch safety
 - Touch controls (`.touch-controls`, `.touch-cols`) are **hidden globally** via `styles.css` with `display: none !important`; all games use swipe/tap gestures on canvas instead
+
+## El botón de inicio y los botones de acción en móvil
+
+En móvil el panel lateral se oculta entero, y con él **Iniciar**. El botón de
+inicio de móvil es entonces la única forma de empezar, y `mobile-layout.js` se
+ocupa de él en los 80 juegos:
+
+- **Se crea si falta.** 38 juegos no lo llevaban en el markup: enseñaban «Pulsa
+  Iniciar» sin nada que pulsar y no se podían jugar en un teléfono.
+- **Lo coloca él**, centrado y al 70 % del canvas (debajo del título de la
+  pantalla de reposo), o en el centro del tablero en los juegos de DOM. Da igual
+  el `top` que traiga en línea: 22 juegos lo tenían a 20 px del borde, debajo de
+  la barra de navegación y del marcador, que se comían el toque.
+- **Sigue al `disabled` de `#startBtn`.** Se esconde si la partida empieza por
+  otra vía (tocar el tablero) y vuelve a salir cuando Iniciar se reactiva al
+  terminar — sin eso, en un juego sin popup no había forma de jugar otra vez.
+  Un `resize` a media partida (girar el móvil) no lo resucita.
+
+Los botones del panel sin los que no se juega —Comprobar en mastermind, Robar en
+dominó, Tirar en generala— se declaran en `MobileLayout({ actions: ['rollBtn'] })`
+y salen en una barra bajo el tablero. Son reflejos: mismo texto, mismo
+`disabled`, y el toque pulsa el botón original, así que no hay lógica duplicada.
+Lo usan domino, generala, mahjong, mastermind, lightsout y sokoban. Un juego que
+ya tenía su barra propia (sudoku, nonograma, hanoi) la conserva.
+
+**Un botón dentro de una zona de `GU.swipe` necesita que el swipe lo ignore**, y
+lo hace: el `preventDefault` de `touchstart` anula el click sintetizado, y el
+Iniciar de 2048 —cuya zona de gestos es el `gameSide` entero— no respondía a un
+dedo. Un toque que empieza sobre un `button`, enlace o campo ya no es un gesto.
 
 ## Probar el tacto sin un móvil
 
