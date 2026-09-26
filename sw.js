@@ -29,7 +29,7 @@
  * recibe el HTML nuevo (va por red) con el CSS y el JS viejos hasta la segunda
  * carga. Pasó entre la v1 y esta: se publicaron tres cambios sin tocarla.
  * `node sw.test.js` lo comprueba y avisa. */
-var VERSION = 'v3';
+var VERSION = 'v4';
 var CACHE = 'juegos-' + VERSION;
 
 /* El esqueleto: lo que necesita el catálogo para arrancar, y los ficheros que
