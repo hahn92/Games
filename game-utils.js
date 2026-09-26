@@ -1129,7 +1129,15 @@
             return dy > 0 ? 'down' : 'up';
         }
 
+        /* Un toque que empieza sobre un botón no es un gesto. Con la zona de
+         * gestos en todo el gameSide (2048), el preventDefault de touchstart se
+         * comía el click sintetizado y el botón de Iniciar en móvil no hacía
+         * nada: el juego no se podía empezar desde un teléfono. */
+        var CONTROL = 'button, a[href], input, select, textarea, label, [role="button"]';
+
         function start(e) {
+            var ctl = e.target && e.target.closest && e.target.closest(CONTROL);
+            if (ctl && ctl !== el && el.contains(ctl)) return;
             var p = at(e);
             sx = p.x; sy = p.y; st = performance.now();
             tracking = true; fired = false;

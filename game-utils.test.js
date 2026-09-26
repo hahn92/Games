@@ -623,5 +623,35 @@ function check(name, cond) {
     }
 }
 
+/* ── GU.swipe no se come el toque de un botón dentro de su zona ────────── */
+{
+    const dom = makeDom([]);
+    const sb = loadToolkit(dom);
+    console.log('\nswipe y botones');
+    /* Zona de gestos con un botón dentro, como el gameSide de 2048 con el
+     * Iniciar de móvil: el preventDefault de touchstart anulaba su click. */
+    const zone = makeEl('gameSide', 'div');
+    const btn = makeEl('mobileStartBtn', 'button');
+    btn.parent = zone;
+    btn.closest = sel => (sel.includes('button') ? btn : null);
+    zone.closest = () => null;
+    const swipes = [];
+    sb.GU.swipe(zone, { preventDefault: true, onSwipe: d => swipes.push(d) });
+    function touch(type, target, x, y) {
+        const t = { clientX: x, clientY: y };
+        const e = { type, target, touches: type === 'touchend' ? [] : [t], changedTouches: [t],
+                    prevented: false, preventDefault() { this.prevented = true; } };
+        zone._listeners[type].forEach(fn => fn(e));
+        return e;
+    }
+    const onBtn = touch('touchstart', btn, 10, 10);
+    const endBtn = touch('touchend', btn, 10, 10);
+    check('un toque sobre el botón no hace preventDefault', !onBtn.prevented && !endBtn.prevented);
+    const onZone = touch('touchstart', zone, 10, 10);
+    touch('touchmove', zone, 90, 10);
+    touch('touchend', zone, 90, 10);
+    check('fuera del botón el gesto sigue funcionando', onZone.prevented && swipes.join() === 'right');
+}
+
 console.log('\n' + pass + ' pasan, ' + fail + ' fallan');
 process.exit(fail ? 1 : 0);
