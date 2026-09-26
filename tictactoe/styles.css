@@ -198,28 +198,33 @@ body {
     background: rgba(255,255,255,0.13);
 }
 
-/* Hover ghost X preview */
-.ttt-cell.hover-x:not(.x):not(.o):empty::after {
-    content: '';
-    position: absolute;
-    inset: 18%;
-    background:
-        linear-gradient(45deg, transparent 40%, #ff512f 40%, #ff512f 60%, transparent 60%),
-        linear-gradient(-45deg, transparent 40%, #ff512f 40%, #ff512f 60%, transparent 60%);
-    opacity: 0.18;
-    pointer-events: none;
-    border-radius: 4px;
-}
-/* Hover ghost O preview */
-.ttt-cell.hover-o:not(.x):not(.o):empty::after {
-    content: '';
-    position: absolute;
-    inset: 22%;
-    border-radius: 50%;
-    border: 6px solid #8fd3f4;
-    opacity: 0.18;
-    pointer-events: none;
-    box-sizing: border-box;
+/* Vista previa de la ficha bajo el puntero. main.js marca TODAS las casillas
+ * libres con hover-x/hover-o en tu turno, así que sin el :hover la X fantasma
+ * salía en las nueve a la vez; y en táctil no hay puntero que previsualizar. */
+@media (hover: hover) {
+    /* Hover ghost X preview */
+    .ttt-cell.hover-x:hover:not(.x):not(.o):empty::after {
+        content: '';
+        position: absolute;
+        inset: 18%;
+        background:
+            linear-gradient(45deg, transparent 40%, #ff512f 40%, #ff512f 60%, transparent 60%),
+            linear-gradient(-45deg, transparent 40%, #ff512f 40%, #ff512f 60%, transparent 60%);
+        opacity: 0.18;
+        pointer-events: none;
+        border-radius: 4px;
+    }
+    /* Hover ghost O preview */
+    .ttt-cell.hover-o:hover:not(.x):not(.o):empty::after {
+        content: '';
+        position: absolute;
+        inset: 22%;
+        border-radius: 50%;
+        border: 6px solid #8fd3f4;
+        opacity: 0.18;
+        pointer-events: none;
+        box-sizing: border-box;
+    }
 }
 
 /* Winner highlight */
