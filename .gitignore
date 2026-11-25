@@ -10,3 +10,4 @@ _*.html
 */_movil.html
 
 .DS_Store
+.claude/settings.local.json
